@@ -1,7 +1,7 @@
 import React from 'react';
 //import { Button, XGroup, XStack, YStack } from 'tamagui'
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity } from 'react-native';
-import { useFonts } from 'expo-font';
+
 
 const HomeScreen: React.FC = () => (
   <ScrollView style={{backgroundColor: 'white'}}>
