@@ -1,11 +1,40 @@
 import React from 'react';
 //import { Button, XGroup, XStack, YStack } from 'tamagui'
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity, ViewComponent } from 'react-native';
+import { useState } from 'react';
+const[showlist, setshowlist] = state(false);
 
+// interface DropdownProps {
+//     Title: string;
+//     options: string[]
+//     selectedOption: string | null;
+//     onSelect: (option: string) => void;
+// }
+
+// const Dropdown: React.FC<DropdownProps> = ({ Title, options, selectedOption, onSelect }) => {
+//   return(
+//     <SafeAreaView>
+//       <TouchableOpacity style={styles.binstyle} onPress={()=>setshowlist(!showlist)}>
+//         <Text style={styles.Label}>Title</Text>
+//       </TouchableOpacity>
+//       {showlist && (
+//         <View>
+//           <Text style={styles.Label}>options[0]</Text>
+//           <Text style={styles.Label}>options[1]</Text>
+//           <Text style={styles.Label}>options[2]</Text>
+//           <Text style={styles.Label}>options[3]</Text>
+//           <Text style={styles.Label}>options[4]</Text>
+//         </View>
+//       )}
+//     </SafeAreaView>
+
+//   );
+// };
+//const subteams = ['Build','Software','Marketing','Design','Electrical'];
 
 const HomeScreen: React.FC = () => (
   <ScrollView style={{backgroundColor: 'white'}}>
-  <View style={styles.container}>
+  <SafeAreaView style={styles.container}>
     <Text style={styles.Title}>Create New Account</Text>
 
     <Text style={styles.Label}>Full Name</Text>
@@ -26,6 +55,13 @@ const HomeScreen: React.FC = () => (
     <Text style={styles.Label}>Sub-Team</Text> 
     <TextInput style={styles.Input} placeholder='Select Sub-team'></TextInput>
 
+    {/* <Dropdown Title='Subteams' options={subteams} selectedOption={null} onSelect={()=>console.log("option selected") }>
+      
+    </Dropdown> */}
+
+
+
+
     <Text style={styles.Label}>Password</Text>
     <TextInput style={styles.Input} placeholder='Choose Password'></TextInput>
 
@@ -36,7 +72,7 @@ const HomeScreen: React.FC = () => (
         <Text style={styles.ButtonText}>Create Account</Text>
     </TouchableOpacity>
 
-  </View>
+  </SafeAreaView>
   </ScrollView>
 );
 
@@ -80,7 +116,15 @@ const styles = StyleSheet.create({
   },
   ButtonText:{
     color:'black',
+  },
+  binstyle:{
+    borderWidth: 1,
+    width: 2,
   }
 });
 
 export default HomeScreen;
+
+function state(arg0: boolean): [any, any] {
+    throw new Error('Function not implemented.');
+}
