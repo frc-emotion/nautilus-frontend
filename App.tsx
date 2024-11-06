@@ -17,8 +17,8 @@ function App() {
       <NavigationContainer>
         <Tab.Navigator>
           <Tab.Screen name="Home" component={HomeScreen} />
-          <Tab.Screen name="AdminPortal" component={AdminPortal} />
-          <Tab.Screen name="LoggerPortal" component={LoggerPortal} />
+          <Tab.Screen name="Broadcaster" component={AdminPortal} />
+          <Tab.Screen name="Listener" component={LoggerPortal} />
           <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
       </NavigationContainer>

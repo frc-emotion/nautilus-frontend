@@ -3,8 +3,10 @@
     "name": "nautilus",
     "slug": "nautilus",
     "version": "1.0.0",
-    "sdkVersion": "51.0.38",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -32,7 +34,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.team2658.nautilus"
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
