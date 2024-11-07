@@ -1,5 +1,5 @@
 import React from 'react';
-//import { Button, XGroup, XStack, YStack } from 'tamagui'
+import { XGroup, XStack, YStack, Circle } from 'tamagui'
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity, ViewComponent,Button } from 'react-native';
 import { useState } from 'react';
 
@@ -12,7 +12,7 @@ import { useState } from 'react';
 
 // const Dropdown: React.FC<DropdownProps> = ({ Title,options,selectedOption,onSelect }) => (
 //   <SafeAreaView>
-//   <TouchableOpacity style={styles.binstyle} onPress={()=>setshowlist(!showlist)}>
+//   <TouchableOpacity style={styles.binstyle} onPress={()=>setshowlist(!subteamlist)}>
 //     <Text style={styles.Label}>{Title}</Text>
 //   </TouchableOpacity>
 //   {showlist && (
@@ -34,10 +34,11 @@ interface itemdata{
 }
 const HomeScreen: React.FC = () => {
   // Define state and variables at the top
-  const [hidepassword, changepassword] = useState(true);
-  const [showlist, setShowlist] = useState(false); // subteam dropdown
-  const[selecteditem, itemselect] = useState<itemdata |null>(null)// subteam dropdown
-  const [listdata, setlistdata] = useState([// subteam dropdown
+  //const [hidepassword, changepassword] = useState(true);
+
+  const [subteamlist, showteamlist] = useState(false); // subteam dropdown
+  const[selectedteam, teamselect] = useState<itemdata |null>(null)// subteam dropdown
+  const [subteamdata, setteamdata] = useState([// subteam dropdown
     {id:1, label: 'Build',},
     {id:2, label:'Software',},
     {id:3, label:'Marketing',},
@@ -46,8 +47,8 @@ const HomeScreen: React.FC = () => {
   ] )
 
 
-  const [showlist1, setShowlist1] = useState(false);// grade dropdown
-  const[selecteditem1, itemselect1] = useState<itemdata |null>(null)// grade dropdown
+  const [gradelist, showgradelist] = useState(false);// grade dropdown
+  const[selectedgrade, gradeselect] = useState<itemdata |null>(null)// grade dropdown
   const [gradedata,setgradedata] = useState([// grade dropdown
     {id:1, label: '9',},
     {id:2, label:'10',},
@@ -64,9 +65,6 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.Label}>Full Name</Text>
         <TextInput style={styles.Input} placeholderTextColor={styles.placeholder.color} placeholder="Enter Name" autoCapitalize="words"/>
 
-        {/* <Text style={styles.Label}>Grade</Text>
-        <TextInput style={styles.Input} placeholderTextColor={styles.placeholder.color} placeholder="Enter Grade" keyboardType='numeric' /> */}
-
         <Text style={styles.Label}>Email</Text>
         <TextInput style={styles.Input} placeholderTextColor={styles.placeholder.color} placeholder="Enter Email" keyboardType='email-address'/>
 
@@ -76,29 +74,32 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.Label}>School Student ID</Text>
         <TextInput style={styles.Input} placeholderTextColor={styles.placeholder.color} placeholder="Enter StudentID" keyboardType='numeric' />
 
-        <TouchableOpacity style={styles.dropdown} onPress={() => setShowlist1(!showlist1)}>
-          <Text style={[styles.Label,{marginLeft:0,}]}>{selecteditem1?.label ? selecteditem1.label: 'Grade'}</Text> 
+        <Text style={styles.Label}>Grade</Text>
+        <TouchableOpacity style={styles.dropdown} onPress={() => showgradelist(!gradelist)}>
+          <Text style={[{marginLeft:0, color:'black'}]}>{selectedgrade?.label ? selectedgrade.label: 'Select'}</Text>
         </TouchableOpacity>
-        {gradedata && (
+        {gradelist && (
           <View>
-            {listdata.map((item,index) =>{
+            {gradedata.map((item,index) =>{
               return(
-                <TouchableOpacity  style={styles.dropdownitem} key={index} onPress={()=> itemselect1(item)}>           
+                <TouchableOpacity  style={styles.dropdownitem} key={index} onPress={()=> gradeselect(item)}>
                   <Text style={[styles.Label, {marginLeft: 0,}]}>{item.label}</Text>
                 </TouchableOpacity>
               )
             })}
           </View>
         )}
-        <Text style={styles.Label}>Subteam</Text>
-        <TouchableOpacity style={styles.dropdown} onPress={() => setShowlist(!showlist)}>
-          <Text style={[{marginLeft:0, color:'black'}]}>{selecteditem?.label ? selecteditem.label: 'Select'}</Text>
+
+
+        <Text style={[styles.Label,{marginTop:16,}]}>Subteam</Text>
+        <TouchableOpacity style={styles.dropdown} onPress={() => showteamlist(!subteamlist)}>
+          <Text style={[{marginLeft:0, color:'black'}]}>{selectedteam?.label ? selectedteam.label: 'Select'}</Text>
         </TouchableOpacity>
-        {showlist && (
+        {subteamlist && (
           <View>
-            {listdata.map((item,index) =>{
+            {subteamdata.map((item,index) =>{
               return(
-                <TouchableOpacity  style={styles.dropdownitem} key={index} onPress={()=> itemselect(item)}>
+                <TouchableOpacity  style={styles.dropdownitem} key={index} onPress={()=> teamselect(item)}>
                   <Text style={[styles.Label, {marginLeft: 0,}]}>{item.label}</Text>
                 </TouchableOpacity>
               )
@@ -115,7 +116,10 @@ const HomeScreen: React.FC = () => {
         <TouchableOpacity style={styles.button} onPress={() => console.log("Button pressed")}>
           <Text style={[styles.Label,{color:'black'},{marginLeft: 0}]}>Create Account</Text>
         </TouchableOpacity>
+
         
+        {/* <Circle size={100} backgroundColor="$color" elevation="$4" /> */}
+
       </SafeAreaView>
     </ScrollView>
   );
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 8,
     marginBottom: 16,
-    marginLeft: 16,
+    marginLeft: 0,
     alignItems: 'flex-start',
   },
   Title:{
