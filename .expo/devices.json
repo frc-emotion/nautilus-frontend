@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "devices": [
     {
       "installationId": "B2CAB8F4-0118-4A2F-B4ED-149291C703BA",
@@ -7,10 +8,31 @@
     {
       "installationId": "7E665DD6-5655-4D11-8783-652EF1CD842F",
       "lastUsed": 1730873082449
+=======
+<<<<<<< Updated upstream
+  "devices": []
+=======
+  "devices": [
+    {
+      "installationId": "B2CAB8F4-0118-4A2F-B4ED-149291C703BA",
+      "lastUsed": 1730947983264
+    },
+    {
+      "installationId": "FF76B5D8-5E38-4CBB-B402-5C5AD97414DB",
+      "lastUsed": 1730943598118
+    },
+    {
+      "installationId": "7E665DD6-5655-4D11-8783-652EF1CD842F",
+      "lastUsed": 1730930309179
+>>>>>>> 61f9dd9 (ngrok support)
     },
     {
       "installationId": "7906A97F-AABA-4871-B758-5721BFD624FA",
       "lastUsed": 1730867764000
     }
   ]
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> 61f9dd9 (ngrok support)
 }
