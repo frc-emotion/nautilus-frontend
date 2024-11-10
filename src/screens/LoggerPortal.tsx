@@ -4,9 +4,10 @@ import { Button, Text, YStack } from 'tamagui';
 import BLEHelper from '../utils/BLEHelper';
 import Constants from 'expo-constants';
 
-const { APP_UUID } = Constants.expoConfig?.extra || {};
-console.log(APP_UUID);
-console.log(Constants.expoConfig?.extra);
+const DEBUG_PREFIX = '[LoggerPortal]';
+const APP_UUID = Constants.expoConfig?.extra?.APP_UUID || '00000000-0000-0000-0000-000000000000';
+console.log(`${DEBUG_PREFIX} APP_UUID: ${APP_UUID}`);
+console.log(`${DEBUG_PREFIX} Expo Config Extra:`, Constants.expoConfig?.extra);
 
 type Beacon = { uuid: string; major: number; minor: number };
 
@@ -16,43 +17,52 @@ const LoggerPortal: React.FC = () => {
   const beaconInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    console.log(`${DEBUG_PREFIX} Monitoring status changed: ${isMonitoring}`);
     if (isMonitoring) {
       startBeaconInterval();
     } else {
       stopBeaconInterval();
     }
 
-    return () => stopBeaconInterval();
+    return () => {
+      console.log(`${DEBUG_PREFIX} Component unmounting, stopping beacon interval if active.`);
+      stopBeaconInterval();
+    };
   }, [isMonitoring]);
 
   const startBeaconInterval = () => {
+    console.log(`${DEBUG_PREFIX} Starting beacon detection interval.`);
     beaconInterval.current = setInterval(fetchDetectedBeacons, 2000);
   };
 
   const stopBeaconInterval = () => {
     if (beaconInterval.current) {
+      console.log(`${DEBUG_PREFIX} Stopping beacon detection interval.`);
       clearInterval(beaconInterval.current);
       beaconInterval.current = null;
     }
   };
 
   const fetchDetectedBeacons = async () => {
+    console.log(`${DEBUG_PREFIX} Fetching detected beacons.`);
     try {
       const beacons = await BLEHelper.getDetectedBeacons();
+      console.log(`${DEBUG_PREFIX} Detected beacons:`, beacons);
       setDetectedBeacons(beacons);
     } catch (error) {
-      console.error('Error fetching detected beacons:', error);
+      console.error(`${DEBUG_PREFIX} Error fetching detected beacons:`, error);
     }
   };
 
   const toggleMonitoring = async () => {
     try {
       const action = isMonitoring ? 'stopListening' : 'startListening';
+      console.log(`${DEBUG_PREFIX} Attempting to ${action} for beacons with UUID: ${APP_UUID}`);
       const result = await BLEHelper[action](APP_UUID);
-      console.log(result);
+      console.log(`${DEBUG_PREFIX} Monitoring ${action} result:`, result);
       setIsMonitoring((prev) => !prev);
     } catch (error) {
-      console.error('Error toggling monitoring:', error);
+      console.error(`${DEBUG_PREFIX} Error toggling monitoring:`, error);
     }
   };
 
