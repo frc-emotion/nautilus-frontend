@@ -3,9 +3,19 @@
     "name": "nautilus",
     "slug": "nautilus",
     "version": "1.0.0",
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
+    "entryPoint": "./App.tsx",
+    "developmentClient": {
+      "client": {
+        "enabled": true
+      }
+    },
     "splash": {
       "image": "./src/assets/splash.png",
       "resizeMode": "contain",
@@ -13,13 +23,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.team2658.nautilus"
+      "bundleIdentifier": "com.team2658.nautilus",
+      "infoPlist": {
+        "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
+        "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to detect beacons."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.team2658.nautilus"
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
