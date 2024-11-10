@@ -38,11 +38,7 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-<<<<<<< HEAD
-		<false/>
-=======
 		<true/>
->>>>>>> 61f9dd9 (ngrok support)
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
@@ -59,11 +55,8 @@ Privacy - Location Usage Description</key>
 	<string>App needs Bluetooth access to broadcast beacons.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>App needs location access to detect beacons.</string>
-<<<<<<< HEAD
-=======
 	<key>LSApplicationCategoryType</key>
 	<string></string>
->>>>>>> 61f9dd9 (ngrok support)
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-peripheral</string>
