@@ -1,14 +1,16 @@
 // screens/AdminPortal.tsx
 import React, { useState, useEffect } from 'react';
-import { Button, Text, Spinner, Input, YStack, createTamagui } from 'tamagui';
 import BLEHelper from '../utils/BLEHelper';
-import { TamaguiProvider } from 'tamagui';
-import defaultConfig from '@tamagui/config/v3';
 import Constants from 'expo-constants';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { VStack } from '@/components/ui/vstack';
+import { Input, InputField } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Text } from "@/components/ui/text"
+import { Spinner } from '@/components/ui/spinner';
 
 const DEBUG_PREFIX = '[AdminPortal]';
 const APP_UUID = Constants.expoConfig?.extra?.APP_UUID || '00000000-0000-0000-0000-000000000000';
-const config = createTamagui(defaultConfig);
 
 const AdminPortal: React.FC = () => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -63,40 +65,49 @@ const AdminPortal: React.FC = () => {
   };
 
   return (
-    <TamaguiProvider config={config}>
-      <YStack flex={1} alignItems="center" justifyContent="center" background="$background" space>
-        <Text fontSize={20} color="$text">
-          {isBroadcasting
-            ? `Broadcasting Major: ${major}, Minor: ${minor}`
-            : 'Not Broadcasting'}
+    <GluestackUIProvider>
+      <VStack space="lg" className="p-6 bg-gray-100 flex-1">
+        <Text size="2xl" bold={true} className="text-center mb-4">
+          {isBroadcasting ? `Broadcasting Major: ${major}, Minor: ${minor}` : 'Not Broadcasting'}
         </Text>
 
-        <YStack space="$3" width="80%">
+        <VStack space="md" className="bg-white p-4 rounded-lg shadow-md">
+          <Text size="lg" className="text-gray-700 mb-2 font-semibold">Major</Text>
           <Input
-            value={major}
-            onChangeText={(value) => {
-              console.log(`${DEBUG_PREFIX} Major input changed to: ${value}`);
-              setMajor(value);
-            }}
-            placeholder="Enter Major"
-            keyboardType="numeric"
-          />
-          <Input
-            value={minor}
-            onChangeText={(value) => {
-              console.log(`${DEBUG_PREFIX} Minor input changed to: ${value}`);
-              setMinor(value);
-            }}
-            placeholder="Enter Minor"
-            keyboardType="numeric"
-          />
-        </YStack>
+            variant='outline'
+            size='lg'
+            className="border-gray-300"
+            isDisabled={isBroadcasting}
+          >
+            <InputField placeholder="Enter Major" onChangeText={setMajor}/>
+          </Input>
 
-        <Button onPress={toggleBroadcasting} background="$primary" disabled={loading}>
-          {loading ? <Spinner color="$background" /> : isBroadcasting ? 'Stop Broadcasting' : 'Start Broadcasting'}
+          <Text size="lg" className="text-gray-700 mt-4 mb-2 font-semibold">Minor</Text>
+          <Input
+            variant='outline'
+            size='lg'
+            className="border-gray-300"
+            isDisabled={isBroadcasting}
+          >
+            <InputField placeholder="Enter Minor" onChangeText={setMinor}/>
+          </Input>
+        </VStack>
+
+        <Button 
+          onPress={toggleBroadcasting} 
+          className={`mt-6 px-6 rounded-lg ${loading ? 'bg-gray-400' : isBroadcasting ? 'bg-red-500' : 'bg-blue-500'}`}
+          isDisabled={loading}
+        >
+          {loading ? (
+            <Spinner color="white" />
+          ) : (
+            <Text size="lg" className="text-white font-bold text-center">
+              {isBroadcasting ? 'Stop Broadcasting' : 'Start Broadcasting'}
+            </Text>
+          )}
         </Button>
-      </YStack>
-    </TamaguiProvider>
+      </VStack>
+    </GluestackUIProvider>
   );
 };
 
