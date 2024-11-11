@@ -1,4 +1,3 @@
-// screens/AdminPortal.tsx
 import React, { useState, useEffect } from 'react';
 import BLEHelper from '../utils/BLEHelper';
 import Constants from 'expo-constants';
@@ -6,8 +5,9 @@ import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { VStack } from '@/components/ui/vstack';
 import { Input, InputField } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Text } from "@/components/ui/text"
+import { Text } from "@/components/ui/text";
 import { Spinner } from '@/components/ui/spinner';
+import { Toast, ToastTitle, useToast } from '@/components/ui/toast'; // Import the toast hook
 
 const DEBUG_PREFIX = '[AdminPortal]';
 const APP_UUID = Constants.expoConfig?.extra?.APP_UUID || '00000000-0000-0000-0000-000000000000';
@@ -17,6 +17,7 @@ const AdminPortal: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [major, setMajor] = useState('69');
   const [minor, setMinor] = useState('69');
+  const toast = useToast(); // Initialize the toast hook
 
   useEffect(() => {
     console.log(`${DEBUG_PREFIX} Component mounted.`);
@@ -37,12 +38,12 @@ const AdminPortal: React.FC = () => {
 
   const toggleBroadcasting = async () => {
     console.log(`${DEBUG_PREFIX} Toggling broadcasting. Current state: ${isBroadcasting ? 'Broadcasting' : 'Not Broadcasting'}`);
-
+  
     if (!validateInput(major) || !validateInput(minor)) {
       console.error(`${DEBUG_PREFIX} Major and Minor must be valid numbers`);
       return;
     }
-
+  
     setLoading(true);
     console.log(`${DEBUG_PREFIX} Starting toggleBroadcasting, loading state set to true.`);
     try {
@@ -57,7 +58,31 @@ const AdminPortal: React.FC = () => {
       }
       setIsBroadcasting(!isBroadcasting);
     } catch (error) {
-      console.error(`${DEBUG_PREFIX} Error toggling broadcasting:`, error);
+      if (error instanceof Error) {
+        console.error(`${DEBUG_PREFIX} Error toggling broadcasting:`, error);
+  
+        // Check for the specific error message and handle it
+        if (error.message === 'No active beacon broadcast to stop') {
+          toast.show({
+            render: ({ id }) => (
+              <Toast nativeID={id} variant="solid" action="error">
+                <ToastTitle>There is no active broadcast to end.</ToastTitle>
+              </Toast>
+            ),
+          });
+          setIsBroadcasting(false); // Set broadcasting to off
+        } else {
+          toast.show({
+            render: ({ id }) => (
+              <Toast nativeID={id} variant="solid" action="error">
+                <ToastTitle>An unexpected error occured while toggling broadcast.</ToastTitle>
+              </Toast>
+            ),
+          });
+        }
+      } else {
+        console.error(`${DEBUG_PREFIX} Unknown error toggling broadcasting:`, error);
+      }
     } finally {
       setLoading(false);
       console.log(`${DEBUG_PREFIX} toggleBroadcasting completed, loading state set to false.`);
