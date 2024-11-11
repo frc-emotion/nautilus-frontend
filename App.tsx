@@ -8,6 +8,7 @@ import AdminPortal from './src/screens/AdminPortal';
 import LoggerPortal from './src/screens/LoggerPortal';
 import ProfileScreen from './src/screens/ProfileScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import FailedRequestsScreen from './src/screens/FailedRequestsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -21,6 +22,7 @@ function App() {
             <Tab.Screen name="Listener" component={LoggerPortal} />
             <Tab.Screen name="Profile" component={ProfileScreen} />
             <Tab.Screen name="Register" component={RegisterScreen} />
+            <Tab.Screen name="Debug" component={FailedRequestsScreen} />
           </Tab.Navigator>
         </NavigationContainer>
       </GluestackUIProvider>

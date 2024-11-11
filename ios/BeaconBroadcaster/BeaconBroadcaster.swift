@@ -40,6 +40,14 @@ class BeaconBroadcaster: NSObject {
         resolver: @escaping RCTPromiseResolveBlock,
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
+      
+      // Check if bluetooth is not powered on, error
+      if peripheralManager?.state != .poweredOn {
+        print("\(DEBUG_PREFIX) Bluetooth is not powered on.")
+        rejecter("bluetooth_not_powered_on", "Bluetooth is not powered on", nil)
+        return
+        
+      
         print("\(DEBUG_PREFIX) Attempting to start broadcasting with UUID: \(uuidString), Major: \(major), Minor: \(minor)")
 
         guard let uuid = UUID(uuidString: uuidString) else {
@@ -59,10 +67,11 @@ class BeaconBroadcaster: NSObject {
         }
 
         pendingBeaconData = beaconData
-        print("\(DEBUG_PREFIX) Beacon data created, waiting for Bluetooth to power on.")
+        print("\(DEBUG_PREFIX) Beacon data created.")
 
         if peripheralManager?.state == .poweredOn {
             peripheralManager?.startAdvertising(beaconData)
+          print("\(DEBUG_PREFIX) isAdvertising after startAdvertising: \(peripheralManager?.isAdvertising ?? false)")
             resolver("Beacon broadcasting started successfully")
             print("\(DEBUG_PREFIX) Beacon broadcasting started successfully.")
         } else {
