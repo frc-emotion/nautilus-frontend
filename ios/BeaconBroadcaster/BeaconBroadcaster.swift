@@ -46,6 +46,7 @@ class BeaconBroadcaster: NSObject {
         print("\(DEBUG_PREFIX) Bluetooth is not powered on.")
         rejecter("bluetooth_not_powered_on", "Bluetooth is not powered on", nil)
         return
+      }
         
       
         print("\(DEBUG_PREFIX) Attempting to start broadcasting with UUID: \(uuidString), Major: \(major), Minor: \(minor)")
