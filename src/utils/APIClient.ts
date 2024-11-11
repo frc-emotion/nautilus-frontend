@@ -16,7 +16,7 @@ class ApiClient {
   constructor(baseURL: string) {
     console.log(`${DEBUG_PREFIX} Initializing with base URL: ${baseURL}`);
     this.client = axios.create({
-      baseURL,
+      baseURL: baseURL,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': `Nautilus/${DeviceInfo.getVersion()} (${Platform.OS}; React Native)`
@@ -49,8 +49,8 @@ class ApiClient {
   // Method to handle API errors
   private handleError(error: any) {
     if (error.response) {
-      console.error(`${DEBUG_PREFIX} Server responded with error: ${error.response.data.message}`);
-      Alert.alert('Error', error.response.data.message || 'An error occurred');
+      console.warn(`${DEBUG_PREFIX} Server responded with error: ${error.response.data.message}`);
+      return Promise.reject(error)
     } else if (error.request) {
       console.error(`${DEBUG_PREFIX} Network error, no response received.`);
       Alert.alert('Error', 'Network error. Please try again.');

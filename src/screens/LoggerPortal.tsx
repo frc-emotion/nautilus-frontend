@@ -1,8 +1,12 @@
 // screens/LoggerPortal.tsx
 import React, { useEffect, useState, useRef } from 'react';
-import { Button, Text, YStack } from 'tamagui';
 import BLEHelper from '../utils/BLEHelper';
 import Constants from 'expo-constants';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { VStack } from '@/components/ui/vstack';
+import { Button } from '@/components/ui/button';
+import { Text } from "@/components/ui/text";
+import { Spinner } from '@/components/ui/spinner';
 
 const DEBUG_PREFIX = '[LoggerPortal]';
 const APP_UUID = Constants.expoConfig?.extra?.APP_UUID || '00000000-0000-0000-0000-000000000000';
@@ -13,6 +17,7 @@ type Beacon = { uuid: string; major: number; minor: number };
 
 const LoggerPortal: React.FC = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [detectedBeacons, setDetectedBeacons] = useState<Beacon[]>([]);
   const beaconInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -55,6 +60,7 @@ const LoggerPortal: React.FC = () => {
   };
 
   const toggleMonitoring = async () => {
+    setLoading(true);
     try {
       const action = isMonitoring ? 'stopListening' : 'startListening';
       console.log(`${DEBUG_PREFIX} Attempting to ${action} for beacons with UUID: ${APP_UUID}`);
@@ -63,30 +69,47 @@ const LoggerPortal: React.FC = () => {
       setIsMonitoring((prev) => !prev);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error toggling monitoring:`, error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <YStack flex={1} alignItems="center" justifyContent="center" background="$background" space>
-      <Text fontSize={20} color="$text">
-        {isMonitoring ? 'Monitoring for Beacons' : 'Not Monitoring'}
-      </Text>
-      <Button onPress={toggleMonitoring} backgroundColor="$primary">
-        {isMonitoring ? 'Stop Monitoring' : 'Start Monitoring'}
-      </Button>
+    <GluestackUIProvider>
+      <VStack space="lg" className="p-6 bg-gray-100 flex-1">
+        <Text size="2xl" bold={true} className="text-center mb-4">
+          {isMonitoring ? 'Monitoring for Beacons' : 'Not Monitoring'}
+        </Text>
 
-      <YStack marginTop="$3" space>
-        {detectedBeacons.length > 0 ? (
-          detectedBeacons.map((beacon, index) => (
-            <Text key={index} color="$text">
-              Detected Beacon - UUID: {beacon.uuid}, Major: {beacon.major}, Minor: {beacon.minor}
+        <Button 
+          onPress={toggleMonitoring} 
+          className={`px-6 rounded-lg ${loading ? 'bg-gray-400' : isMonitoring ? 'bg-red-500' : 'bg-blue-500'}`}
+          isDisabled={loading}
+        >
+          {loading ? (
+            <Spinner color="white" />
+          ) : (
+            <Text size="lg" className="text-white font-bold text-center">
+              {isMonitoring ? 'Stop Monitoring' : 'Start Monitoring'}
             </Text>
-          ))
-        ) : (
-          <Text color="$text">No beacons detected</Text>
-        )}
-      </YStack>
-    </YStack>
+          )}
+        </Button>
+
+        <VStack space="md" className="bg-white p-4 rounded-lg shadow-md mt-6">
+          {detectedBeacons.length > 0 ? (
+            detectedBeacons.map((beacon, index) => (
+              <Text key={index} className="text-gray-700 text-md">
+                Detected Beacon - UUID: {beacon.uuid}, Major: {beacon.major}, Minor: {beacon.minor}
+              </Text>
+            ))
+          ) : (
+            <Text className="text-gray-500 text-center">
+              No beacons detected
+            </Text>
+          )}
+        </VStack>
+      </VStack>
+    </GluestackUIProvider>
   );
 };
 
