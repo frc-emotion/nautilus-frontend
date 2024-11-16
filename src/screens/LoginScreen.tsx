@@ -15,6 +15,9 @@ import {
     AlertDialogBody,
     AlertDialogFooter,
   } from "@/components/ui/alert-dialog";
+import ApiClient from '../utils/APIClient';
+import { Toast, ToastTitle, useToast } from '@/components/ui/toast';
+import { AxiosError } from 'axios';
 //import { Mail, Lock, Eye, EyeOff } from '@tamagui/lucide-icons';
 //import {Stack} from '@tamagui/core'
 
@@ -22,6 +25,7 @@ const { width, height } = Dimensions.get('window');
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const LoginScreen: React.FC = () =>{
+    const toast = useToast();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -82,9 +86,46 @@ const LoginScreen: React.FC = () =>{
     return true;
   };
 
-  const handleLogin = () =>{
-    validateForm();
-  }
+  const handleLogin = async() =>{
+    if (!validateForm()) return;
+    try {
+        const payload = {
+          email: formData.email,
+          password: formData.password,
+        };
+        const response = await ApiClient.post('/api/auth/login', payload);
+        console.log("Loggin in:", response.data);
+        toast.show({
+          render: ({ id }) => (
+            <Toast nativeID={id} variant="solid" action="success">
+              <ToastTitle>Logged in successfully</ToastTitle>
+            </Toast>
+          ),
+        });
+        
+        setAlertTitle('success')
+        setAlertMessage("Logged in fr.");
+        setAlertVisible(true);
+  
+        // Clear form data
+        setFormData({
+          email: '',
+          password: '',
+        });
+     
+      } catch (error) {
+        const axiosError = error as AxiosError<ErrorResponse>;
+        
+        const errorMessage = axiosError.response?.data?.error ?? "An error occurred";
+        const errorCode = axiosError.response?.status;
+  
+        setAlertMessage(`${errorMessage}`);
+        setAlertTitle("Status Code: " + errorCode)
+        setAlertVisible(true);
+        console.error("Registration error:", axiosError);
+      }
+    };
+  
 
 
   
