@@ -76,7 +76,7 @@ export default function App() {
                 <Stack.Screen name="AuthLoading" component={AuthLoadingScreen} />
 
                 {/* Main app or login flow */}
-                <Stack.Screen name="MainApp" component={MainTabs} />
+                <Stack.Screen name="MainApp" component={UserTabs} />
                 <Stack.Screen name="NotLoggedIn" component={NotLoggedIn} />
               </Stack.Navigator>
             </NavigationContainer>
