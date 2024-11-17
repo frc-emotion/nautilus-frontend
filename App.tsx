@@ -8,24 +8,32 @@ import AdminPortal from './src/screens/AdminPortal';
 import LoggerPortal from './src/screens/LoggerPortal';
 import ProfileScreen from './src/screens/ProfileScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import FailedRequestsScreen from './src/screens/FailedRequestsScreen';
+import { ModalProvider } from './src/utils/GlobalModalContext';
+import { ToastProvider } from './src/utils/GlobalToastProvider';
+import GlobalModal from './src/components/GlobalModal';
+import DebugAsyncStorageScreen from './src/screens/DebugAsyncStorageScreen';
 
 const Tab = createBottomTabNavigator();
 
 function App() {
   return (
     <GluestackUIProvider mode="dark">
-        <NavigationContainer>
-          <Tab.Navigator>
-            <Tab.Screen name="Home" component={HomeScreen} />
-            <Tab.Screen name="Broadcaster" component={AdminPortal} />
-            <Tab.Screen name="Listener" component={LoggerPortal} />
-            <Tab.Screen name="Profile" component={ProfileScreen} />
-            <Tab.Screen name="Register" component={RegisterScreen} />
-            <Tab.Screen name="Debug" component={FailedRequestsScreen} />
-          </Tab.Navigator>
-        </NavigationContainer>
-      </GluestackUIProvider>
+      <ModalProvider>
+        <GlobalModal />
+        <ToastProvider>
+          <NavigationContainer>
+            <Tab.Navigator>
+              <Tab.Screen name="Home" component={HomeScreen} />
+              <Tab.Screen name="Broadcaster" component={AdminPortal} />
+              <Tab.Screen name="Listener" component={LoggerPortal} />
+              <Tab.Screen name="Profile" component={ProfileScreen} />
+              <Tab.Screen name="Register" component={RegisterScreen} />
+              <Tab.Screen name="AsyncStorage" component={DebugAsyncStorageScreen} />
+            </Tab.Navigator>
+          </NavigationContainer>
+        </ToastProvider>
+      </ModalProvider>
+    </GluestackUIProvider>
   );
 }
 
