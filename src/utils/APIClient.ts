@@ -1,15 +1,27 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import NetInfo from '@react-native-community/netinfo';
 import { Alert, Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ModalConfig } from './GlobalFeedbackConfigs';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;
-const DEBUG_PREFIX = '[APIClient]';
+const DEBUG_PREFIX = '[ApiClient]';
 const REQUEST_QUEUE_KEY = 'REQUEST_QUEUE';
-const FAILED_REQUESTS_KEY = 'FAILED_REQUESTS';
+
+export interface QueuedRequest {
+  url: string;
+  method: 'get' | 'post' | 'put' | 'delete';
+  data?: any;
+  config?: AxiosRequestConfig;
+  retryCount: number;
+  modalConfig?: ModalConfig;
+  successHandler?: (response: AxiosResponse) => void;
+  errorHandler?: (error: any) => void;
+  offlineHandler?: () => void;
+}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -19,241 +31,188 @@ class ApiClient {
   constructor(baseURL: string) {
     console.log(`${DEBUG_PREFIX} Initializing with base URL: ${baseURL}`);
     this.client = axios.create({
-      baseURL: baseURL,
+      baseURL,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': `Nautilus/${DeviceInfo.getVersion()} (${Platform.OS}; React Native)`
+        'User-Agent': `Nautilus/${DeviceInfo.getVersion()} (${Platform.OS}; React Native)`,
       },
     });
 
-    // Load the request queue from storage
-    this.loadQueue();
+    this.init();
+  }
 
-    // Monitor network state
+  private async init() {
+    await this.loadQueue();
     NetInfo.addEventListener(state => {
-      this.isConnected = state.isConnected || false;
-      console.log(`${DEBUG_PREFIX} Network status changed: isConnected = ${this.isConnected}`);
-      if (this.isConnected) {
+      const wasConnected = this.isConnected;
+      this.isConnected = (state.isConnected && state.isInternetReachable) || false;
+
+      console.log(
+        `${DEBUG_PREFIX} Network status changed: isConnected = ${state.isConnected} | isInternetReachable = ${state.isInternetReachable}`
+      );
+
+      if (this.isConnected && !wasConnected) {
         this.processQueue();
       }
     });
 
-    // Interceptor for handling errors
-    this.client.interceptors.response.use(
-      response => {
-        console.log(`${DEBUG_PREFIX} Response received:`, response);
-        return response;
-      },
-      error => {
-        console.error(`${DEBUG_PREFIX} Request error:`, error);
-        this.handleError(error);
-        return Promise.reject(error);
-      }
-    );
+    // this.client.interceptors.response.use(
+    //   response => response,
+    //   error => {
+    //     this.handleError(error);
+    //     return Promise.reject(error);
+    //   }
+    // );
   }
 
-  // Method to handle API errors
-  private handleError(error: any) {
-    if (error.response) {
-      console.warn(`${DEBUG_PREFIX} Server responded with error: ${error.response.data.message}`);
-      return Promise.reject(error)
-    } else if (error.request) {
-      console.error(`${DEBUG_PREFIX} Network error, no response received.`);
-      Alert.alert('Error', 'Network error. Please try again.');
-    } else {
-      console.error(`${DEBUG_PREFIX} Error in request setup: ${error.message}`);
-      Alert.alert('Error', error.message);
-    }
-  }
-
-  // Method to queue requests when offline or retry failed requests
-  private async enqueueRequest(request: QueuedRequest) {
-    console.log(`${DEBUG_PREFIX} Queuing request to ${request.url} with retryCount = ${request.retryCount}`);
-    this.requestQueue.push(request);
-    await this.saveQueue();
-  }
-
-  // Method to save the request queue to AsyncStorage
   private async saveQueue() {
     try {
-      const serializedQueue = JSON.stringify(this.requestQueue);
-      await AsyncStorage.setItem(REQUEST_QUEUE_KEY, serializedQueue);
+      await AsyncStorage.setItem(REQUEST_QUEUE_KEY, JSON.stringify(this.requestQueue));
+      console.log(`${DEBUG_PREFIX} Request queue saved.`);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Failed to save request queue:`, error);
     }
   }
 
-  // Method to load the request queue from AsyncStorage
   private async loadQueue() {
     try {
-      const serializedQueue = await AsyncStorage.getItem(REQUEST_QUEUE_KEY);
-      if (serializedQueue) {
-        this.requestQueue = JSON.parse(serializedQueue) || [];
-        console.log(`${DEBUG_PREFIX} Loaded saved request queue. Length: ${this.requestQueue.length}`);
-      }
+      const savedQueue = await AsyncStorage.getItem(REQUEST_QUEUE_KEY);
+      this.requestQueue = savedQueue ? JSON.parse(savedQueue) : [];
+      console.log(`${DEBUG_PREFIX} Request queue loaded. Length: ${this.requestQueue.length}`);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Failed to load request queue:`, error);
     }
   }
 
-  // Retrieve all failed requests from storage
-  public async getFailedRequests(): Promise<QueuedRequest[]> {
-    try {
-      const serializedFailedRequests = await AsyncStorage.getItem(FAILED_REQUESTS_KEY);
-      return serializedFailedRequests ? JSON.parse(serializedFailedRequests) : [];
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Failed to load failed requests:`, error);
-      return [];
-    }
+  private async enqueueRequest(request: QueuedRequest) {
+    console.log(`${DEBUG_PREFIX} Queuing request to ${request.url}`);
+    this.requestQueue.push(request);
+    await this.saveQueue();
   }
 
-  // Clear a specific failed request or all failed requests
-  public async clearFailedRequest(request?: QueuedRequest) {
-    const failedRequests = await this.getFailedRequests();
-    const updatedRequests = request
-      ? failedRequests.filter((req) => req !== request)
-      : []; // Clear all if no specific request is given
-    await AsyncStorage.setItem(FAILED_REQUESTS_KEY, JSON.stringify(updatedRequests));
-    console.log(`${DEBUG_PREFIX} Cleared failed request(s) from storage.`);
-  }
-
-  // Retry a specific failed request
-  public async retryFailedRequest(request: QueuedRequest) {
-    try {
-      await this.executeRequest(request);
-      await this.clearFailedRequest(request); // Remove from failed requests if successful
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Retry failed for request to ${request.url}`);
-      this.handleError(error);
-    }
-  }
-
-  // Save the failed request separately
-  private async saveFailedRequest(request: QueuedRequest) {
-    try {
-      const failedRequests = await this.getFailedRequests();
-      failedRequests.push(request);
-      await AsyncStorage.setItem(FAILED_REQUESTS_KEY, JSON.stringify(failedRequests));
-      console.log(`${DEBUG_PREFIX} Saved failed request to storage. Total failed: ${failedRequests.length}`);
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Failed to save failed request:`, error);
-    }
-  }
-
-  // Method to process queued requests with retry logic
   private async processQueue() {
     console.log(`${DEBUG_PREFIX} Processing queued requests. Queue length: ${this.requestQueue.length}`);
-    while (this.requestQueue.length > 0) {
-      const request = this.requestQueue.shift()!;
+    const queue = [...this.requestQueue];
+    this.requestQueue = [];
+
+    for (const request of queue) {
       try {
-        console.log(`${DEBUG_PREFIX} Attempting queued request to ${request.url} (retryCount = ${request.retryCount})`);
         await this.executeRequest(request);
-        await this.saveQueue(); // Update storage after successful request
       } catch (error) {
         if (request.retryCount < MAX_RETRIES) {
-          console.warn(`${DEBUG_PREFIX} Request failed, retrying (attempt ${request.retryCount + 1} of ${MAX_RETRIES})`);
-          this.enqueueRequest({ ...request, retryCount: request.retryCount + 1 });
+          console.warn(
+            `${DEBUG_PREFIX} Request to ${request.url} failed. Retrying (${request.retryCount + 1}/${MAX_RETRIES})`
+          );
+          await this.enqueueRequest({ ...request, retryCount: request.retryCount + 1 });
         } else {
-          console.error(`${DEBUG_PREFIX} Max retries reached for request. Moving to failed requests.`);
-          await this.saveFailedRequest(request);
+          console.error(`${DEBUG_PREFIX} Max retries reached for ${request.url}.`);
+          if (request.errorHandler) request.errorHandler(error);
         }
       }
     }
-    await AsyncStorage.removeItem(REQUEST_QUEUE_KEY); // Clear queue storage after processing
+
+    await this.saveQueue();
   }
 
-  // Helper to execute a queued request based on its method
-  private async executeRequest(request: QueuedRequest): Promise<void> {
-    const { url, method, data, config } = request;
-    switch (method) {
-      case 'get':
-        await this.client.get(url, config);
-        break;
-      case 'post':
-        await this.client.post(url, data, config);
-        break;
-      case 'put':
-        await this.client.put(url, data, config);
-        break;
-      case 'delete':
-        await this.client.delete(url, { ...config, data });
-        break;
-      default:
-        throw new Error(`${DEBUG_PREFIX} Unsupported request method: ${method}`);
+  private async executeRequest(request: QueuedRequest) {
+    const { url, method, data, config, successHandler, errorHandler } = request;
+    try {
+        let response: AxiosResponse;
+
+        switch (method) {
+            case 'get':
+                response = await this.client.get(url, config);
+                break;
+            case 'post':
+                response = await this.client.post(url, data, config);
+                break;
+            case 'put':
+                response = await this.client.put(url, data, config);
+                break;
+            case 'delete':
+                response = await this.client.delete(url, { ...config, data });
+                break;
+            default:
+                throw new Error(`${DEBUG_PREFIX} Unsupported method: ${method}`);
+        }
+
+        console.log(`${DEBUG_PREFIX} Request to ${url} succeeded.`);
+        if (successHandler) successHandler(response);
+    } catch (error: any) {
+        if (axios.isAxiosError(error)) {
+            const statusCode = error.response?.status;
+
+            // Handle non-retryable HTTP errors
+            if (statusCode) {
+                console.error(`${DEBUG_PREFIX} Non-retryable error for ${url}:`, error.response?.data);
+                if (errorHandler) errorHandler(error);
+                return; // Do not retry, exit the method
+            }
+
+            console.warn(
+                `${DEBUG_PREFIX} Retryable error for ${url}. Status: ${statusCode || 'N/A'}`
+            );
+        } else {
+            console.error(`${DEBUG_PREFIX} Non-Axios error for ${url}:`, error);
+        }
+
+        // If the error is retryable, throw it to trigger a retry
+        throw error;
     }
-  }
+}
 
-  // Helper to perform GET request with optional query parameters
-  public async get<T>(url: string, params?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating GET request to ${url} with params:`, params);
+  // private handleError(error: AxiosError) {
+  //   if (error.response) {
+  //     console.error(`${DEBUG_PREFIX} API responded with error:`, error.response.data);
+  //   } else if (error.request) {
+  //     console.error(`${DEBUG_PREFIX} Network error. No response received.`);
+  //   } else {
+  //     console.error(`${DEBUG_PREFIX} Error setting up request:`, error.message);
+  //   }
+  // }
+
+  public async handleNewRequest(request: QueuedRequest) {
     if (!this.isConnected) {
-      console.log(`${DEBUG_PREFIX} Offline, queuing GET request to ${url}`);
-      return new Promise<AxiosResponse<T>>((resolve, reject) => {
-        this.enqueueRequest({ url, method: 'get', config: { ...config, params }, retryCount: 0 })
-          .then(() => {
-            // Offline case: resolve with an empty response or a specific structure if needed
-            resolve({ data: null } as AxiosResponse<T>);
-          })
-          .catch(reject);
-      });
+      console.log(`${DEBUG_PREFIX} Offline. Queuing request to ${request.url}`);
+      if (request.offlineHandler) request.offlineHandler();
+      await this.enqueueRequest(request);
+      return;
     }
-    return this.client.get<T>(url, { ...config, params });
+
+    try {
+      await this.executeRequest(request);
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Error during request execution:`, error);
+    }
   }
-  
-  // Helper to perform POST request with payload support
+
+  public async get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    console.log(`${DEBUG_PREFIX} Initiating GET request to ${url}`);
+    const request: QueuedRequest = { url, method: 'get', config, retryCount: 0 };
+    await this.handleNewRequest(request);
+    return this.client.get<T>(url, config);
+  }
+
   public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating POST request to ${url} with data:`, data);
-    if (!this.isConnected) {
-      console.log(`${DEBUG_PREFIX} Offline, queuing POST request to ${url}`);
-      return new Promise<AxiosResponse<T>>((resolve, reject) => {
-        this.enqueueRequest({ url, method: 'post', data, config, retryCount: 0 })
-          .then(() => {
-            resolve({ data: null } as AxiosResponse<T>);
-          })
-          .catch(reject);
-      });
-    }
+    console.log(`${DEBUG_PREFIX} Initiating POST request to ${url}`);
+    const request: QueuedRequest = { url, method: 'post', data, config, retryCount: 0 };
+    await this.handleNewRequest(request);
     return this.client.post<T>(url, data, config);
   }
-  
-  // Helper to perform PUT request with payload support
+
   public async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating PUT request to ${url} with data:`, data);
-    if (!this.isConnected) {
-      console.log(`${DEBUG_PREFIX} Offline, queuing PUT request to ${url}`);
-      return new Promise<AxiosResponse<T>>((resolve, reject) => {
-        this.enqueueRequest({ url, method: 'put', data, config, retryCount: 0 })
-          .then(() => {
-            resolve({ data: null } as AxiosResponse<T>);
-          })
-          .catch(reject);
-      });
-    }
+    console.log(`${DEBUG_PREFIX} Initiating PUT request to ${url}`);
+    const request: QueuedRequest = { url, method: 'put', data, config, retryCount: 0 };
+    await this.handleNewRequest(request);
     return this.client.put<T>(url, data, config);
   }
-  
-  // Helper to perform DELETE request with optional payload support
-  public async delete<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating DELETE request to ${url} with data:`, data);
-    if (!this.isConnected) {
-      console.log(`${DEBUG_PREFIX} Offline, queuing DELETE request to ${url}`);
-      return new Promise<AxiosResponse<T>>((resolve, reject) => {
-        this.enqueueRequest({ url, method: 'delete', data, config, retryCount: 0 })
-          .then(() => {
-            resolve({ data: null } as AxiosResponse<T>);
-          })
-          .catch(reject);
-      });
-    }
-    return this.client.delete<T>(url, { ...config, data });
+
+  public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    console.log(`${DEBUG_PREFIX} Initiating DELETE request to ${url}`);
+    const request: QueuedRequest = { url, method: 'delete', config, retryCount: 0 };
+    await this.handleNewRequest(request);
+    return this.client.delete<T>(url, config);
   }
-}
-export interface QueuedRequest {
-  url: string;
-  method: 'get' | 'post' | 'put' | 'delete';
-  data?: any;
-  config?: AxiosRequestConfig;
-  retryCount: number;
 }
 
 export default new ApiClient(API_URL);
