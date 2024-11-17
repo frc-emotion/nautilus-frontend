@@ -75,7 +75,6 @@ const LoggerPortal: React.FC = () => {
   };
 
   return (
-    <GluestackUIProvider>
       <VStack space="lg" className="p-6 bg-gray-100 flex-1">
         <Text size="2xl" bold={true} className="text-center mb-4">
           {isMonitoring ? 'Monitoring for Beacons' : 'Not Monitoring'}
@@ -109,7 +108,6 @@ const LoggerPortal: React.FC = () => {
           )}
         </VStack>
       </VStack>
-    </GluestackUIProvider>
   );
 };
 

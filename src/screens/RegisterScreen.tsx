@@ -25,7 +25,7 @@ import { AxiosError, AxiosResponse } from "axios";
 const GRADES = ["9", "10", "11", "12"];
 const SUBTEAMS = ["Build", "Software", "Marketing", "Electrical", "Design"];
 
-const RegisterScreen: React.FC = () => {
+const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { showToast } = useGlobalToast();
   const { openModal } = useModal();
   const [hidePassword, setHidePassword] = useState(true);
@@ -75,7 +75,7 @@ const RegisterScreen: React.FC = () => {
       method: "post",
       data: payload,
       retryCount: 0,
-      successHandler: (response: AxiosResponse) => {
+      successHandler: async (response: AxiosResponse) => {
         openModal({
           title: "Woop woop!",
           message: "Account created successfully. To gain full access, an admin must approve your account.",
@@ -90,7 +90,7 @@ const RegisterScreen: React.FC = () => {
 
         reset();
       },
-      errorHandler: (error: AxiosError) => {
+      errorHandler: async (error: AxiosError) => {
         const statusCode = error.response?.status;
 
         console.log("Status code:", statusCode);
@@ -101,7 +101,7 @@ const RegisterScreen: React.FC = () => {
             message: `${error.name} : ${error.message}\nCode: ${error.code}`,
             type: "error",
           });
-          
+
           showToast({
             title: "Unexpected Error",
             description: `${error.name} : ${error.message}\nCode: ${error.code}`,
@@ -127,9 +127,9 @@ const RegisterScreen: React.FC = () => {
           description: errorMessage.error,
           type: "error",
         });
-        
+
       },
-      offlineHandler: () => {
+      offlineHandler: async () => {
         showToast({
           title: "Offline",
           description: "Request saved. It will be processed when you're back online.",
@@ -175,17 +175,20 @@ const RegisterScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={120}
+      keyboardVerticalOffset={100}
       style={{ flex: 1 }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          style={{ backgroundColor: "#F8F8F8" }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 100,
+          }}
         >
-          <VStack
-            space="sm"
-            className="max-w-[600px] w-full mx-auto p-3 bg-white rounded-md shadow">
+          <VStack space="md" className="max-w-[600px] w-full mx-auto bg-white p-4 rounded-md shadow-lg">
 
             {/* First and Last Name */}
             <HStack space="sm">
@@ -197,7 +200,7 @@ const RegisterScreen: React.FC = () => {
                   rules={{ required: "First Name is required" }}
                   render={({ field: { onChange, value } }) => (
                     <Input size="md" className="bg-gray-100 rounded">
-                      <InputField placeholder="First Name" value={value} onChangeText={onChange} className="text-black-600" />
+                      <InputField autoCorrect={false} placeholder="First Name" value={value} onChangeText={onChange} className="text-black-600" />
                     </Input>
                   )}
                 />
@@ -210,7 +213,7 @@ const RegisterScreen: React.FC = () => {
                   rules={{ required: "Last Name is required" }}
                   render={({ field: { onChange, value } }) => (
                     <Input size="md" className="bg-gray-100 rounded">
-                      <InputField placeholder="Last Name" value={value} onChangeText={onChange} className="text-black-600" />
+                      <InputField autoCorrect={false} placeholder="Last Name" value={value} onChangeText={onChange} className="text-black-600" />
                     </Input>
                   )}
                 />
@@ -234,6 +237,8 @@ const RegisterScreen: React.FC = () => {
                     value={value}
                     onChangeText={onChange}
                     className="text-black-600"
+                    autoCorrect={false}
+                    autoCapitalize="none"
                   />
                 </Input>
               )}
@@ -259,6 +264,7 @@ const RegisterScreen: React.FC = () => {
                     value={value}
                     onChangeText={onChange}
                     className="text-black-600"
+                    autoCorrect={false}
                   />
                 </Input>
               )}
@@ -284,6 +290,7 @@ const RegisterScreen: React.FC = () => {
                     value={value}
                     onChangeText={onChange}
                     className="text-black-600"
+                    autoCorrect={false}
                   />
                 </Input>
               )}
@@ -366,6 +373,7 @@ const RegisterScreen: React.FC = () => {
                     value={value}
                     onChangeText={onChange}
                     className="text-black-600"
+                    autoCorrect={false}
                   />
                   <InputSlot className="pr-3" onPress={() => setHidePassword(!hidePassword)}>
                     <InputIcon as={hidePassword ? EyeOffIcon : EyeIcon} />
@@ -391,6 +399,7 @@ const RegisterScreen: React.FC = () => {
                     value={value}
                     onChangeText={onChange}
                     className="text-black-600"
+                    autoCorrect={false}
                   />
                   <InputSlot className="pr-3" onPress={() => setHidePassword(!hidePassword)}>
                     <InputIcon as={hidePassword ? EyeOffIcon : EyeIcon} />

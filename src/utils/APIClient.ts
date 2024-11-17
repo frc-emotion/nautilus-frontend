@@ -18,9 +18,9 @@ export interface QueuedRequest {
   config?: AxiosRequestConfig;
   retryCount: number;
   modalConfig?: ModalConfig;
-  successHandler?: (response: AxiosResponse) => void;
-  errorHandler?: (error: any) => void;
-  offlineHandler?: () => void;
+  successHandler?: (response: AxiosResponse) => Promise<void>;
+  errorHandler?: (error: any) => Promise<void>;
+  offlineHandler?: () => Promise<void>;
 }
 
 class ApiClient {
@@ -106,7 +106,7 @@ class ApiClient {
           await this.enqueueRequest({ ...request, retryCount: request.retryCount + 1 });
         } else {
           console.error(`${DEBUG_PREFIX} Max retries reached for ${request.url}.`);
-          if (request.errorHandler) request.errorHandler(error);
+          if (request.errorHandler) await request.errorHandler(error);
         }
       }
     }
@@ -117,49 +117,49 @@ class ApiClient {
   private async executeRequest(request: QueuedRequest) {
     const { url, method, data, config, successHandler, errorHandler } = request;
     try {
-        let response: AxiosResponse;
+      let response: AxiosResponse;
 
-        switch (method) {
-            case 'get':
-                response = await this.client.get(url, config);
-                break;
-            case 'post':
-                response = await this.client.post(url, data, config);
-                break;
-            case 'put':
-                response = await this.client.put(url, data, config);
-                break;
-            case 'delete':
-                response = await this.client.delete(url, { ...config, data });
-                break;
-            default:
-                throw new Error(`${DEBUG_PREFIX} Unsupported method: ${method}`);
-        }
+      switch (method) {
+        case 'get':
+          response = await this.client.get(url, config);
+          break;
+        case 'post':
+          response = await this.client.post(url, data, config);
+          break;
+        case 'put':
+          response = await this.client.put(url, data, config);
+          break;
+        case 'delete':
+          response = await this.client.delete(url, { ...config, data });
+          break;
+        default:
+          throw new Error(`${DEBUG_PREFIX} Unsupported method: ${method}`);
+      }
 
-        console.log(`${DEBUG_PREFIX} Request to ${url} succeeded.`);
-        if (successHandler) successHandler(response);
+      console.log(`${DEBUG_PREFIX} Request to ${url} succeeded.`);
+      if (successHandler) await successHandler(response);
     } catch (error: any) {
-        if (axios.isAxiosError(error)) {
-            const statusCode = error.response?.status;
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
 
-            // Handle non-retryable HTTP errors
-            if (statusCode) {
-                console.error(`${DEBUG_PREFIX} Non-retryable error for ${url}:`, error.response?.data);
-                if (errorHandler) errorHandler(error);
-                return; // Do not retry, exit the method
-            }
-
-            console.warn(
-                `${DEBUG_PREFIX} Retryable error for ${url}. Status: ${statusCode || 'N/A'}`
-            );
-        } else {
-            console.error(`${DEBUG_PREFIX} Non-Axios error for ${url}:`, error);
+        // Handle non-retryable HTTP errors
+        if (statusCode) {
+          console.error(`${DEBUG_PREFIX} Non-retryable error for ${url}:`, error.response?.data);
+          if (errorHandler) await errorHandler(error);
+          return; // Do not retry, exit the method
         }
 
-        // If the error is retryable, throw it to trigger a retry
-        throw error;
+        console.warn(
+          `${DEBUG_PREFIX} Retryable error for ${url}. Status: ${statusCode || 'N/A'}`
+        );
+      } else {
+        console.error(`${DEBUG_PREFIX} Non-Axios error for ${url}:`, error);
+      }
+
+      // If the error is retryable, throw it to trigger a retry
+      throw error;
     }
-}
+  }
 
   // private handleError(error: AxiosError) {
   //   if (error.response) {
@@ -174,7 +174,7 @@ class ApiClient {
   public async handleNewRequest(request: QueuedRequest) {
     if (!this.isConnected) {
       console.log(`${DEBUG_PREFIX} Offline. Queuing request to ${request.url}`);
-      if (request.offlineHandler) request.offlineHandler();
+      if (request.offlineHandler) await request.offlineHandler();
       await this.enqueueRequest(request);
       return;
     }
@@ -212,6 +212,70 @@ class ApiClient {
     const request: QueuedRequest = { url, method: 'delete', config, retryCount: 0 };
     await this.handleNewRequest(request);
     return this.client.delete<T>(url, config);
+  }
+
+  /**
+     * Validates the token both offline (via Base64 decoding) and online (via server verification).
+     * @param token - The JWT token to validate.
+     * @returns {Promise<boolean>} - Whether the token is valid.
+     */
+  public async validateToken(token: string): Promise<boolean> {
+    try {
+      // Step 1: Decode the JWT payload
+      const payload = this.decodeToken(token);
+
+      // Step 2: Check if the token has expired
+      if (!payload || !payload.exp) {
+        console.warn(`${DEBUG_PREFIX} Invalid token payload.`);
+        return false;
+      }
+
+      const now = Math.floor(Date.now() / 1000); // Current time in seconds
+      if (payload.exp < now) {
+        console.warn(`${DEBUG_PREFIX} Token has expired.`);
+        return false;
+      }
+
+      console.log(`${DEBUG_PREFIX} Token is valid offline.`);
+
+      // Step 3: Perform server validation if online
+      if (this.isConnected) {
+        console.log(`${DEBUG_PREFIX} Performing online validation.`);
+        const response = await this.client.get('/api/auth/validate', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        return response.status === 200;
+      }
+
+      console.log(`${DEBUG_PREFIX} Skipping server validation (offline).`);
+      return true;
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Token validation failed: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Decodes the JWT payload using Base64 decoding.
+   * @param token - The JWT token to decode.
+   * @returns {any | null} - The decoded payload or null if decoding fails.
+   */
+  private decodeToken(token: string): any | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.warn(`${DEBUG_PREFIX} Invalid JWT format.`);
+        return null;
+      }
+
+      const payload = parts[1];
+      const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
+      return decoded;
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Failed to decode token: ${error}`);
+      return null;
+    }
   }
 }
 
