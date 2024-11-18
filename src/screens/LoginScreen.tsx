@@ -80,6 +80,20 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             },
             errorHandler: async (error: AxiosError) => {
                 const statusCode = error.response?.status;
+                if (!statusCode) {
+                    openModal({
+                        title: `Request Failed: ${error.name}`,
+                        message: error.message,
+                        type: "error",
+                    });
+    
+                    showToast({
+                        title: "Login Failed",
+                        description: error.message,
+                        type: "error",
+                    });
+                }
+
                 const errorData = error.response?.data;
                 const errorMessage = typeof errorData === "string" ? JSON.parse(errorData) : errorData;
 

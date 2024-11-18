@@ -9,6 +9,7 @@ import { Buffer } from 'buffer'
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;
+const REQUEST_TIMEOUT = 5 * 1000;
 const DEBUG_PREFIX = '[ApiClient]';
 const REQUEST_QUEUE_KEY = 'REQUEST_QUEUE';
 
@@ -38,6 +39,7 @@ class ApiClient {
         'Content-Type': 'application/json',
         'User-Agent': `Nautilus/${DeviceInfo.getVersion()} (${Platform.OS}; React Native)`,
       },
+      timeout: REQUEST_TIMEOUT
     });
 
     this.init();
@@ -140,7 +142,7 @@ class ApiClient {
           throw new Error(`${DEBUG_PREFIX} Unsupported method: ${method}`);
       }
 
-      console.log(`${DEBUG_PREFIX} Request to ${url} succeeded.`);
+      console.log(`${DEBUG_PREFIX} Request to ${API_URL}${url} succeeded.`);
       if (successHandler) await successHandler(response);
     } catch (error: any) {
       if (axios.isAxiosError(error)) {
@@ -148,16 +150,16 @@ class ApiClient {
 
         // Handle non-retryable HTTP errors
         if (statusCode) {
-          console.error(`${DEBUG_PREFIX} Non-retryable error for ${url}:`, error.response?.data);
+          console.error(`${DEBUG_PREFIX} Non-retryable error for ${API_URL}${url}:`, error.response?.data);
           if (errorHandler) await errorHandler(error);
           return; // Do not retry, exit the method
         }
 
         console.warn(
-          `${DEBUG_PREFIX} Retryable error for ${url}. Status: ${statusCode || 'N/A'}`
+          `${DEBUG_PREFIX} Retryable error for ${API_URL}${url}. Status: ${statusCode || 'N/A'}`
         );
       } else {
-        console.error(`${DEBUG_PREFIX} Non-Axios error for ${url}:`, error);
+        console.error(`${DEBUG_PREFIX} Non-Axios error for ${API_URL}${url}:`, error);
       }
 
       // If the error is retryable, throw it to trigger a retry
@@ -187,32 +189,33 @@ class ApiClient {
       await this.executeRequest(request);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error during request execution:`, error);
+      if (request.errorHandler) await request.errorHandler(error);
     }
   }
 
   public async get<T>(url: string, headers: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating GET request to ${url}`);
+    console.log(`${DEBUG_PREFIX} Initiating GET request to ${API_URL}${url}`);
     const request: QueuedRequest = { url, method: 'get', headers, config, retryCount: 0 };
     await this.handleNewRequest(request);
-    return this.client.get<T>(url, { headers, ...config });
+    return this.client.get<T>(url, { headers,  ...config });
   }
 
   public async post<T>(url: string, headers: any, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating POST request to ${url}`);
+    console.log(`${DEBUG_PREFIX} Initiating POST request to ${API_URL}${url}`);
     const request: QueuedRequest = { url, method: 'post', headers, data, config, retryCount: 0 };
     await this.handleNewRequest(request);
     return this.client.post<T>(url, data, { headers, ...config });
   }
 
   public async put<T>(url: string, headers: any, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating PUT request to ${url}`);
+    console.log(`${DEBUG_PREFIX} Initiating PUT request to ${API_URL}${url}`);
     const request: QueuedRequest = { url, method: 'put', headers, data, config, retryCount: 0 };
     await this.handleNewRequest(request);
     return this.client.put<T>(url, data, { headers, ...config });
   }
 
   public async delete<T>(url: string, headers: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    console.log(`${DEBUG_PREFIX} Initiating DELETE request to ${url}`);
+    console.log(`${DEBUG_PREFIX} Initiating DELETE request to ${API_URL}${url}`);
     const request: QueuedRequest = { url, method: 'delete', headers, config, retryCount: 0 };
     await this.handleNewRequest(request);
     return this.client.delete<T>(url, { headers, ...config });
