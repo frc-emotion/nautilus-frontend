@@ -1,111 +1,130 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ApiClient from "./APIClient";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+
+type AppStackParamList = {
+  AuthLoading: undefined;
+  RoleBasedTabs: undefined;
+  NotLoggedInTabs: undefined;
+};
 
 type UserObject = {
-    token: string;
-    _id: string;
-    first_name: string;
-    last_name: string;
-    student_id: string;
-    email: string;
-    password: string;
-    phone: string;
-    subteam: Array<string>;
-    grade: string;
-    api_version: string;
-    role: string;
-    created_at: string;
+  token: string;
+  _id: string;
+  first_name: string;
+  last_name: string;
+  student_id: string;
+  email: string;
+  phone: string;
+  subteam: string[];
+  grade: string;
+  role: "unverified" | "member" | "leadership" | "executive" | "advisor" | "admin";
+  created_at: string;
 };
 
 type AuthContextType = {
-    user: UserObject | null;
-    isLoading: boolean;
-    isLoggedIn: boolean;
-    login: (token: string, user: UserObject) => Promise<void>;
-    logout: () => Promise<void>;
+  user: UserObject | null;
+  isLoggedIn: boolean;
+  isLoading: boolean;
+  login: (token: string, user: UserObject) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<UserObject | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<UserObject | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
 
-    useEffect(() => {
-        const loadAuthData = async () => {
-            setIsLoading(true);
-            try {
-                const storedUser = await AsyncStorage.getItem("userData");
-
-                if (storedUser) {
-                    const parsedUser: UserObject = JSON.parse(storedUser);
-                    const storedToken = parsedUser.token || null;
-        
-                    if (storedToken) {
-                        const isValid = await ApiClient.validateToken(storedToken);
-                        if (isValid) {
-                            setToken(storedToken);
-                            setUser(parsedUser);
-                        } else {
-                            console.warn("Invalid token. Clearing stored auth data.");
-                            await AsyncStorage.clear();
-                        }
-                    }
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
-                console.error("Error loading auth data:", error);
-                await AsyncStorage.clear(); // Clear potentially corrupt data
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadAuthData();
-    }, []);
-
-    const login = async (authToken: string, authUser: UserObject) => {
-        try {
-            await AsyncStorage.setItem("userData", JSON.stringify(authUser));
-            setToken(authToken);
-            setUser(authUser);
-        } catch (error) {
-            console.error("Error during login:", error);
+  useEffect(() => {
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        const storedData = await AsyncStorage.getItem("userData");
+        if (storedData) {
+          const parsedUser: UserObject = JSON.parse(storedData);
+          const isValid = await ApiClient.validateToken(parsedUser.token);
+          if (isValid) {
+            setUser(parsedUser);
+            setToken(parsedUser.token);
+          } else {
+            await clearAuthData();
+          }
         }
+      } catch (error) {
+        console.error("Error initializing authentication:", error);
+        await clearAuthData();
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    const logout = async () => {
-        try {
-            await AsyncStorage.clear();
-            setToken(null);
-            setUser(null);
-        } catch (error) {
-            console.error("Error during logout:", error);
-        }
-    };
+    initializeAuth();
+  }, []);
 
-    return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isLoading,
-                isLoggedIn: !!token,
-                login,
-                logout,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    );
+  const clearAuthData = async () => {
+    await AsyncStorage.clear();
+    setUser(null);
+    setToken(null);
+    navigation.navigate("NotLoggedInTabs");
+  };
+
+  const login = async (authToken: string, authUser: UserObject) => {
+    try {
+      await AsyncStorage.setItem("userData", JSON.stringify(authUser));
+      setToken(authToken);
+      setUser(authUser);
+      navigation.navigate("RoleBasedTabs");
+    } catch (error) {
+      console.error("Error during login:", error);
+    }
+  };
+
+  const logout = async () => {
+    await clearAuthData();
+    navigation.navigate("NotLoggedInTabs");
+  };
+
+  const refreshUser = async () => {
+    try {
+      if (!token) throw new Error("No token found");
+      const updatedUser = await ApiClient.validateToken(token);
+      if (updatedUser) {
+        setUser(updatedUser);
+        setToken(updatedUser.token);
+      } else {
+        await clearAuthData();
+      }
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoggedIn: !!token,
+        isLoading,
+        login,
+        logout,
+        refreshUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

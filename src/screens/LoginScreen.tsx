@@ -7,7 +7,6 @@ import {
     TouchableWithoutFeedback,
     ActivityIndicator,
 } from "react-native";
-import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
@@ -77,7 +76,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
                 console.log("User data saved to AsyncStorage:", user);
 
-                navigation.replace("MainApp");
+                //navigation.replace("RoleBasedTabs");
             },
             errorHandler: async (error: AxiosError) => {
                 const statusCode = error.response?.status;

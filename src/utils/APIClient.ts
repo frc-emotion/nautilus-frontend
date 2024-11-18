@@ -1,10 +1,11 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import NetInfo from '@react-native-community/netinfo';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ModalConfig } from './GlobalFeedbackConfigs';
+import { Buffer } from 'buffer'
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;
@@ -15,6 +16,7 @@ export interface QueuedRequest {
   url: string;
   method: 'get' | 'post' | 'put' | 'delete';
   data?: any;
+  headers?: any;
   config?: AxiosRequestConfig;
   retryCount: number;
   modalConfig?: ModalConfig;
@@ -55,6 +57,8 @@ class ApiClient {
         this.processQueue();
       }
     });
+
+  
 
     // this.client.interceptors.response.use(
     //   response => response,
@@ -115,22 +119,22 @@ class ApiClient {
   }
 
   private async executeRequest(request: QueuedRequest) {
-    const { url, method, data, config, successHandler, errorHandler } = request;
+    const { url, method, data, headers, config, successHandler, errorHandler } = request;
     try {
       let response: AxiosResponse;
 
       switch (method) {
         case 'get':
-          response = await this.client.get(url, config);
+          response = await this.client.get(url, { headers, ...config });
           break;
         case 'post':
-          response = await this.client.post(url, data, config);
+          response = await this.client.post(url, data, { headers, ...config });
           break;
         case 'put':
-          response = await this.client.put(url, data, config);
+          response = await this.client.put(url, data, { headers, ...config });
           break;
         case 'delete':
-          response = await this.client.delete(url, { ...config, data });
+          response = await this.client.delete(url, { headers, data, ...config });
           break;
         default:
           throw new Error(`${DEBUG_PREFIX} Unsupported method: ${method}`);
@@ -186,32 +190,32 @@ class ApiClient {
     }
   }
 
-  public async get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  public async get<T>(url: string, headers: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     console.log(`${DEBUG_PREFIX} Initiating GET request to ${url}`);
-    const request: QueuedRequest = { url, method: 'get', config, retryCount: 0 };
+    const request: QueuedRequest = { url, method: 'get', headers, config, retryCount: 0 };
     await this.handleNewRequest(request);
-    return this.client.get<T>(url, config);
+    return this.client.get<T>(url, { headers, ...config });
   }
 
-  public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  public async post<T>(url: string, headers: any, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     console.log(`${DEBUG_PREFIX} Initiating POST request to ${url}`);
-    const request: QueuedRequest = { url, method: 'post', data, config, retryCount: 0 };
+    const request: QueuedRequest = { url, method: 'post', headers, data, config, retryCount: 0 };
     await this.handleNewRequest(request);
-    return this.client.post<T>(url, data, config);
+    return this.client.post<T>(url, data, { headers, ...config });
   }
 
-  public async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  public async put<T>(url: string, headers: any, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     console.log(`${DEBUG_PREFIX} Initiating PUT request to ${url}`);
-    const request: QueuedRequest = { url, method: 'put', data, config, retryCount: 0 };
+    const request: QueuedRequest = { url, method: 'put', headers, data, config, retryCount: 0 };
     await this.handleNewRequest(request);
-    return this.client.put<T>(url, data, config);
+    return this.client.put<T>(url, data, { headers, ...config });
   }
 
-  public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  public async delete<T>(url: string, headers: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     console.log(`${DEBUG_PREFIX} Initiating DELETE request to ${url}`);
-    const request: QueuedRequest = { url, method: 'delete', config, retryCount: 0 };
+    const request: QueuedRequest = { url, method: 'delete', headers, config, retryCount: 0 };
     await this.handleNewRequest(request);
-    return this.client.delete<T>(url, config);
+    return this.client.delete<T>(url, { headers, ...config });
   }
 
   /**
@@ -219,8 +223,9 @@ class ApiClient {
      * @param token - The JWT token to validate.
      * @returns {Promise<boolean>} - Whether the token is valid.
      */
-  public async validateToken(token: string): Promise<boolean> {
+  public async validateToken(token: string): Promise<any> {
     try {
+      console.log(token)
       // Step 1: Decode the JWT payload
       const payload = this.decodeToken(token);
 
@@ -241,11 +246,25 @@ class ApiClient {
       // Step 3: Perform server validation if online
       if (this.isConnected) {
         console.log(`${DEBUG_PREFIX} Performing online validation.`);
-        const response = await this.client.get('/api/auth/validate', {
+
+        console.log(`Sending: ${token}`)
+        const response = await this.client.get('/api/account/validate', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        return response.status === 200;
+        if (response.status !== 200) {
+          console.warn(`${DEBUG_PREFIX} Not successful in checking token with server.`);
+          return false;
+        }
+
+        // Step 4: If valid token then another refreshed token is returned, we should save that
+        const { user } = response.data;
+
+        await AsyncStorage.setItem("userData", JSON.stringify(user));
+
+        console.log("User data saved to AsyncStorage:", user);
+
+        return user;
       }
 
       console.log(`${DEBUG_PREFIX} Skipping server validation (offline).`);
@@ -269,7 +288,9 @@ class ApiClient {
         return null;
       }
 
+      console.log(parts);
       const payload = parts[1];
+      console.log(payload);
       const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
       return decoded;
     } catch (error) {
