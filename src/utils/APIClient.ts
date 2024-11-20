@@ -178,6 +178,12 @@ class ApiClient {
   // }
 
   public async handleNewRequest(request: QueuedRequest) {
+    const isDuplicate=this.requestQueue.some((queuedRequest)=>queuedRequest.url===request.url && queuedRequest.method===request.method&&JSON.stringify(queuedRequest.data)===JSON.stringify(request.data));
+    console.log(isDuplicate);
+    if (isDuplicate){
+      console.log(`${DEBUG_PREFIX} Ignoring duplicate request: ${request.url}`);
+      return;
+    }
     if (!this.isConnected) {
       console.log(`${DEBUG_PREFIX} Offline. Queuing request to ${request.url}`);
       if (request.offlineHandler) await request.offlineHandler();

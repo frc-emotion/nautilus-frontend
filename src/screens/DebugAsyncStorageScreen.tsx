@@ -20,6 +20,7 @@ const DebugAsyncStorageScreen: React.FC = () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const entries = await AsyncStorage.multiGet(keys);
+      //console.log(keys,entries)
 
       const formattedData = entries.map(([key, value]) => {
         let parsedValue: any = value;
@@ -53,6 +54,11 @@ const DebugAsyncStorageScreen: React.FC = () => {
   const addItem = async () => {
     if (!newKey || !newValue) {
       Alert.alert('Validation Error', 'Both key and value are required.');
+      return;
+    }
+    const exists=await checkKeyExists(newKey);
+    if (exists){
+      Alert.alert('Key Exists', `This request has already been made.`);
       return;
     }
     try {
@@ -90,6 +96,18 @@ const DebugAsyncStorageScreen: React.FC = () => {
       console.error(error);
     }
   };
+
+  const checkKeyExists = async (key: string) => {
+    try{
+      const item = AsyncStorage.getItem(key);
+      return item!=null;
+    }
+    catch (error){
+      Alert.alert('Error',`Failed to check if key already exists: ${key}`);
+      console.error(error);
+      return true;
+    }
+  }
 
   // Clear all AsyncStorage data
   const clearAll = async () => {

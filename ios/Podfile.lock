@@ -6,7 +6,7 @@ PODS:
   - EXJSONUtils (0.13.1)
   - EXManifests (0.14.3):
     - ExpoModulesCore
-  - Expo (51.0.38):
+  - Expo (51.0.39):
     - ExpoModulesCore
   - expo-dev-client (4.0.28):
     - EXManifests
@@ -2156,7 +2156,7 @@ SPEC CHECKSUMS:
   EXConstants: 409690fbfd5afea964e5e9d6c4eb2c2b59222c59
   EXJSONUtils: 30c17fd9cc364d722c0946a550dfbf1be92ef6a4
   EXManifests: c1fab4c3237675e7b0299ea8df0bcb14baca4f42
-  Expo: 9b6666ef2fedcfc89c5b9be2aa1ce12b81f9e7f5
+  Expo: 8c995afb875c15bf8439af0b20bcb9ed8f90d0bd
   expo-dev-client: e25e1c63686cc097d9701354e475b2b60038b83b
   expo-dev-launcher: 009c534bd76b263023d2780ec8c0c47fef96812d
   expo-dev-menu: b9dde4cc24475b99998b10d16c37d3072785613c
@@ -2239,4 +2239,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 6011fb6fb1afa4de2117ec46b33b48a32df3dd78
 
-COCOAPODS: 1.16.1
+COCOAPODS: 1.16.2
