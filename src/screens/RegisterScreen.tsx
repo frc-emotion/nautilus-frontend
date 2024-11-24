@@ -175,18 +175,18 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={100}
       style={{ flex: 1 }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="never"
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: "center",
             paddingHorizontal: 16,
             paddingVertical: 100,
           }}
+          automaticallyAdjustKeyboardInsets={true} showsVerticalScrollIndicator
         >
           <VStack space="md" className="max-w-[600px] w-full mx-auto bg-white p-4 rounded-md shadow-lg">
 
@@ -361,7 +361,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   message: "Password must be at least 8 characters long",
                 },
                 pattern: {
-                  value: /^(?=.*[0-9])(?=.*[!@#$%^&*])/,
+                  value: /^(?=.*\d)(?=.*[^a-zA-Z\d])[A-Za-z\d\S]+$/,
                   message: "Password must contain at least one number and one special character",
                 },
               }}

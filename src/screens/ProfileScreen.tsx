@@ -59,7 +59,7 @@ const ProfileScreen: React.FC = () => {
 
         showToast({
           title: "Validation Failed",
-          description: "Unable to validate token with the server.",
+          description: "Unable to update user data with server.",
           type: "error",
         });
 
@@ -69,7 +69,7 @@ const ProfileScreen: React.FC = () => {
       offlineHandler: async () => {
         showToast({
           title: "Offline",
-          description: "Token validation skipped due to offline status.",
+          description: "I cannot refresh your profile without an internet connection!",
           type: "info",
         });
       },
