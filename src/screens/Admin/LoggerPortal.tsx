@@ -1,12 +1,12 @@
 // screens/LoggerPortal.tsx
 import React, { useEffect, useState, useRef } from 'react';
-import BLEHelper from '../utils/BLEHelper';
 import Constants from 'expo-constants';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { VStack } from '@/components/ui/vstack';
 import { Button } from '@/components/ui/button';
 import { Text } from "@/components/ui/text";
 import { Spinner } from '@/components/ui/spinner';
+import BLEHelper from '@/src/utils/BLEHelper';
 
 const DEBUG_PREFIX = '[LoggerPortal]';
 const APP_UUID = Constants.expoConfig?.extra?.APP_UUID || '00000000-0000-0000-0000-000000000000';
@@ -75,39 +75,39 @@ const LoggerPortal: React.FC = () => {
   };
 
   return (
-      <VStack space="lg" className="p-6 bg-gray-100 flex-1">
-        <Text size="2xl" bold={true} className="text-center mb-4">
-          {isMonitoring ? 'Monitoring for Beacons' : 'Not Monitoring'}
-        </Text>
+    <VStack space="lg" className="p-6 bg-gray-100 flex-1">
+      <Text size="2xl" bold={true} className="text-center mb-4">
+        {isMonitoring ? 'Monitoring for Beacons' : 'Not Monitoring'}
+      </Text>
 
-        <Button 
-          onPress={toggleMonitoring} 
-          className={`px-6 rounded-lg ${loading ? 'bg-gray-400' : isMonitoring ? 'bg-red-500' : 'bg-blue-500'}`}
-          isDisabled={loading}
-        >
-          {loading ? (
-            <Spinner color="white" />
-          ) : (
-            <Text size="lg" className="text-white font-bold text-center">
-              {isMonitoring ? 'Stop Monitoring' : 'Start Monitoring'}
-            </Text>
-          )}
-        </Button>
+      <Button
+        onPress={toggleMonitoring}
+        className={`px-6 rounded-lg ${loading ? 'bg-gray-400' : isMonitoring ? 'bg-red-500' : 'bg-blue-500'}`}
+        isDisabled={loading}
+      >
+        {loading ? (
+          <Spinner color="white" />
+        ) : (
+          <Text size="lg" className="text-white font-bold text-center">
+            {isMonitoring ? 'Stop Monitoring' : 'Start Monitoring'}
+          </Text>
+        )}
+      </Button>
 
-        <VStack space="md" className="bg-white p-4 rounded-lg shadow-md mt-6">
-          {detectedBeacons.length > 0 ? (
-            detectedBeacons.map((beacon, index) => (
-              <Text key={index} className="text-gray-700 text-md">
-                Detected Beacon - UUID: {beacon.uuid}, Major: {beacon.major}, Minor: {beacon.minor}
-              </Text>
-            ))
-          ) : (
-            <Text className="text-gray-500 text-center">
-              No beacons detected
+      <VStack space="md" className="bg-white p-4 rounded-lg shadow-md mt-6">
+        {detectedBeacons.length > 0 ? (
+          detectedBeacons.map((beacon, index) => (
+            <Text key={index} className="text-gray-700 text-md">
+              Detected Beacon - UUID: {beacon.uuid}, Major: {beacon.major}, Minor: {beacon.minor}
             </Text>
-          )}
-        </VStack>
+          ))
+        ) : (
+          <Text className="text-gray-500 text-center">
+            No beacons detected
+          </Text>
+        )}
       </VStack>
+    </VStack>
   );
 };
 

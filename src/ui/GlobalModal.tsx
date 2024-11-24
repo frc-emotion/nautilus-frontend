@@ -12,7 +12,6 @@ import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 
 import { useModal } from "../utils/ModalProvider";
-import { ModalConfig } from "../Constants";
 import { Box } from "@/components/ui/box";
 import {
   AlertCircleIcon,
@@ -23,6 +22,7 @@ import {
   CheckCircleIcon,
 } from "@/components/ui/icon";
 import { ScrollView } from "react-native";
+import { ModalConfig } from "../Constants";
 
 const GlobalModal: React.FC = () => {
   const { isOpen, config, closeModal } = useModal();
@@ -48,8 +48,8 @@ const GlobalModal: React.FC = () => {
 
   return (
     <Modal isOpen={isOpen} onClose={closeModal} size="md">
-      <ModalBackdrop />
-      <ModalContent className="w-[90%] max-w-[400px] rounded-xl p-6 shadow-lg max-h-[85%]">
+      <ModalBackdrop className="bg-black/50" />
+      <ModalContent className="w-[90%] max-w-[400px] rounded-xl bg-white p-6 shadow-lg max-h-[85%]">
         <ScrollView contentContainerStyle={{ alignItems: "center" }}>
           <ModalHeader>
             <Box
@@ -59,16 +59,15 @@ const GlobalModal: React.FC = () => {
               <Icon
                 as={icon}
                 size="xl"
-                color="white"
               />
             </Box>
           </ModalHeader>
 
           <ModalBody>
-            <Heading size="lg" className="font-semibold text-center">
+            <Heading size="lg" className="text-black font-semibold text-center">
               {config.title}
             </Heading>
-            <Text size="sm" className="text-center mt-2">
+            <Text size="sm" className="text-gray-600 text-center mt-2">
               {config.message}
             </Text>
           </ModalBody>
@@ -76,10 +75,10 @@ const GlobalModal: React.FC = () => {
         <ModalFooter>
           <Button
             variant="solid"
-            className="w-full rounded-lg py-2"
+            className="bg-blue-600 w-full rounded-lg py-2"
             onPress={closeModal}
           >
-            <ButtonText>Close</ButtonText>
+            <ButtonText className="text-white">Close</ButtonText>
           </Button>
         </ModalFooter>
       </ModalContent>

@@ -5,19 +5,16 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
-import { useAuth } from "../utils/AuthContext";
-import { useGlobalToast } from "../utils/GlobalToastProvider";
+import { useAuth } from "../../utils/AuthContext";
+import { useGlobalToast } from "../../utils/ToastProvider";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosError } from "axios";
-import ApiClient, { QueuedRequest } from "../utils/APIClient";
-
-type AppStackParamList = {
-  AuthLoading: undefined;
-  RoleBasedTabs: undefined;
-  NotLoggedInTabs: undefined;
-};
+import ApiClient from "../../utils/APIClient";
+import { AppStackParamList, QueuedRequest } from "../../Constants";
+import { useThemeContext } from "../../utils/ThemeContext";
+const icon = require("@/src/assets/icon.png")
 
 const ProfileScreen: React.FC = () => {
   const { user, logout, refreshUser } = useAuth();
@@ -25,13 +22,14 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
   const [refreshing, setRefreshing] = useState(false);
   const [displayUser, setDisplayUser] = useState(user);
+  const { colorMode, toggleColorMode } = useThemeContext();
 
   useEffect(() => {
     if (user) {
       setDisplayUser(user);
       validateTokenWithServer(user.token);
     }
-    
+
   }, [user]);
 
   const validateTokenWithServer = async (token: string) => {
@@ -109,7 +107,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <ScrollView
-      contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: "#F8F8F8" }}
+      contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
       <VStack space="lg" className="items-center">
@@ -118,45 +116,45 @@ const ProfileScreen: React.FC = () => {
           width={128}
           height={128}
           className="w-32 h-32 rounded-full"
-          source={require("../assets/icon.png")}
+          source={icon}
           alt="Profile Picture"
         />
 
         {/* User Info */}
         <VStack space="md" className="w-full max-w-[600px]">
           <HStack className="justify-between">
-            <Text className="text-gray-600">Name</Text>
-            <Text className="text-black font-semibold">{`${displayUser?.first_name} ${displayUser?.last_name}`}</Text>
+            <Text>Name</Text>
+            <Text className="font-semibold">{`${displayUser?.first_name} ${displayUser?.last_name}`}</Text>
           </HStack>
 
           <HStack className="justify-between">
-            <Text className="text-gray-600">Email</Text>
-            <Text className="text-black font-semibold">{displayUser?.email}</Text>
+            <Text>Email</Text>
+            <Text className="font-semibold">{displayUser?.email}</Text>
           </HStack>
 
           <HStack className="justify-between">
-            <Text className="text-gray-600">Phone</Text>
-            <Text className="text-black font-semibold">{displayUser?.phone}</Text>
+            <Text>Phone</Text>
+            <Text className="font-semibold">{displayUser?.phone}</Text>
           </HStack>
 
           <HStack className="justify-between">
-            <Text className="text-gray-600">Student ID</Text>
-            <Text className="text-black font-semibold">{displayUser?.student_id}</Text>
+            <Text>Student ID</Text>
+            <Text className="font-semibold">{displayUser?.student_id}</Text>
           </HStack>
 
           <HStack className="justify-between">
-            <Text className="text-gray-600">Grade</Text>
-            <Text className="text-black font-semibold">{displayUser?.grade}</Text>
+            <Text>Grade</Text>
+            <Text className="font-semibold">{displayUser?.grade}</Text>
           </HStack>
 
           <HStack className="justify-between">
-            <Text className="text-gray-600">Subteam</Text>
-            <Text className="text-black font-semibold">{displayUser?.subteam.join(", ")}</Text>
+            <Text>Subteam</Text>
+            <Text className="font-semibold">{displayUser?.subteam.join(", ")}</Text>
           </HStack>
 
           <HStack className="justify-between">
-            <Text className="text-gray-600">Role</Text>
-            <Text className="text-black font-semibold">{displayUser?.role}</Text>
+            <Text>Role</Text>
+            <Text className="font-semibold">{displayUser?.role}</Text>
           </HStack>
         </VStack>
 

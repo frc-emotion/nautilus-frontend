@@ -3,35 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ApiClient from "./APIClient";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-
-type AppStackParamList = {
-  AuthLoading: undefined;
-  RoleBasedTabs: undefined;
-  NotLoggedInTabs: undefined;
-};
-
-type UserObject = {
-  token: string;
-  _id: string;
-  first_name: string;
-  last_name: string;
-  student_id: string;
-  email: string;
-  phone: string;
-  subteam: string[];
-  grade: string;
-  role: "unverified" | "member" | "leadership" | "executive" | "advisor" | "admin";
-  created_at: string;
-};
-
-type AuthContextType = {
-  user: UserObject | null;
-  isLoggedIn: boolean;
-  isLoading: boolean;
-  login: (token: string, user: UserObject) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-};
+import { AppStackParamList, AuthContextType, UserObject } from "../Constants";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

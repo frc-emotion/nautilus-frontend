@@ -11,17 +11,23 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Button, ButtonText } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, MailIcon, LockIcon } from "lucide-react-native";
-import ApiClient, { QueuedRequest } from "../utils/APIClient";
-import { useModal } from "../utils/GlobalModalContext";
-import { useGlobalToast } from "../utils/GlobalToastProvider";
+import { EyeIcon, EyeOffIcon, MailIcon, LockIcon, MoonIcon, SunIcon } from "lucide-react-native";
+import ApiClient from "../../utils/APIClient";
+import { useModal } from "../../utils/ModalProvider";
+import { useGlobalToast } from "../../utils/ToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
 import { Image } from "@/components/ui/image"
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useAuth } from "../utils/AuthContext";
+import { useAuth } from "../../utils/AuthContext";
+import { QueuedRequest } from "../../Constants";
+import { Fab, FabIcon } from "@/components/ui/fab";
+import { useThemeContext } from '../../utils/ThemeContext';
+const icon = require("@/src/assets/icon.png")
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+    const { colorMode, toggleColorMode } = useThemeContext();
+
     const { showToast } = useGlobalToast();
     const { openModal } = useModal();
     const { login } = useAuth();
@@ -86,7 +92,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         message: error.message,
                         type: "error",
                     });
-    
+
                     showToast({
                         title: "Login Failed",
                         description: error.message,
@@ -114,7 +120,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     title: "Offline",
                     description: "Login request saved. It will be processed when you're back online.",
                     type: "info",
-                  });
+                });
 
                 openModal({
                     title: "Offline",
@@ -154,28 +160,30 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={120}
-            style={{ flex: 1 }}
+            style={{ flex: 1, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView
                     contentContainerStyle={{ flexGrow: 1 }}
-                    style={{ backgroundColor: "#F8F8F8" }}
                     automaticallyAdjustKeyboardInsets={true} showsVerticalScrollIndicator
+
                 >
                     <VStack
                         className="flex-1 justify-center items-center p-16"
                         space="sm"
+
                     >
                         <Image
                             width={5122}
                             height={512}
                             className="w-64 h-64"
-                            source={require('../assets/icon.png')}
+                            source={icon}
                             alt="App Icon"
                         />
 
                         {/* Email */}
-                        <Text className="mb-1 mt-4 text-gray-600">Email</Text>
+                        <Text className="mb-1 mt-4">Email</Text>
                         <Controller
                             control={control}
                             name="email"
@@ -187,7 +195,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 },
                             }}
                             render={({ field: { onChange, value } }) => (
-                                <Input size="md" className="bg-gray-100 rounded">
+                                <Input size="md" className="rounded">
                                     <InputSlot className="pl-3">
                                         <InputIcon as={MailIcon} />
                                     </InputSlot>
@@ -196,7 +204,6 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                         value={value}
                                         onChangeText={onChange}
                                         keyboardType="email-address"
-                                        className="text-black-600"
                                         autoCorrect={false}
                                         autoCapitalize="none"
                                     />
@@ -205,12 +212,12 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         />
 
                         {/* Password */}
-                        <Text className="mb-1 mt-4 text-gray-600">Password</Text>
+                        <Text className="mb-1 mt-4">Password</Text>
                         <Controller
                             control={control}
                             name="password"
                             render={({ field: { onChange, value } }) => (
-                                <Input size="md" className="bg-gray-100 rounded">
+                                <Input size="md" className="rounded">
                                     <InputSlot className="pl-3">
                                         <InputIcon as={LockIcon} />
                                     </InputSlot>
@@ -219,9 +226,8 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                         secureTextEntry={hidePassword}
                                         value={value}
                                         onChangeText={onChange}
-                                        className="text-black-600"
                                         autoCorrect={false}
-                                        
+
                                     />
                                     <InputSlot
                                         className="pr-3"
@@ -237,18 +243,25 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         <Button
                             onPress={handleSubmit(handleLogin, onError)}
                             size="lg"
-                            className="mt-4 py-2 rounded-md bg-blue-600"
+                            className="mt-4 py-2 rounded-md"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? (
-                                <ActivityIndicator size="small" color="#fff" />
+                                <ActivityIndicator size="small" />
                             ) : (
-                                <ButtonText className="text-white font-semibold">
+                                <ButtonText className="font-semibold">
                                     Login
                                 </ButtonText>
                             )}
                         </Button>
                     </VStack>
+                    <Fab
+                        size="md"
+                        placement="bottom right"
+                        onPress={toggleColorMode}
+                    >
+                        <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+                    </Fab>
                 </ScrollView>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>

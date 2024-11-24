@@ -15,24 +15,8 @@ import {
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Pressable } from "react-native";
-
-type ToastOptions = {
-  title: string;
-  description?: string;
-  type?: "success" | "error" | "warning" | "info";
-  duration?: number;
-  placement?:
-    | "top"
-    | "bottom"
-    | "top left"
-    | "top right"
-    | "bottom left"
-    | "bottom right";
-};
-
-type ToastContextType = {
-  showToast: (options: ToastOptions) => void;
-};
+import { ToastContextType, ToastOptions } from "../Constants";
+import { useThemeContext } from "./ThemeContext";
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -80,7 +64,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
       placement,
       duration,
       render: ({ id }) => (
-        
+
 
         <Pressable onPress={() => toast.close(id)}>
           <Toast
@@ -89,19 +73,19 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
             style={{ backgroundColor: getColor(type) }}
           >
             <HStack space="md" className="items-center">
-              <Icon
+              <Icon color="white"
                 as={getTypeIcon(type)}
-                
+
               />
               <VStack space="xs" className="flex-shrink">
                 <ToastTitle
-                  className={`font-bold text-base text-gray-100`}
+                  className={`text-white font-bold text-base`}
                 >
                   {title}
                 </ToastTitle>
                 <ToastDescription
                   size="sm"
-                  className="break-words text-xs text-gray-100"
+                  className="text-white break-words text-xs"
                 >
                   {description}
                 </ToastDescription>

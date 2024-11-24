@@ -2,15 +2,10 @@ import React, { useEffect } from "react";
 import { HStack } from "@/components/ui/hstack";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useAuth } from "../utils/AuthContext";
+import { useAuth } from "../../utils/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-
-type AppStackParamList = {
-  AuthLoading: undefined;
-  RoleBasedTabs: undefined;
-  NotLoggedInTabs: undefined;
-};
+import { AppStackParamList } from "../../Constants";
 
 const AuthLoadingScreen: React.FC = () => {
   const { isLoading, isLoggedIn } = useAuth();

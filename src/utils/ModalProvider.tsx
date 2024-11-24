@@ -1,12 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { ModalConfig } from "./GlobalFeedbackConfigs";
-
-interface ModalContextProps {
-  isOpen: boolean;
-  config: ModalConfig | null;
-  openModal: (config: ModalConfig) => void;
-  closeModal: () => void;
-}
+import { ModalConfig, ModalContextProps } from "../Constants";
 
 const ModalContext = createContext<ModalContextProps | undefined>(undefined);
 

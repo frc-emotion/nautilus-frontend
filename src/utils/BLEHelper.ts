@@ -1,12 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
-
-type BeaconBroadcasterType = {
-  startBroadcasting: (uuid: string, major: number, minor: number) => Promise<string>;
-  stopBroadcasting: () => Promise<string>;
-  startListening: (uuid: string) => Promise<string>;
-  stopListening: () => Promise<string>;
-  getDetectedBeacons: () => Promise<Array<{ uuid: string; major: number; minor: number }>>;
-};
+import { BeaconBroadcasterType } from '../Constants';
 
 const { BeaconBroadcaster } = NativeModules;
 

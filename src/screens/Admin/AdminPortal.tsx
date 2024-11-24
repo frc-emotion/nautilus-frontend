@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import BLEHelper from '../utils/BLEHelper';
-import Constants from 'expo-constants';
+import BLEHelper from '../../utils/BLEHelper';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { VStack } from '@/components/ui/vstack';
 import { Input, InputField } from '@/components/ui/input';
@@ -8,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Text } from "@/components/ui/text";
 import { Spinner } from '@/components/ui/spinner';
 import { Toast, ToastTitle, useToast } from '@/components/ui/toast'; // Import the toast hook
+import { APP_UUID } from '../../Constants';
 
 const DEBUG_PREFIX = '[AdminPortal]';
-const APP_UUID = Constants.expoConfig?.extra?.APP_UUID || '00000000-0000-0000-0000-000000000000';
 
 const AdminPortal: React.FC = () => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -38,12 +37,12 @@ const AdminPortal: React.FC = () => {
 
   const toggleBroadcasting = async () => {
     console.log(`${DEBUG_PREFIX} Toggling broadcasting. Current state: ${isBroadcasting ? 'Broadcasting' : 'Not Broadcasting'}`);
-  
+
     if (!validateInput(major) || !validateInput(minor)) {
       console.error(`${DEBUG_PREFIX} Major and Minor must be valid numbers`);
       return;
     }
-  
+
     setLoading(true);
     console.log(`${DEBUG_PREFIX} Starting toggleBroadcasting, loading state set to true.`);
     try {
@@ -60,7 +59,7 @@ const AdminPortal: React.FC = () => {
     } catch (error) {
       if (error instanceof Error) {
         console.error(`${DEBUG_PREFIX} Error toggling broadcasting:`, error);
-  
+
         // Check for the specific error message and handle it
         if (error.message === 'No active beacon broadcast to stop') {
           toast.show({
@@ -104,7 +103,7 @@ const AdminPortal: React.FC = () => {
             className="border-gray-300"
             isDisabled={isBroadcasting}
           >
-            <InputField placeholder="Enter Major" onChangeText={setMajor}/>
+            <InputField placeholder="Enter Major" onChangeText={setMajor} />
           </Input>
 
           <Text size="lg" className="text-gray-700 mt-4 mb-2 font-semibold">Minor</Text>
@@ -114,12 +113,12 @@ const AdminPortal: React.FC = () => {
             className="border-gray-300"
             isDisabled={isBroadcasting}
           >
-            <InputField placeholder="Enter Minor" onChangeText={setMinor}/>
+            <InputField placeholder="Enter Minor" onChangeText={setMinor} />
           </Input>
         </VStack>
 
-        <Button 
-          onPress={toggleBroadcasting} 
+        <Button
+          onPress={toggleBroadcasting}
           className={`mt-6 px-6 rounded-lg ${loading ? 'bg-gray-400' : isBroadcasting ? 'bg-red-500' : 'bg-blue-500'}`}
           isDisabled={loading}
         >

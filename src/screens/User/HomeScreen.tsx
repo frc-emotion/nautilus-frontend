@@ -5,15 +5,22 @@ import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
-import { useAuth } from "../utils/AuthContext";
-import { useGlobalToast } from "../utils/GlobalToastProvider";
-import ApiClient, { QueuedRequest } from "../utils/APIClient";
+import { useAuth } from "../../utils/AuthContext";
+import { useGlobalToast } from "../../utils/ToastProvider";
+import ApiClient from "../../utils/APIClient";
+import { QueuedRequest } from "../../Constants";
+import { Fab, FabIcon } from "@/components/ui/fab";
+import { MoonIcon, SunIcon } from "lucide-react-native";
+import { useThemeContext } from "../../utils/ThemeContext";
 
 const HomeScreen: React.FC = () => {
+  const { colorMode, toggleColorMode } = useThemeContext();
+
   const { user, refreshUser } = useAuth();
   const { showToast } = useGlobalToast();
   const [refreshing, setRefreshing] = useState(false);
   const [attendanceHours, setAttendanceHours] = useState<number | null>(null);
+
 
   useEffect(() => {
     if (user && user.role !== "unverified") {
@@ -79,40 +86,50 @@ const HomeScreen: React.FC = () => {
     // Unverified User Screen
     return (
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: "#F8F8F8" }}
+        contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <VStack space="lg" className="items-center mt-8">
           <Text className="text-red-600 text-center font-bold text-lg">
             Unverified Account
           </Text>
-          <Text className="text-gray-600 text-center">
+          <Text className="text-center">
             Please contact an administrator to verify your account.
           </Text>
           <Button
             onPress={handleUnverifiedRefresh}
             size="lg"
-            className="mt-4 py-2 rounded-md bg-blue-600"
+            className="mt-4 py-2 rounded-md"
           >
-            <ButtonText className="text-white font-semibold">Refresh</ButtonText>
+            <ButtonText className="font-semibold">Refresh</ButtonText>
           </Button>
         </VStack>
+        <Fab
+          size="md"
+          placement="bottom right"
+          onPress={toggleColorMode}
+        >
+          <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+        </Fab>
       </ScrollView>
+
+
     );
   }
 
   // Verified User Screen
   return (
     <ScrollView
-      contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: "#F8F8F8" }}
+      contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
+
       <VStack space="lg" className="items-center">
-        <Text className="text-black font-bold text-lg">Attendance Hours</Text>
+        <Text className="font-bold text-lg">Attendance Hours</Text>
         {attendanceHours !== null ? (
           <>
             <VStack space="md" className="w-full max-w-[600px]">
-              <Text className="text-gray-600 text-center">
+              <Text className="text-center">
                 You have completed {attendanceHours} out of 36 hours of attendance.
               </Text>
               <HStack className="items-center justify-center">
@@ -123,16 +140,23 @@ const HomeScreen: React.FC = () => {
             </VStack>
           </>
         ) : (
-          <Text className="text-gray-600">Loading attendance hours...</Text>
+          <Text>Loading attendance hours...</Text>
         )}
         <Button
           onPress={handleRefresh}
           size="lg"
-          className="mt-4 py-2 rounded-md bg-blue-600"
+          className="mt-4 py-2 rounded-md"
         >
-          <ButtonText className="text-white font-semibold">Refresh</ButtonText>
+          <ButtonText className="font-semibold">Refresh</ButtonText>
         </Button>
       </VStack>
+      <Fab
+        size="md"
+        placement="bottom right"
+        onPress={toggleColorMode}
+      >
+        <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+      </Fab>
     </ScrollView>
   );
 };

@@ -4,27 +4,14 @@ import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ModalConfig } from './GlobalFeedbackConfigs';
 import { Buffer } from 'buffer'
+import { QueuedRequest } from '../Constants';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;
 const REQUEST_TIMEOUT = 5 * 1000;
 const DEBUG_PREFIX = '[ApiClient]';
 const REQUEST_QUEUE_KEY = 'REQUEST_QUEUE';
-
-export interface QueuedRequest {
-  url: string;
-  method: 'get' | 'post' | 'put' | 'delete';
-  data?: any;
-  headers?: any;
-  config?: AxiosRequestConfig;
-  retryCount: number;
-  modalConfig?: ModalConfig;
-  successHandler?: (response: AxiosResponse) => Promise<void>;
-  errorHandler?: (error: any) => Promise<void>;
-  offlineHandler?: () => Promise<void>;
-}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -60,7 +47,7 @@ class ApiClient {
       }
     });
 
-  
+
 
     // this.client.interceptors.response.use(
     //   response => response,
@@ -178,6 +165,13 @@ class ApiClient {
   // }
 
   public async handleNewRequest(request: QueuedRequest) {
+    const isDuplicate = this.requestQueue.some((queuedRequest) => queuedRequest.url === request.url && queuedRequest.method === request.method && JSON.stringify(queuedRequest.data) === JSON.stringify(request.data));
+    console.log(isDuplicate);
+    if (isDuplicate) {
+      console.log(`${DEBUG_PREFIX} Ignoring duplicate request: ${request.url}`);
+      return;
+    }
+
     if (!this.isConnected) {
       console.log(`${DEBUG_PREFIX} Offline. Queuing request to ${request.url}`);
       if (request.offlineHandler) await request.offlineHandler();
@@ -197,7 +191,7 @@ class ApiClient {
     console.log(`${DEBUG_PREFIX} Initiating GET request to ${API_URL}${url}`);
     const request: QueuedRequest = { url, method: 'get', headers, config, retryCount: 0 };
     await this.handleNewRequest(request);
-    return this.client.get<T>(url, { headers,  ...config });
+    return this.client.get<T>(url, { headers, ...config });
   }
 
   public async post<T>(url: string, headers: any, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
