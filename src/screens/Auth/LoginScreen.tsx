@@ -33,6 +33,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { login } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [hidePassword, setHidePassword] = useState(true);
+    const [forgot, setForgot] = useState(false)
 
     const {
         control,
@@ -44,6 +45,93 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             password: "",
         },
     });
+
+    const handleForgotPassword=async(data:any)=>{
+        console.log("Forgot password request submitted with data:", data);
+        const payload={
+            email:data.email
+        }
+
+        console.log("Payload for API:", payload);
+
+        const request: QueuedRequest = {
+            url:"/api/auth/forgot-password",
+            method:"post",
+            data:payload,
+            retryCount:0,
+        
+        successHandler: async (response: AxiosResponse) => {
+            openModal({
+                title: "Success",
+                message: "Email sent successfully.",
+                type: "success",
+            });
+
+            showToast({
+                title: "Email Sent",
+                description: "The email has been sent successfully.",
+                type: "success",
+            });
+        },
+        errorHandler: async (error: AxiosError) => {
+            const statusCode = error.response?.status;
+            if (!statusCode) {
+                openModal({
+                    title: `Request Failed: ${error.name}`,
+                    message: error.message,
+                    type: "error",
+                });
+
+                showToast({
+                    title: "Failed to send email.",
+                    description: error.message,
+                    type: "error",
+                });
+            }
+
+            const errorData = error.response?.data;
+            const errorMessage = typeof errorData === "string" ? JSON.parse(errorData) : errorData;
+
+            openModal({
+                title: `Forgot Password Error: ${statusCode || "Unknown"}`,
+                message: errorMessage.error,
+                type: "error",
+            });
+
+            showToast({
+                title: "Login Failed",
+                description: errorMessage.error,
+                type: "error",
+            });
+        },
+        offlineHandler: async () => {
+            showToast({
+                title: "Offline",
+                description: "Email saved. It will be sent when you're back online.",
+                type: "info",
+            });
+
+            openModal({
+                title: "Offline",
+                message: "Email saved. It will be sent when you're back online.",
+                type: "info",
+            });
+        }
+    };
+
+    try {
+        await ApiClient.handleNewRequest(request);
+    } catch (error: any) {
+        console.error("Error during email send:", error);
+        showToast({
+            title: "Unexpected Error",
+            description: error.message,
+            type: "error",
+        });
+    } finally {
+        setForgot(false);
+    }
+};
 
     const handleLogin = async (data: any) => {
         console.log("Login form submitted with data:", data);
@@ -212,6 +300,8 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         />
 
                         {/* Password */}
+                        {!forgot && (
+                        <>
                         <Text className="mb-1 mt-4">Password</Text>
                         <Controller
                             control={control}
@@ -237,9 +327,12 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                     </InputSlot>
                                 </Input>
                             )}
-                        />
+                        /> 
+                        </>
+                        )}
 
                         {/* Submit Button */}
+                        {!forgot && (
                         <Button
                             onPress={handleSubmit(handleLogin, onError)}
                             size="lg"
@@ -253,7 +346,36 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                     Login
                                 </ButtonText>
                             )}
-                        </Button>
+                        </Button>)}
+
+                        {/* Send Email Button */}
+                        {forgot && (
+                        <Button
+                            onPress={handleSubmit(handleForgotPassword, onError)}
+                            size="lg"
+                            className="mt-4 py-2 rounded-md"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <ActivityIndicator size="small" />
+                            ) : (
+                                <ButtonText className="font-semibold">
+                                    Send Email
+                                </ButtonText>
+                            )}
+                        </Button>)}
+
+                        {/* Forgot Password */}
+                        {!forgot && (
+                        <Button
+                            onPress={()=>setForgot(true)}
+                            size="sm"
+                            className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"}                            disabled={false}
+                        >
+                            <ButtonText className={colorMode==='light' ? "color-black" : "color-white"}>
+                                Forgot Password?
+                            </ButtonText>
+                        </Button> )}
                     </VStack>
                     <Fab
                         size="md"

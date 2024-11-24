@@ -7,7 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Buffer } from 'buffer'
 import { QueuedRequest } from '../Constants';
 
-const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
+//const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
+const API_URL='http://localhost:7001';
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;
 const REQUEST_TIMEOUT = 5 * 1000;
 const DEBUG_PREFIX = '[ApiClient]';
