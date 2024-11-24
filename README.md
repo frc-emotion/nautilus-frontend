@@ -31,7 +31,7 @@ You may be prompted to enter authentication details. For this, you may need to g
 Once the repository is successfully cloned onto your machine, install all necessary dependencies by running:
 
 ```sh
-npm i
+yarn install
 ```
 
 After you have completed these steps, your development environment should be fully set up, making you ready for development and writing your first contribution.
