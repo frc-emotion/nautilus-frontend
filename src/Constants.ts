@@ -24,6 +24,7 @@ export interface UserObject {
     grade: string;
     role: "unverified" | "member" | "leadership" | "executive" | "advisor" | "admin";
     created_at: string;
+    flags?: string[];
 };
 
 export interface AuthContextType {

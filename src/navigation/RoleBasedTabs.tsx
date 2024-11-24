@@ -9,6 +9,7 @@ import ProfileScreen from "../screens/User/ProfileScreen";
 import LoggerPortal from "../screens/Admin/LoggerPortal";
 import { CircleHelpIcon, CircleUserRoundIcon, HomeIcon, NotebookPenIcon } from "lucide-react-native";
 import { useThemeContext } from "../utils/ThemeContext";
+import VerifyScreen from "../screens/Admin/VerifyScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -47,7 +48,8 @@ const roleTabConfig = {
     { name: "Profile", component: ProfileScreen },
     { name: "AsyncStorage", component: DebugAsyncStorageScreen },
     { name: "Logger", component: LoggerPortal },
-    { name: "Admin", component: AdminScreen }
+    { name: "Users", component: AdminScreen },
+    { name: "Verifier", component: VerifyScreen}
   ],
 };
 

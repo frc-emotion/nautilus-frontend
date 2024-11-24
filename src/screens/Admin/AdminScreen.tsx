@@ -6,6 +6,7 @@ import {
     ScrollView,
     View,
     TouchableOpacity,
+    RefreshControl,
 } from "react-native";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Menu, MenuItem, MenuItemLabel } from "@/components/ui/menu";
@@ -29,14 +30,35 @@ import { AxiosError, AxiosResponse } from "axios";
 import { CheckIcon, ChevronDownIcon, Icon, ThreeDotsIcon } from "@/components/ui/icon";
 import { useThemeContext } from "../../utils/ThemeContext";
 import { Divider } from "@/components/ui/divider";
-import { Select, SelectBackdrop, SelectContent, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from "@/components/ui/select";
-import { CheckboxGroup, Checkbox, CheckboxIndicator, CheckboxIcon, CheckboxLabel } from "@/components/ui/checkbox";
+import {
+    Select,
+    SelectBackdrop,
+    SelectContent,
+    SelectIcon,
+    SelectInput,
+    SelectItem,
+    SelectPortal,
+    SelectTrigger,
+} from "@/components/ui/select";
+import {
+    CheckboxGroup,
+    Checkbox,
+    CheckboxIndicator,
+    CheckboxIcon,
+    CheckboxLabel,
+} from "@/components/ui/checkbox";
 
 const AdminScreen: React.FC = () => {
     const { user } = useAuth();
     const { showToast } = useGlobalToast();
     const { openModal } = useModal();
-    const { colorMode, toggleColorMode } = useThemeContext();
+    const { colorMode } = useThemeContext();
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Logging function
+    const log = (...args: any[]) => {
+        console.log(`[${new Date().toISOString()}] [AdminScreen]`, ...args);
+    };
 
     const [users, setUsers] = useState<UserObject[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -46,18 +68,22 @@ const AdminScreen: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        log('useEffect [user]', user);
         if (user?.role !== "admin") {
+            log('User is not admin, opening access denied modal');
             openModal({
                 title: "Access Denied",
                 message: "You do not have access to this page.",
                 type: "error",
             });
         } else {
+            log('User is admin, fetching users');
             fetchUsers();
         }
     }, [user]);
 
     useEffect(() => {
+        log('useEffect [searchQuery, users]', { searchQuery, users });
         const query = searchQuery.toLowerCase();
         const filtered = users.filter(
             (user) =>
@@ -66,10 +92,23 @@ const AdminScreen: React.FC = () => {
                 user.last_name.toLowerCase().includes(query) ||
                 user.role.toLowerCase().includes(query)
         );
+        log('Filtered users', filtered);
         setFilteredUsers(filtered);
     }, [searchQuery, users]);
 
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await fetchUsers();
+        showToast({
+            title: "Refreshed!",
+            description: "Successfully checked for new users!",
+            type: "success"
+        })
+        setRefreshing(false);
+      };    
+
     const fetchUsers = async () => {
+        log('fetchUsers called');
         setIsLoading(true);
         const request: QueuedRequest = {
             url: "/api/account/users",
@@ -77,11 +116,13 @@ const AdminScreen: React.FC = () => {
             headers: { Authorization: `Bearer ${user?.token}` },
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
+                log('fetchUsers successHandler', response.data);
                 setUsers(response.data.users);
                 setFilteredUsers(response.data.users);
                 setIsLoading(false);
             },
             errorHandler: async (error: AxiosError) => {
+                log('fetchUsers errorHandler', error);
                 showToast({
                     title: "Error",
                     description: "Failed to fetch users.",
@@ -90,6 +131,7 @@ const AdminScreen: React.FC = () => {
                 setIsLoading(false);
             },
             offlineHandler: async () => {
+                log('fetchUsers offlineHandler');
                 showToast({
                     title: "Offline",
                     description: "You are offline!",
@@ -98,16 +140,24 @@ const AdminScreen: React.FC = () => {
                 setIsLoading(false);
             },
         };
-        await ApiClient.handleNewRequest(request);
+        try {
+            await ApiClient.handleNewRequest(request);
+            log('fetchUsers request sent');
+        } catch (error) {
+            log('fetchUsers exception', error);
+            setIsLoading(false);
+        }
     };
 
     const handleDeleteUser = async (userId: string) => {
+        log('handleDeleteUser called', userId);
         const request: QueuedRequest = {
             url: `/api/account/users/${userId}`,
             method: "delete",
             headers: { Authorization: `Bearer ${user?.token}` },
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
+                log('handleDeleteUser successHandler', response.data);
                 showToast({
                     title: "Success",
                     description: "User deleted.",
@@ -116,6 +166,7 @@ const AdminScreen: React.FC = () => {
                 fetchUsers();
             },
             errorHandler: async (error: AxiosError) => {
+                log('handleDeleteUser errorHandler', error);
                 showToast({
                     title: "Error",
                     description: "Failed to delete user.",
@@ -123,6 +174,7 @@ const AdminScreen: React.FC = () => {
                 });
             },
             offlineHandler: async () => {
+                log('handleDeleteUser offlineHandler');
                 showToast({
                     title: "Offline",
                     description: "You are offline!",
@@ -131,16 +183,24 @@ const AdminScreen: React.FC = () => {
                 setIsLoading(false);
             },
         };
-        await ApiClient.handleNewRequest(request);
+        try {
+            await ApiClient.handleNewRequest(request);
+            log('handleDeleteUser request sent');
+        } catch (error) {
+            log('handleDeleteUser exception', error);
+        }
     };
 
     const handleEditUser = (user: UserObject) => {
+        log('handleEditUser called', user);
         setEditUser(user);
         setShowEditDialog(true);
     };
 
     const saveEditChanges = async (userId: string) => {
+        log('saveEditChanges called', userId);
         if (!editUser) {
+            log('No editUser selected');
             showToast({
                 title: "Error",
                 description: "No user selected for editing.",
@@ -149,11 +209,11 @@ const AdminScreen: React.FC = () => {
             return;
         }
 
-        // Extract only the fields that have changed
         const payload: Partial<UserObject> = {};
         const originalUser = users.find((user) => user._id === editUser._id);
 
         if (!originalUser) {
+            log('Original user data not found');
             showToast({
                 title: "Error",
                 description: "Original user data not found.",
@@ -169,7 +229,10 @@ const AdminScreen: React.FC = () => {
             }
         }
 
+        log('saveEditChanges payload', payload);
+
         if (Object.keys(payload).length === 0) {
+            log('No changes were made');
             showToast({
                 title: "No Changes",
                 description: "No changes were made.",
@@ -186,6 +249,7 @@ const AdminScreen: React.FC = () => {
             data: payload,
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
+                log('saveEditChanges successHandler', response.data);
                 showToast({
                     title: "Success",
                     description: "User edited successfully!",
@@ -194,6 +258,7 @@ const AdminScreen: React.FC = () => {
                 fetchUsers();
             },
             errorHandler: async (error: AxiosError) => {
+                log('saveEditChanges errorHandler', error);
                 showToast({
                     title: "Error",
                     description: "Failed to edit user.",
@@ -201,6 +266,7 @@ const AdminScreen: React.FC = () => {
                 });
             },
             offlineHandler: async () => {
+                log('saveEditChanges offlineHandler');
                 showToast({
                     title: "Offline",
                     description: "You are offline!",
@@ -209,7 +275,12 @@ const AdminScreen: React.FC = () => {
             },
         };
 
-        await ApiClient.handleNewRequest(request);
+        try {
+            await ApiClient.handleNewRequest(request);
+            log('saveEditChanges request sent');
+        } catch (error) {
+            log('saveEditChanges exception', error);
+        }
 
         setShowEditDialog(false);
         fetchUsers();
@@ -218,50 +289,45 @@ const AdminScreen: React.FC = () => {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+            style={{
+                flex: 1,
+                backgroundColor: colorMode === "light" ? "#FFFFFF" : "#1A202C",
+            }}
+            
         >
             <Box className="p-4 flex-1">
                 {/* Search Bar */}
                 <TextInput
                     placeholder="Search by name, email, or role"
                     value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    onChangeText={(text) => {
+                        log('Search query changed', text);
+                        setSearchQuery(text);
+                    }}
                     className="border rounded-md p-3 mb-4"
                     placeholderTextColor={colorMode === "light" ? "black" : "white"}
                 />
 
                 {/* User List */}
                 <Box className="rounded-lg overflow-hidden flex-1">
-                    <ScrollView>
+                    <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
                         {/* Table Header */}
                         <View className="flex flex-row bg-headerBackground">
-                            <Text className="flex-1 p-3 font-medium">
-                                Name
-                            </Text>
-                            <Text className="flex-1 p-3 font-medium">
-                                Email
-                            </Text>
-                            <Text className="flex-1 p-3 font-medium">
-                                Role
-                            </Text>
-                            <Text className="w-16 p-3 font-medium text-center">
-                                Actions
-                            </Text>
+                            <Text className="flex-1 p-3 font-medium">Name</Text>
+                            <Text className="flex-1 p-3 font-medium">Email</Text>
+                            <Text className="flex-1 p-3 font-medium">Role</Text>
+                            <Text className="w-16 p-3 font-medium text-center">⚙️</Text>
                         </View>
 
                         <Divider className="my-2 bg-outline-300" />
 
                         {isLoading ? (
                             <View className="p-3">
-                                <Text className="text-center ">
-                                    Loading users...
-                                </Text>
+                                <Text className="text-center ">Loading users...</Text>
                             </View>
                         ) : filteredUsers.length === 0 ? (
                             <View className="p-3">
-                                <Text className="text-center ">
-                                    No users found.
-                                </Text>
+                                <Text className="text-center ">No users found.</Text>
                             </View>
                         ) : (
                             filteredUsers.map((u) => (
@@ -283,10 +349,20 @@ const AdminScreen: React.FC = () => {
                                                 </TouchableOpacity>
                                             )}
                                         >
-                                            <MenuItem onPress={() => handleEditUser(u)}>
+                                            <MenuItem
+                                                onPress={() => {
+                                                    log('Edit user pressed', u._id);
+                                                    handleEditUser(u);
+                                                }}
+                                            >
                                                 <MenuItemLabel>Edit</MenuItemLabel>
                                             </MenuItem>
-                                            <MenuItem onPress={() => handleDeleteUser(u._id)}>
+                                            <MenuItem
+                                                onPress={() => {
+                                                    log('Delete user pressed', u._id);
+                                                    handleDeleteUser(u._id);
+                                                }}
+                                            >
                                                 <MenuItemLabel>Delete</MenuItemLabel>
                                             </MenuItem>
                                         </Menu>
@@ -301,7 +377,10 @@ const AdminScreen: React.FC = () => {
                 {editUser && (
                     <AlertDialog
                         isOpen={showEditDialog}
-                        onClose={() => setShowEditDialog(false)}
+                        onClose={() => {
+                            log('Edit dialog closed');
+                            setShowEditDialog(false);
+                        }}
                     >
                         <AlertDialogBackdrop />
                         <AlertDialogContent>
@@ -314,55 +393,65 @@ const AdminScreen: React.FC = () => {
                                         placeholder="First Name"
                                         value={editUser.first_name}
                                         className="border rounded-md p-3 bg-inputBackground"
-                                        onChangeText={(text) =>
-                                            setEditUser({ ...editUser, first_name: text })
-                                        }
+                                        onChangeText={(text) => {
+                                            log('Edit User first_name changed', text);
+                                            setEditUser({ ...editUser, first_name: text });
+                                        }}
                                         placeholderTextColor="var(--color-placeholder)"
                                     />
                                     <TextInput
                                         placeholder="Last Name"
                                         value={editUser.last_name}
                                         className="border rounded-md p-3 bg-inputBackground"
-                                        onChangeText={(text) =>
-                                            setEditUser({ ...editUser, last_name: text })
-                                        }
+                                        onChangeText={(text) => {
+                                            log('Edit User last_name changed', text);
+                                            setEditUser({ ...editUser, last_name: text });
+                                        }}
                                         placeholderTextColor="var(--color-placeholder)"
                                     />
                                     <TextInput
                                         placeholder="Email"
                                         value={editUser.email}
                                         className="border rounded-md p-3 bg-inputBackground"
-                                        onChangeText={(text) =>
-                                            setEditUser({ ...editUser, email: text })
-                                        }
+                                        onChangeText={(text) => {
+                                            log('Edit User email changed', text);
+                                            setEditUser({ ...editUser, email: text });
+                                        }}
                                         placeholderTextColor="var(--color-placeholder)"
                                     />
                                     <TextInput
                                         placeholder="Phone"
                                         value={editUser.phone}
                                         className="border rounded-md p-3 bg-inputBackground"
-                                        onChangeText={(text) =>
-                                            setEditUser({ ...editUser, phone: text })
-                                        }
+                                        onChangeText={(text) => {
+                                            log('Edit User phone changed', text);
+                                            setEditUser({ ...editUser, phone: text });
+                                        }}
                                         placeholderTextColor="var(--color-placeholder)"
                                     />
                                     <TextInput
                                         placeholder="Student ID"
                                         value={editUser.student_id}
                                         className="border rounded-md p-3 bg-inputBackground"
-                                        onChangeText={(text) =>
-                                            setEditUser({ ...editUser, student_id: text })
-                                        }
+                                        onChangeText={(text) => {
+                                            log('Edit User student_id changed', text);
+                                            setEditUser({ ...editUser, student_id: text });
+                                        }}
                                         placeholderTextColor="var(--color-placeholder)"
                                     />
                                     {/* Grade Selector */}
                                     <Select
                                         selectedValue={editUser.grade}
-                                        onValueChange={(value) =>
-                                            setEditUser({ ...editUser, grade: value })
-                                        }
+                                        onValueChange={(value) => {
+                                            log('Edit User grade changed', value);
+                                            setEditUser({ ...editUser, grade: value });
+                                        }}
                                     >
-                                        <SelectTrigger variant="outline" size="md" className="rounded justify-between">
+                                        <SelectTrigger
+                                            variant="outline"
+                                            size="md"
+                                            className="rounded justify-between"
+                                        >
                                             <SelectInput placeholder="Select Grade" />
                                             <SelectIcon as={ChevronDownIcon} className="mr-2" />
                                         </SelectTrigger>
@@ -370,18 +459,30 @@ const AdminScreen: React.FC = () => {
                                             <SelectBackdrop />
                                             <SelectContent>
                                                 {GRADES.map((grade) => (
-                                                    <SelectItem key={grade} label={grade} value={grade} />
+                                                    <SelectItem
+                                                        key={grade}
+                                                        label={grade}
+                                                        value={grade}
+                                                    />
                                                 ))}
                                             </SelectContent>
                                         </SelectPortal>
                                     </Select>
                                     <Select
                                         selectedValue={editUser.role}
-                                        onValueChange={(value: string) =>
-                                            setEditUser({ ...editUser, role: value as UserObject['role'] })
-                                        }
+                                        onValueChange={(value: string) => {
+                                            log('Edit User role changed', value);
+                                            setEditUser({
+                                                ...editUser,
+                                                role: value as UserObject["role"],
+                                            });
+                                        }}
                                     >
-                                        <SelectTrigger variant="outline" size="md" className="rounded justify-between">
+                                        <SelectTrigger
+                                            variant="outline"
+                                            size="md"
+                                            className="rounded justify-between"
+                                        >
                                             <SelectInput placeholder="Select Role" />
                                             <SelectIcon as={ChevronDownIcon} className="mr-2" />
                                         </SelectTrigger>
@@ -400,9 +501,13 @@ const AdminScreen: React.FC = () => {
                                     {/* Subteam Selector */}
                                     <CheckboxGroup
                                         value={editUser.subteam || []}
-                                        onChange={(selectedValues: string[]) =>
-                                            setEditUser({ ...editUser, subteam: selectedValues })
-                                        }
+                                        onChange={(selectedValues: string[]) => {
+                                            log('Edit User subteam changed', selectedValues);
+                                            setEditUser({
+                                                ...editUser,
+                                                subteam: selectedValues,
+                                            });
+                                        }}
                                     >
                                         <VStack space="sm">
                                             {SUBTEAMS.map((team) => (
@@ -419,11 +524,20 @@ const AdminScreen: React.FC = () => {
                                 </VStack>
                             </AlertDialogBody>
                             <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
-                                <Button variant="outline" onPress={() => setShowEditDialog(false)}>
+                                <Button
+                                    variant="outline"
+                                    onPress={() => {
+                                        log('Cancel button pressed in Edit Dialog');
+                                        setShowEditDialog(false);
+                                    }}
+                                >
                                     <ButtonText>Cancel</ButtonText>
                                 </Button>
                                 <Button
-                                    onPress={() => saveEditChanges(editUser._id,)}
+                                    onPress={() => {
+                                        log('Save button pressed in Edit Dialog');
+                                        saveEditChanges(editUser._id);
+                                    }}
                                     action="primary"
                                 >
                                     <ButtonText>Save</ButtonText>
