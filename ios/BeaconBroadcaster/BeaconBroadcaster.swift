@@ -1,17 +1,10 @@
-//
-//  BeaconBroadcaster.swift
-//  nautilus
-//
-//  Created by Arshan S on 10/30/24.
-//
-
 import Foundation
 import CoreBluetooth
 import CoreLocation
 import React
 
 @objc(BeaconBroadcaster)
-class BeaconBroadcaster: NSObject {
+class BeaconBroadcaster: RCTEventEmitter {
     private var peripheralManager: CBPeripheralManager?
     private var beaconRegion: CLBeaconRegion?
     private var locationManager = CLLocationManager()
@@ -19,7 +12,15 @@ class BeaconBroadcaster: NSObject {
     private var pendingBeaconData: [String: Any]?
     
     private let DEBUG_PREFIX = "[BeaconBroadcaster]"
-
+    
+    // Define event names
+    static let BluetoothStateChanged = "BluetoothStateChanged"
+    static let BeaconDetected = "BeaconDetected"
+    static let BeaconBroadcastingStarted = "BeaconBroadcastingStarted"
+    static let BeaconBroadcastingStopped = "BeaconBroadcastingStopped"
+    static let BeaconListeningStarted = "BeaconListeningStarted"
+    static let BeaconListeningStopped = "BeaconListeningStopped"
+    
     override init() {
         super.init()
         print("\(DEBUG_PREFIX) Initializing BeaconBroadcaster.")
@@ -28,7 +29,51 @@ class BeaconBroadcaster: NSObject {
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: nil)
     }
   
-    @objc func getDetectedBeacons(_ resolver: RCTPromiseResolveBlock, rejecter: RCTPromiseRejectBlock) {
+  override func startObserving() {
+      super.startObserving()
+      emitBluetoothStateChange(state: getCurrentStateString())
+  }
+
+  private func getCurrentStateString() -> String {
+      switch peripheralManager?.state {
+      case .poweredOn:
+          return "poweredOn"
+      case .poweredOff:
+          return "poweredOff"
+      case .unsupported:
+          return "unsupported"
+      case .unauthorized:
+          return "unauthorized"
+      case .resetting:
+          return "resetting"
+      case .unknown:
+          fallthrough
+      default:
+          return "unknown"
+      }
+  }
+    
+    // Override required methods for RCTEventEmitter
+    override static func requiresMainQueueSetup() -> Bool {
+        return true
+    }
+    
+    override func supportedEvents() -> [String]! {
+        return [
+            BeaconBroadcaster.BluetoothStateChanged,
+            BeaconBroadcaster.BeaconDetected,
+            BeaconBroadcaster.BeaconBroadcastingStarted,
+            BeaconBroadcaster.BeaconBroadcastingStopped,
+            BeaconBroadcaster.BeaconListeningStarted,
+            BeaconBroadcaster.BeaconListeningStopped
+        ]
+    }
+    
+    private func emitBluetoothStateChange(state: String) {
+        sendEvent(withName: BeaconBroadcaster.BluetoothStateChanged, body: ["state": state])
+    }
+    
+    @objc func getDetectedBeacons(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
         print("\(DEBUG_PREFIX) Fetching detected beacons: \(detectedBeacons)")
         resolver(detectedBeacons)
     }
@@ -40,15 +85,14 @@ class BeaconBroadcaster: NSObject {
         resolver: @escaping RCTPromiseResolveBlock,
         rejecter: @escaping RCTPromiseRejectBlock
     ) {
-      
-      // Check if bluetooth is not powered on, error
-      if peripheralManager?.state != .poweredOn {
-        print("\(DEBUG_PREFIX) Bluetooth is not powered on.")
-        rejecter("bluetooth_not_powered_on", "Bluetooth is not powered on", nil)
-        return
-      }
+        // Check if Bluetooth is not powered on, error
+        if peripheralManager?.state != .poweredOn {
+            print("\(DEBUG_PREFIX) Bluetooth is not powered on.")
+            rejecter("bluetooth_not_powered_on", "Bluetooth is not powered on", nil)
+            emitBluetoothStateChange(state: "poweredOff")
+            return
+        }
         
-      
         print("\(DEBUG_PREFIX) Attempting to start broadcasting with UUID: \(uuidString), Major: \(major), Minor: \(minor)")
 
         guard let uuid = UUID(uuidString: uuidString) else {
@@ -72,8 +116,9 @@ class BeaconBroadcaster: NSObject {
 
         if peripheralManager?.state == .poweredOn {
             peripheralManager?.startAdvertising(beaconData)
-          print("\(DEBUG_PREFIX) isAdvertising after startAdvertising: \(peripheralManager?.isAdvertising ?? false)")
+            print("\(DEBUG_PREFIX) isAdvertising after startAdvertising: \(peripheralManager?.isAdvertising ?? false)")
             resolver("Beacon broadcasting started successfully")
+            emitEvent(name: BeaconBroadcaster.BeaconBroadcastingStarted, body: nil)
             print("\(DEBUG_PREFIX) Beacon broadcasting started successfully.")
         } else {
             print("\(DEBUG_PREFIX) Bluetooth is not powered on. Waiting to start advertising.")
@@ -91,6 +136,7 @@ class BeaconBroadcaster: NSObject {
         if let manager = peripheralManager, manager.isAdvertising {
             manager.stopAdvertising()
             resolver("Beacon broadcasting stopped")
+            emitEvent(name: BeaconBroadcaster.BeaconBroadcastingStopped, body: nil)
             print("\(DEBUG_PREFIX) Beacon broadcasting stopped.")
         } else {
             print("\(DEBUG_PREFIX) No active beacon broadcast to stop.")
@@ -119,6 +165,7 @@ class BeaconBroadcaster: NSObject {
         locationManager.startRangingBeacons(satisfying: constraint)
 
         resolver("Beacon listening started")
+        emitEvent(name: BeaconBroadcaster.BeaconListeningStarted, body: nil)
         print("\(DEBUG_PREFIX) Beacon listening started.")
     }
 
@@ -131,10 +178,20 @@ class BeaconBroadcaster: NSObject {
             locationManager.stopMonitoring(for: beaconRegion)
             locationManager.stopRangingBeacons(satisfying: beaconRegion.beaconIdentityConstraint)
             resolver("Beacon listening stopped")
+            emitEvent(name: BeaconBroadcaster.BeaconListeningStopped, body: nil)
             print("\(DEBUG_PREFIX) Beacon listening stopped.")
         } else {
             print("\(DEBUG_PREFIX) No active beacon listening to stop.")
             rejecter("not_listening", "No active beacon listening to stop", nil)
+        }
+    }
+    
+    // Helper method to emit events
+    private func emitEvent(name: String, body: [String: Any]?) {
+        if let body = body {
+            sendEvent(withName: name, body: body)
+        } else {
+            sendEvent(withName: name, body: nil)
         }
     }
 }
@@ -152,6 +209,10 @@ extension BeaconBroadcaster: CLLocationManagerDelegate {
                 "minor": $0.minor
             ]
         }
+        
+        // Emit beacon detected event
+        let beaconsArray = detectedBeacons
+        emitEvent(name: BeaconBroadcaster.BeaconDetected, body: ["beacons": beaconsArray])
     }
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
@@ -173,26 +234,38 @@ extension BeaconBroadcaster: CLLocationManagerDelegate {
 
 extension BeaconBroadcaster: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
+        var stateString = ""
         switch peripheral.state {
         case .poweredOn:
+            stateString = "poweredOn"
             print("\(DEBUG_PREFIX) Bluetooth is powered on.")
             if let beaconData = pendingBeaconData {
                 peripheralManager?.startAdvertising(beaconData)
                 pendingBeaconData = nil
                 print("\(DEBUG_PREFIX) Started broadcasting pending beacon data.")
+                emitEvent(name: BeaconBroadcaster.BluetoothStateChanged, body: ["state": stateString])
             }
         case .poweredOff:
+            stateString = "poweredOff"
             print("\(DEBUG_PREFIX) Bluetooth is powered off.")
         case .resetting:
+            stateString = "resetting"
             print("\(DEBUG_PREFIX) Bluetooth is resetting.")
         case .unauthorized:
+            stateString = "unauthorized"
             print("\(DEBUG_PREFIX) Bluetooth unauthorized.")
         case .unsupported:
+            stateString = "unsupported"
             print("\(DEBUG_PREFIX) Bluetooth unsupported on this device.")
         case .unknown:
+            stateString = "unknown"
             print("\(DEBUG_PREFIX) Bluetooth state unknown.")
         @unknown default:
+            stateString = "unknown"
             print("\(DEBUG_PREFIX) Bluetooth state unknown (future case).")
         }
+        
+        // Emit Bluetooth state change event
+        emitBluetoothStateChange(state: stateString)
     }
 }

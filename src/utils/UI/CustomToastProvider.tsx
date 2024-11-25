@@ -15,8 +15,8 @@ import {
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Pressable } from "react-native";
-import { ToastContextType, ToastOptions } from "../Constants";
-import { useThemeContext } from "./ThemeContext";
+import { ToastContextType, ToastOptions } from "../../Constants";
+import { useThemeContext } from "./CustomThemeProvider";
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -39,7 +39,7 @@ const getColor = (type: string) => {
     case "error":
       return "red";
     case "warning":
-      return "yellow";
+      return "orange";
     case "info":
     default:
       return "blue";

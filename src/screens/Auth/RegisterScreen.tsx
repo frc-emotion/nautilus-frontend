@@ -15,14 +15,14 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import ApiClient from "../../utils/APIClient";
+import ApiClient from "../../utils/Networking/APIClient";
 import { EyeIcon, EyeOffIcon, ChevronDownIcon } from "lucide-react-native";
-import { useModal } from "../../utils/ModalProvider";
-import { useGlobalToast } from "../../utils/ToastProvider";
+import { useModal } from "../../utils/UI/CustomModalProvider";
+import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
 import { GRADES, QueuedRequest, SUBTEAMS } from "../../Constants";
-import { useThemeContext } from "../../utils/ThemeContext";
+import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { showToast } = useGlobalToast();
@@ -147,7 +147,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     try {
-      await ApiClient.handleNewRequest(request);
+      await ApiClient.handleRequest(request);
     } catch (error: any) {
       console.error("Error during registration:", error);
       showToast({

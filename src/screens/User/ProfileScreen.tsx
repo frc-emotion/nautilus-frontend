@@ -1,27 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { RefreshControl, ScrollView } from "react-native";
+import { RefreshControl, ScrollView, View, ActivityIndicator } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "../../utils/AuthContext";
-import { useGlobalToast } from "../../utils/ToastProvider";
+import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosError } from "axios";
-import ApiClient from "../../utils/APIClient";
-import { AppStackParamList, QueuedRequest } from "../../Constants";
-import { useThemeContext } from "../../utils/ThemeContext";
-const icon = require("@/src/assets/icon.png")
+import ApiClient from "../../utils/Networking/APIClient";
+import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
+import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+
+const icon = require("@/src/assets/icon.png");
 
 const ProfileScreen: React.FC = () => {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, isLoading } = useAuth();
   const { showToast } = useGlobalToast();
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
   const [refreshing, setRefreshing] = useState(false);
-  const [displayUser, setDisplayUser] = useState(user);
+  const [displayUser, setDisplayUser] = useState<UserObject | null>(user);
   const { colorMode, toggleColorMode } = useThemeContext();
 
   useEffect(() => {
@@ -29,7 +30,6 @@ const ProfileScreen: React.FC = () => {
       setDisplayUser(user);
       validateTokenWithServer(user.token);
     }
-
   }, [user]);
 
   const validateTokenWithServer = async (token: string) => {
@@ -67,14 +67,14 @@ const ProfileScreen: React.FC = () => {
       offlineHandler: async () => {
         showToast({
           title: "Offline",
-          description: "I cannot refresh your profile without an internet connection!",
+          description: "Cannot refresh your profile without an internet connection!",
           type: "info",
         });
       },
     };
 
     try {
-      await ApiClient.handleNewRequest(request);
+      await ApiClient.handleRequest(request);
     } catch (error) {
       console.error("Error during token validation:", error);
     }
@@ -82,7 +82,18 @@ const ProfileScreen: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshUser();
+    try {
+      await refreshUser();
+    } catch (error) {
+      console.error("Error during user refresh:", error);
+      showToast({
+        title: "Refresh Failed",
+        description: "An error occurred while refreshing user data.",
+        type: "error",
+      });
+
+      handleLogout();
+    }
     setRefreshing(false);
   };
 
@@ -105,9 +116,30 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
+  // If the auth state is still loading, show a loading indicator
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  // If the user is not logged in, you might want to redirect or show a message
+  if (!user) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>You are not logged in.</Text>
+        <Button onPress={() => navigation.navigate("NotLoggedInTabs")}>
+          <ButtonText>Go to Login</ButtonText>
+        </Button>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
-      contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        padding: 16,
+        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C'
+      }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
       <VStack space="lg" className="items-center">
@@ -149,7 +181,7 @@ const ProfileScreen: React.FC = () => {
 
           <HStack className="justify-between">
             <Text>Subteam</Text>
-            <Text className="font-semibold">{displayUser?.subteam.join(", ")}</Text>
+            <Text className="font-semibold">{displayUser?.subteam ? displayUser.subteam.join(", ") : "N/A"}</Text>
           </HStack>
 
           <HStack className="justify-between">
@@ -172,3 +204,9 @@ const ProfileScreen: React.FC = () => {
 };
 
 export default ProfileScreen;
+
+const LoadingIndicator: React.FC = () => (
+  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    <ActivityIndicator size="large" />
+  </View>
+);

@@ -11,7 +11,7 @@ import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 
-import { useModal } from "../utils/ModalProvider";
+import { useModal } from "../utils/UI/CustomModalProvider";
 import { ModalConfig } from "../Constants";
 import { Box } from "@/components/ui/box";
 import {

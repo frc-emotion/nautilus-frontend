@@ -1,37 +1,33 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import ApiClient from "./APIClient";
-import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
+import ApiClient from "./Networking/APIClient";
 import { AppStackParamList, AuthContextType, UserObject } from "../Constants";
+import { ActivityIndicator, View } from "react-native";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserObject | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      setIsLoading(true);
       try {
         const storedData = await AsyncStorage.getItem("userData");
         if (storedData) {
           const parsedUser: UserObject = JSON.parse(storedData);
-          const isValid = await ApiClient.validateToken(parsedUser.token);
-          if (isValid) {
-            setUser(parsedUser);
-            setToken(parsedUser.token);
+          const validatedUser = await ApiClient.validateToken(parsedUser.token);
+          if (validatedUser) {
+            setUser(validatedUser);
           } else {
             await clearAuthData();
           }
         }
       } catch (error) {
-        console.error("Error initializing authentication:", error);
+        console.error("AuthProvider: Initialization error:", error);
         await clearAuthData();
       } finally {
+        console.log("AuthProvider: Initialization complete.");
         setIsLoading(false);
       }
     };
@@ -40,48 +36,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearAuthData = async () => {
-    await AsyncStorage.clear();
-    setUser(null);
-    setToken(null);
-    navigation.navigate("NotLoggedInTabs");
+    try {
+      await AsyncStorage.clear();
+      setUser(null);
+    } catch (error) {
+      console.error("AuthProvider: Error clearing auth data:", error);
+    }
   };
 
   const login = async (authToken: string, authUser: UserObject) => {
     try {
       await AsyncStorage.setItem("userData", JSON.stringify(authUser));
-      setToken(authToken);
       setUser(authUser);
-      navigation.navigate("RoleBasedTabs");
     } catch (error) {
-      console.error("Error during login:", error);
+      console.error("AuthProvider: Login error:", error);
     }
   };
 
   const logout = async () => {
     await clearAuthData();
-    navigation.navigate("NotLoggedInTabs");
   };
 
   const refreshUser = async () => {
+    if (!user?.token) {
+      console.warn("AuthProvider: No token available for refreshing user.");
+      await clearAuthData();
+      return;
+    }
+
     try {
-      if (!token) throw new Error("No token found");
-      const updatedUser = await ApiClient.validateToken(token);
+      const updatedUser = await ApiClient.validateToken(user.token);
       if (updatedUser) {
         setUser(updatedUser);
-        setToken(updatedUser.token);
       } else {
         await clearAuthData();
       }
     } catch (error) {
-      console.error("Error refreshing user:", error);
+      console.error("AuthProvider: Error refreshing user:", error);
+      await clearAuthData();
     }
   };
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isLoggedIn: !!token,
+        isLoggedIn: !!user?.token,
         isLoading,
         login,
         logout,
@@ -93,10 +97,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
+
+// Loading Indicator Component
+const LoadingIndicator: React.FC = () => (
+  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    <ActivityIndicator size="large" />
+  </View>
+);

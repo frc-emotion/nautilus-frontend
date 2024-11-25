@@ -1,9 +1,9 @@
-import { NativeModules, Platform } from 'react-native';
-import { BeaconBroadcasterType } from '../Constants';
+import { BeaconBroadcasterType } from '@/src/Constants';
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
-const { BeaconBroadcaster } = NativeModules;
+const BeaconBroadcaster = NativeModules.BeaconBroadcaster;
 
-console.log(BeaconBroadcaster);
+const beaconBroadcasterEmitter = new NativeEventEmitter(BeaconBroadcaster);
 
 const BeaconBroadcasterModule: BeaconBroadcasterType = {
   startBroadcasting: async (uuid, major, minor) => {
@@ -36,6 +36,22 @@ const BeaconBroadcasterModule: BeaconBroadcasterType = {
     }
     return BeaconBroadcaster.getDetectedBeacons();
   },
+  
+  // Event subscription methods
+  addBluetoothStateListener: (callback) => {
+    return beaconBroadcasterEmitter.addListener('BluetoothStateChanged', callback);
+  },
+  removeBluetoothStateListener: (subscription) => {
+    subscription.remove();
+  },
+  
+  addBeaconDetectedListener: (callback) => {
+    return beaconBroadcasterEmitter.addListener('BeaconDetected', callback);
+  },
+  removeBeaconDetectedListener: (subscription) => {
+    subscription.remove();
+  },
+  
 };
 
 export default BeaconBroadcasterModule;

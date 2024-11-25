@@ -44,6 +44,7 @@
     "@legendapp/motion": "^2.4.0",
     "@react-aria/checkbox": "^3.15.0",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-community/netinfo": "11.3.1",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
