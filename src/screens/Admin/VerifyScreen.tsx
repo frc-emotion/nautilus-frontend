@@ -13,10 +13,10 @@ import { Box } from "@/components/ui/box";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/AuthContext";
-import { useModal } from "../../utils/ModalProvider";
-import ApiClient from "../../utils/APIClient";
-import { QueuedRequest, UserObject } from "../../Constants";
-import { useGlobalToast } from "../../utils/ToastProvider";
+import { useModal } from "../../utils/UI/CustomModalProvider";
+import ApiClient from "../../utils/Networking/APIClient";
+import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
+import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
 import {
     Checkbox,
@@ -32,9 +32,11 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
 } from "@/components/ui/alert-dialog";
-import { useThemeContext } from "../../utils/ThemeContext";
+import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { Divider } from "@/components/ui/divider";
 import { CheckIcon } from "@/components/ui/icon";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 const VerifyScreen: React.FC = () => {
     const { user } = useAuth();
@@ -43,13 +45,14 @@ const VerifyScreen: React.FC = () => {
     const { colorMode } = useThemeContext();
 
     const [users, setUsers] = useState<UserObject[]>([]);
-    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+    const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedUserInfo, setSelectedUserInfo] = useState<UserObject | null>(
         null
     );
     const [showUserDialog, setShowUserDialog] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
 
     // Logging function
     const log = (...args: any[]) => {
@@ -68,6 +71,7 @@ const VerifyScreen: React.FC = () => {
                 message: "You do not have access to this page.",
                 type: "error",
             });
+            navigation.goBack();
         } else {
             log("User is admin, fetching unverified users");
             fetchUnverifiedUsers();
@@ -130,7 +134,7 @@ const VerifyScreen: React.FC = () => {
             },
         };
         try {
-            await ApiClient.handleNewRequest(request);
+            await ApiClient.handleRequest(request);
             log("fetchUnverifiedUsers request sent");
         } catch (error) {
             log("fetchUnverifiedUsers exception", error);
@@ -182,7 +186,7 @@ const VerifyScreen: React.FC = () => {
         return flags;
     };
 
-    const handleSelectUser = (userId: string) => {
+    const handleSelectUser = (userId: number) => {
         log("handleSelectUser called", userId);
         setSelectedUsers((prevSelected) => {
             if (prevSelected.includes(userId)) {
@@ -241,7 +245,7 @@ const VerifyScreen: React.FC = () => {
         };
 
         try {
-            await ApiClient.handleNewRequest(request);
+            await ApiClient.handleRequest(request);
             log("handleVerifyUsers request sent");
         } catch (error) {
             log("handleVerifyUsers exception", error);
@@ -294,7 +298,7 @@ const VerifyScreen: React.FC = () => {
                                 >
                                     <View className="w-12 p-3 items-center">
                                         <Checkbox
-                                            value={u._id}
+                                            value={u._id.toString()}
                                             isChecked={selectedUsers.includes(u._id)}
                                             onChange={() => handleSelectUser(u._id)}
                                         >

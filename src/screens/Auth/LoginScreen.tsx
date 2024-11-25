@@ -12,9 +12,9 @@ import { Text } from "@/components/ui/text";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Button, ButtonText } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon, MoonIcon, SunIcon } from "lucide-react-native";
-import ApiClient from "../../utils/APIClient";
-import { useModal } from "../../utils/ModalProvider";
-import { useGlobalToast } from "../../utils/ToastProvider";
+import ApiClient from "../../utils/Networking/APIClient";
+import { useModal } from "../../utils/UI/CustomModalProvider";
+import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
 import { Image } from "@/components/ui/image"
@@ -22,7 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../utils/AuthContext";
 import { QueuedRequest } from "../../Constants";
 import { Fab, FabIcon } from "@/components/ui/fab";
-import { useThemeContext } from '../../utils/ThemeContext';
+import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 const icon = require("@/src/assets/icon.png")
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -82,7 +82,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
                 console.log("User data saved to AsyncStorage:", user);
 
-                //navigation.replace("RoleBasedTabs");
+                navigation.replace("RoleBasedTabs");
             },
             errorHandler: async (error: AxiosError) => {
                 const statusCode = error.response?.status;
@@ -131,7 +131,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         };
 
         try {
-            await ApiClient.handleNewRequest(request);
+            await ApiClient.handleRequest(request);
         } catch (error: any) {
             console.error("Error during login:", error);
             showToast({

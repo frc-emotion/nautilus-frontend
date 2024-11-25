@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { ModalConfig, ModalContextProps } from "../Constants";
+import { ModalConfig, ModalContextProps } from "../../Constants";
 
 const ModalContext = createContext<ModalContextProps | undefined>(undefined);
 

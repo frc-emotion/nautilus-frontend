@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, RefreshControl } from "react-native";
+import { ScrollView, RefreshControl, Alert } from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
 import { useAuth } from "../../utils/AuthContext";
-import { useGlobalToast } from "../../utils/ToastProvider";
-import ApiClient from "../../utils/APIClient";
-import { QueuedRequest } from "../../Constants";
+import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
+import ApiClient from "../../utils/Networking/APIClient";
+import { MeetingObject, QueuedRequest } from "../../Constants"; // Ensure Meeting type is defined appropriately
 import { Fab, FabIcon } from "@/components/ui/fab";
 import { MoonIcon, SunIcon } from "lucide-react-native";
-import { useThemeContext } from "../../utils/ThemeContext";
+import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen: React.FC = () => {
   const { colorMode, toggleColorMode } = useThemeContext();
@@ -21,13 +22,69 @@ const HomeScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [attendanceHours, setAttendanceHours] = useState<number | null>(null);
 
-
   useEffect(() => {
     if (user && user.role !== "unverified") {
       fetchAttendanceHours(user.token);
+      fetchAndCacheMeetings(user.token);
     }
   }, [user]);
 
+  /**
+   * Fetches all meetings from the backend and caches them in AsyncStorage.
+   * @param token User's authentication token.
+   */
+  const fetchAndCacheMeetings = async (token: string) => {
+    const request: QueuedRequest = {
+      url: "/api/meetings/info",
+      method: "get",
+      headers: { Authorization: `Bearer ${token}` },
+      retryCount: 0,
+      successHandler: async (response) => {
+        const meetings: MeetingObject[] = response.data.meetings;
+        try {
+          await AsyncStorage.setItem('meetings', JSON.stringify(meetings));
+          showToast({
+            title: "Meetings Cached",
+            description: "All meetings have been cached locally.",
+            type: "success",
+          });
+        } catch (storageError) {
+          console.error("Error saving meetings to AsyncStorage:", storageError);
+          showToast({
+            title: "Error",
+            description: "Failed to cache meetings locally.",
+            type: "error",
+          });
+        }
+      },
+      errorHandler: async (error) => {
+        console.error("Failed to fetch meetings:", error);
+        showToast({
+          title: "Error",
+          description: "Unable to fetch meetings.",
+          type: "error",
+        });
+      },
+      offlineHandler: async () => {
+        showToast({
+          title: "Offline",
+          description: "Cannot fetch meetings while offline.",
+          type: "info",
+        });
+      },
+    };
+
+    try {
+      await ApiClient.handleRequest(request);
+    } catch (error) {
+      console.error("Error during meetings fetch:", error);
+    }
+  };
+
+  /**
+   * Fetches attendance hours from the backend.
+   * @param token User's authentication token.
+   */
   const fetchAttendanceHours = async (token: string) => {
     const request: QueuedRequest = {
       url: "/api/attendance/hours",
@@ -61,33 +118,39 @@ const HomeScreen: React.FC = () => {
     };
 
     try {
-      await ApiClient.handleNewRequest(request);
+      await ApiClient.handleRequest(request);
     } catch (error) {
       console.error("Error during attendance request:", error);
     }
   };
 
+  /**
+   * Handles pull-to-refresh action.
+   */
   const handleRefresh = async () => {
     setRefreshing(true);
     if (user?.role !== "unverified" && user?.token) {
       await fetchAttendanceHours(user.token);
+      await fetchAndCacheMeetings(user.token);
     }
     setRefreshing(false);
   };
 
+  /**
+   * Handles refresh action for unverified users.
+   */
   const handleUnverifiedRefresh = async () => {
     setRefreshing(true);
     await refreshUser();
     setRefreshing(false);
-  }
+  };
 
-
-  if (user?.role == "unverified") {
+  if (user?.role === "unverified") {
     // Unverified User Screen
     return (
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleUnverifiedRefresh} />}
       >
         <VStack space="lg" className="items-center mt-8">
           <Text className="text-red-600 text-center font-bold text-lg">
@@ -112,8 +175,6 @@ const HomeScreen: React.FC = () => {
           <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
         </Fab>
       </ScrollView>
-
-
     );
   }
 
@@ -123,7 +184,6 @@ const HomeScreen: React.FC = () => {
       contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
-
       <VStack space="lg" className="items-center">
         <Text className="font-bold text-lg">Attendance Hours</Text>
         {attendanceHours !== null ? (
