@@ -422,12 +422,6 @@ const MeetingsScreen: React.FC = () => {
                       </Text>
                     </TouchableOpacity>
                     <View className="flex flex-row items-center">
-                      <TouchableOpacity
-                        onPress={() => handleViewMeeting(meeting)}
-                        className="mr-2"
-                      >
-                        <Icon as={InfoIcon} size="md" />
-                      </TouchableOpacity>
                       {(user?.role === "admin" || user?.role === "executive") && (
                         <Menu
                           trigger={({ ...triggerProps }) => (

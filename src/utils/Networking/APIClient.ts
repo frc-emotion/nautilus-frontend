@@ -217,6 +217,7 @@ class ApiClient {
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error executing request: ${request.url}`, error);
       request.errorHandler && await request.errorHandler(error);
+      return;
     }
   }
 

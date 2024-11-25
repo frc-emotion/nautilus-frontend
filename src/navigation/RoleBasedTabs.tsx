@@ -91,6 +91,11 @@ const AttendanceStackNavigator: React.FC = () => {
               <Text style={{ marginRight: 10 }}>Broadcast</Text>
             </TouchableOpacity>
           ),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.navigate('MeetingsMain')}>
+              <Text style={{ marginLeft: 10 }}>Meetings</Text>
+            </TouchableOpacity>
+          ),
         })}
       />
       <Stack.Screen
@@ -99,6 +104,14 @@ const AttendanceStackNavigator: React.FC = () => {
         options={{
           title: 'Broadcast',
         }}
+      />
+      <Stack.Screen
+        name="MeetingsMain" // Unique name
+        component={MeetingsScreen}
+        options={({ navigation }) => ({
+          title: 'Meetings',
+          headerRight: () => <CreateMeetingButton />,
+        })}
       />
     </Stack.Navigator>
   );
