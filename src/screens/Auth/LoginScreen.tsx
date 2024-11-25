@@ -24,8 +24,10 @@ import { QueuedRequest } from "../../Constants";
 import { Fab, FabIcon } from "@/components/ui/fab";
 import { useThemeContext } from '../../utils/ThemeContext';
 const icon = require("@/src/assets/icon.png")
+import * as Linking from 'expo-linking';
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+    console.log("URL for login",Linking.useURL())
     const { colorMode, toggleColorMode } = useThemeContext();
 
     const { showToast } = useGlobalToast();
@@ -55,7 +57,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         console.log("Payload for API:", payload);
 
         const request: QueuedRequest = {
-            url:"/api/auth/forgot-password",
+            url:"/api/auth/forgotPassword",
             method:"post",
             data:payload,
             retryCount:0,

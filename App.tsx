@@ -13,10 +13,28 @@ import { ToastProvider } from "./src/utils/ToastProvider";
 import { ThemeProvider, useThemeContext } from './src/utils/ThemeContext';
 import { LightTheme, DarkTheme, AppStackParamList } from './src/Constants';
 
-const Stack = createNativeStackNavigator<AppStackParamList>();
 
+import * as Linking from 'expo-linking';
+import { useEffect } from 'react';
+import { LogBox } from 'react-native';
+
+const Stack = createNativeStackNavigator<AppStackParamList>();
+LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message (optional)
+LogBox.ignoreAllLogs(); //Ignore all log notifications (optional)
 function AppContent() {
   const { colorMode } = useThemeContext();
+  useEffect(() => {
+    const handleDeepLink = (event) => {
+      console.log('Received deep link:', event.url); // Logs the URL the app receives
+    };
+
+    Linking.addEventListener('url', handleDeepLink);
+
+    return () => {
+      Linking.removeEventListener('url', handleDeepLink);
+    };
+  }, []);
+
 
   return (
     <GluestackUIProvider mode={colorMode}>

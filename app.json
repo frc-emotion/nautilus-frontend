@@ -2,6 +2,7 @@
   "expo": {
     "name": "nautilus",
     "slug": "nautilus",
+    "scheme":"nautilus",
     "version": "1.0.0",
     "platforms": [
       "ios",
