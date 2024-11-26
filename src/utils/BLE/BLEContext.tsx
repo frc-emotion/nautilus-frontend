@@ -1,21 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { EmitterSubscription } from 'react-native';
 import BLEHelper from '@/src/utils/BLE/BLEHelper';
-import { Beacon, QueuedRequest, MeetingObject, APP_UUID } from '@/src/Constants';
+import { Beacon, QueuedRequest, MeetingObject, APP_UUID, BLEContextProps } from '@/src/Constants';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
-import { useAuth } from '@/src/utils/AuthContext';
 import { useModal } from '@/src/utils/UI/CustomModalProvider';
-
-interface BLEContextProps {
-  bluetoothState: string;
-  detectedBeacons: Beacon[];
-  isListening: boolean;
-  isBroadcasting: boolean;
-  startListening: () => Promise<void>;
-  stopListening: () => Promise<void>;
-  startBroadcasting: (uuid: string, major: number, minor: number) => Promise<void>;
-  stopBroadcasting: () => Promise<void>;
-}
 
 const BLEContext = createContext<BLEContextProps | undefined>(undefined);
 
@@ -39,8 +27,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const bluetoothStateSubscription = useRef<EmitterSubscription | null>(null);
   const beaconDetectedSubscription = useRef<EmitterSubscription | null>(null);
 
-  const { showToast } = useGlobalToast();
-  const { user } = useAuth();
+  const { openToast } = useGlobalToast();
   const { openModal } = useModal();
 
   // Subscribe to Bluetooth state changes
@@ -118,7 +105,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const handleBluetoothPoweredOff = () => {
     if (isListening) {
       console.log(`${DEBUG_PREFIX} Bluetooth powered off while listening.`);
-      showToast({
+      openToast({
         title: 'Bluetooth Disabled',
         description: 'Bluetooth has been turned off. Listening stopped.',
         type: 'error',
@@ -132,7 +119,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     if (isBroadcasting) {
       console.log(`${DEBUG_PREFIX} Bluetooth powered off while broadcasting.`);
-      showToast({
+      openToast({
         title: 'Bluetooth Disabled',
         description: 'Bluetooth has been turned off. Broadcasting stopped.',
         type: 'error',
@@ -148,7 +135,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothPoweredOn = () => {
     console.log(`${DEBUG_PREFIX} Bluetooth powered on.`);
-    showToast({
+    openToast({
       title: 'Bluetooth Enabled',
       description: 'Bluetooth has been turned on.',
       type: 'success',
@@ -157,7 +144,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnsupported = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth unsupported on this device.`);
-    showToast({
+    openToast({
       title: 'Bluetooth Unsupported',
       description: 'Bluetooth is unsupported on this device.',
       type: 'error',
@@ -171,7 +158,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnauthorized = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth unauthorized.`);
-    showToast({
+    openToast({
       title: 'Bluetooth Unauthorized',
       description: 'Bluetooth is unauthorized on this device.',
       type: 'error',
@@ -185,7 +172,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnknown = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth state unknown.`);
-    showToast({
+    openToast({
       title: 'Bluetooth State Unknown',
       description: 'Bluetooth state is unknown.',
       type: 'error',
@@ -200,7 +187,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Start Listening
   const startListening = async () => {
     if (bluetoothState !== 'poweredOn') {
-      showToast({
+      openToast({
         title: 'Bluetooth Required',
         description: 'Please enable Bluetooth to start listening for beacons.',
         type: 'error',
@@ -216,14 +203,14 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await BLEHelper.startListening(APP_UUID);
       setIsListening(true);
-      showToast({
+      openToast({
         title: 'Started Listening',
         description: 'Now listening for beacons.',
         type: 'success',
       });
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error starting listening:`, error);
-      showToast({ title: 'Error', description: 'Failed to start listening.', type: 'error' });
+      openToast({ title: 'Error', description: 'Failed to start listening.', type: 'error' });
     }
   };
 
@@ -232,21 +219,21 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await BLEHelper.stopListening();
       setIsListening(false);
-      showToast({
+      openToast({
         title: 'Stopped Listening',
         description: 'Stopped listening for beacons.',
         type: 'info',
       });
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error stopping listening:`, error);
-      showToast({ title: 'Error', description: 'Failed to stop listening.', type: 'error' });
+      openToast({ title: 'Error', description: 'Failed to stop listening.', type: 'error' });
     }
   };
 
   // Start Broadcasting
   const startBroadcasting = async (uuid: string, major: number, minor: number) => {
     if (bluetoothState !== 'poweredOn') {
-      showToast({
+      openToast({
         title: 'Bluetooth Required',
         description: 'Please enable Bluetooth to start broadcasting.',
         type: 'error',
@@ -262,14 +249,14 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await BLEHelper.startBroadcasting(uuid, major, minor);
       setIsBroadcasting(true);
-      showToast({
+      openToast({
         title: 'Started Broadcasting',
         description: 'Now broadcasting beacon.',
         type: 'success',
       });
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error starting broadcasting:`, error);
-      showToast({ title: 'Error', description: 'Failed to start broadcasting.', type: 'error' });
+      openToast({ title: 'Error', description: 'Failed to start broadcasting.', type: 'error' });
     }
   };
 
@@ -278,14 +265,14 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await BLEHelper.stopBroadcasting();
       setIsBroadcasting(false);
-      showToast({
+      openToast({
         title: 'Stopped Broadcasting',
         description: 'Stopped broadcasting beacon.',
         type: 'info',
       });
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error stopping broadcasting:`, error);
-      showToast({ title: 'Error', description: 'Failed to stop broadcasting.', type: 'error' });
+      openToast({ title: 'Error', description: 'Failed to stop broadcasting.', type: 'error' });
     }
   };
 

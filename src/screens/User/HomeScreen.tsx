@@ -5,7 +5,7 @@ import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
-import { useAuth } from "../../utils/AuthContext";
+import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import ApiClient from "../../utils/Networking/APIClient";
 import { MeetingObject, QueuedRequest } from "../../Constants"; // Ensure Meeting type is defined appropriately
@@ -18,12 +18,13 @@ const HomeScreen: React.FC = () => {
   const { colorMode, toggleColorMode } = useThemeContext();
 
   const { user, refreshUser } = useAuth();
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
   const [refreshing, setRefreshing] = useState(false);
   const [attendanceHours, setAttendanceHours] = useState<number | null>(null);
 
   useEffect(() => {
     if (user && user.role !== "unverified") {
+      console.log("HomeScreen: Fetching attendance hours and meetings.");
       fetchAttendanceHours(user.token);
       fetchAndCacheMeetings(user.token);
     }
@@ -43,14 +44,14 @@ const HomeScreen: React.FC = () => {
         const meetings: MeetingObject[] = response.data.meetings;
         try {
           await AsyncStorage.setItem('meetings', JSON.stringify(meetings));
-          showToast({
+          openToast({
             title: "Meetings Cached",
             description: "All meetings have been cached locally.",
             type: "success",
           });
         } catch (storageError) {
           console.error("Error saving meetings to AsyncStorage:", storageError);
-          showToast({
+          openToast({
             title: "Error",
             description: "Failed to cache meetings locally.",
             type: "error",
@@ -59,14 +60,14 @@ const HomeScreen: React.FC = () => {
       },
       errorHandler: async (error) => {
         console.error("Failed to fetch meetings:", error);
-        showToast({
+        openToast({
           title: "Error",
           description: "Unable to fetch meetings.",
           type: "error",
         });
       },
       offlineHandler: async () => {
-        showToast({
+        openToast({
           title: "Offline",
           description: "Cannot fetch meetings while offline.",
           type: "info",
@@ -94,7 +95,7 @@ const HomeScreen: React.FC = () => {
       successHandler: async (response) => {
         setAttendanceHours(response.data.total_hours);
 
-        showToast({
+        openToast({
           title: "Attendance Updated",
           description: "Your attendance hours have been successfully updated.",
           type: "success",
@@ -102,14 +103,14 @@ const HomeScreen: React.FC = () => {
       },
       errorHandler: async (error) => {
         console.error("Failed to fetch attendance hours:", error);
-        showToast({
+        openToast({
           title: "Error",
           description: "Unable to fetch attendance hours.",
           type: "error",
         });
       },
       offlineHandler: async () => {
-        showToast({
+        openToast({
           title: "Offline",
           description: "You must be connected to the internet to update your hours!",
           type: "info",

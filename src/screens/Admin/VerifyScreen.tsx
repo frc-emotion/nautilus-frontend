@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-    TextInput,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -12,7 +11,7 @@ import { Button, ButtonText } from "@/components/ui/button";
 import { Box } from "@/components/ui/box";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
-import { useAuth } from "../../utils/AuthContext";
+import { useAuth } from "../../utils/Context/AuthContext";
 import { useModal } from "../../utils/UI/CustomModalProvider";
 import ApiClient from "../../utils/Networking/APIClient";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
@@ -37,10 +36,11 @@ import { Divider } from "@/components/ui/divider";
 import { CheckIcon } from "@/components/ui/icon";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 
 const VerifyScreen: React.FC = () => {
     const { user } = useAuth();
-    const { showToast } = useGlobalToast();
+    const { openToast } = useGlobalToast();
     const { openModal } = useModal();
     const { colorMode } = useThemeContext();
 
@@ -81,13 +81,13 @@ const VerifyScreen: React.FC = () => {
     const handleRefresh = async () => {
         setRefreshing(true);
         await fetchUnverifiedUsers();
-        showToast({
+        openToast({
             title: "Refreshed!",
             description: "Successfully checked for new users!",
             type: "success"
         })
         setRefreshing(false);
-      };    
+    };    
 
     const fetchUnverifiedUsers = async () => {
         log("fetchUnverifiedUsers called");
@@ -101,7 +101,7 @@ const VerifyScreen: React.FC = () => {
                 log("fetchUnverifiedUsers successHandler", response.data);
                 const unverifiedUsers = response.data.users.filter(
                     (user: UserObject) =>
-                        user.role == "unverified"
+                        user.role === "unverified"
                 );
 
                 // Apply flagging logic
@@ -116,16 +116,19 @@ const VerifyScreen: React.FC = () => {
             },
             errorHandler: async (error: AxiosError) => {
                 log("fetchUnverifiedUsers errorHandler", error);
-                showToast({
-                    title: "Error",
-                    description: "Failed to fetch unverified users.",
-                    type: "error",
+                handleErrorWithModalOrToast({
+                    actionName: "Fetching unverified users",
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
                 });
                 setIsLoading(false);
             },
             offlineHandler: async () => {
                 log("fetchUnverifiedUsers offlineHandler");
-                showToast({
+                openToast({
                     title: "Offline",
                     description: "You are offline!",
                     type: "error",
@@ -202,7 +205,7 @@ const VerifyScreen: React.FC = () => {
     const handleVerifyUsers = async () => {
         log("handleVerifyUsers called", selectedUsers);
         if (selectedUsers.length === 0) {
-            showToast({
+            openToast({
                 title: "No Users Selected",
                 description: "Please select at least one user to verify.",
                 type: "info",
@@ -218,7 +221,7 @@ const VerifyScreen: React.FC = () => {
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
                 log("handleVerifyUsers successHandler", response.data);
-                showToast({
+                openToast({
                     title: "Success",
                     description: "Users verified successfully!",
                     type: "success",
@@ -228,15 +231,18 @@ const VerifyScreen: React.FC = () => {
             },
             errorHandler: async (error: AxiosError) => {
                 log("handleVerifyUsers errorHandler", error);
-                showToast({
-                    title: "Error",
-                    description: "Failed to verify users.",
-                    type: "error",
+                handleErrorWithModalOrToast({
+                    actionName: "Verifying users",
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
                 });
             },
             offlineHandler: async () => {
                 log("handleVerifyUsers offlineHandler");
-                showToast({
+                openToast({
                     title: "Offline",
                     description: "You are offline!",
                     type: "error",
@@ -267,6 +273,23 @@ const VerifyScreen: React.FC = () => {
             }}
         >
             <Box className="p-4 flex-1">
+                {/* Optional: Add a search bar if needed */}
+                {/* Example:
+                <View className="mb-4">
+                    <Input variant="outline" size="md">
+                        <InputField
+                            value={searchQuery}
+                            onChangeText={(text) => {
+                                log('Search query changed', text);
+                                setSearchQuery(text);
+                            }}
+                            placeholder="Search by name or email"
+                            placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                        />
+                    </Input>
+                </View>
+                */}
+
                 {/* Users List */}
                 <Box className="rounded-lg overflow-hidden flex-1">
                     <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
@@ -380,7 +403,7 @@ const VerifyScreen: React.FC = () => {
                                     {selectedUserInfo.grade || "N/A"}
                                 </Text>
                                 <Text>
-                                    <Text className="font-semibold">Subteam: </Text>
+                                    <Text className="font-semibold">Subteam(s): </Text>
                                     {selectedUserInfo.subteam?.join(", ") || "N/A"}
                                 </Text>
                                 <Text>

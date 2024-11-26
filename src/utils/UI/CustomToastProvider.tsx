@@ -53,7 +53,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const toast = useToast();
 
-  const showToast = ({
+  const openToast = ({
     title,
     description,
     type = "info",
@@ -98,7 +98,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ openToast }}>
       {children}
     </ToastContext.Provider>
   );

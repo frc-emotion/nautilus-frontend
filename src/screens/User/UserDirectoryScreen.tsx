@@ -1,8 +1,5 @@
-// src/screens/UserDirectoryScreen.tsx
-
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -23,23 +20,11 @@ import {
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { Text } from '@/components/ui/text';
-import { useAuth } from '../../utils/AuthContext';
+import { useAuth } from '../../utils/Context/AuthContext';
 import { useModal } from '../../utils/UI/CustomModalProvider';
-import ApiClient from '../../utils/Networking/APIClient';
-import {
-  GRADES,
-  SUBTEAMS,
-  ROLES,
-  UserObject,
-} from '../../Constants';
+import { GRADES, SUBTEAMS, ROLES, UserObject } from '../../Constants';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
-import { AxiosError, AxiosResponse } from 'axios';
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  Icon,
-  ThreeDotsIcon,
-} from '@/components/ui/icon';
+import { CheckIcon, ChevronDownIcon, Icon, ThreeDotsIcon } from '@/components/ui/icon';
 import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { Divider } from '@/components/ui/divider';
 import {
@@ -61,26 +46,29 @@ import {
   CheckboxIcon,
   CheckboxLabel,
 } from '@/components/ui/checkbox';
-import { useUsers } from '@/src/utils/UsersContext';
+import { formatPhoneNumber } from '@/src/utils/Helpers';
+import { useUsers } from '@/src/utils/Context/UsersContext';
+import { Input, InputField, InputSlot, InputIcon } from '@/components/ui/input'; // Import subcomponents
 
 const UserDirectoryScreen: React.FC = () => {
   const { user } = useAuth();
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const { colorMode } = useThemeContext();
-  const { 
-    users, 
-    isLoading, 
-    fetchUsers, 
-    editUser, 
-    deleteUser, 
-    searchQuery, 
-    setSearchQuery, 
-    selectedSubteam, 
-    setSelectedSubteam, 
-    selectedGrade, 
-    setSelectedGrade, 
-    filteredUsers 
+  const {
+    users,
+    isLoading,
+    fetchUsers,
+    editUser,
+    deleteUser,
+    searchQuery,
+    setSearchQuery,
+    selectedSubteam,
+    setSelectedSubteam,
+    selectedGrade,
+    setSelectedGrade,
+    filteredUsers,
+    applyFilters,
   } = useUsers(); // Use UsersContext
 
   // Logging function
@@ -108,20 +96,15 @@ const UserDirectoryScreen: React.FC = () => {
     setShowEditDialog(true);
   };
 
-  const handleDeleteUser = async (userId: number) => {
+  const handleDeleteUser = (userId: number) => {
     log('handleDeleteUser called', userId);
-    try {
-      await deleteUser(userId);
-    } catch (error) {
-      log('handleDeleteUser exception', error);
-    }
+    deleteUser(userId);
   };
 
-  const saveEditChanges = async (userId: number) => {
-    log('saveEditChanges called', userId);
+  const saveEditChanges = async () => {
     if (!editUserState) {
       log('No editUser selected');
-      showToast({
+      openToast({
         title: 'Error',
         description: 'No user selected for editing.',
         type: 'error',
@@ -134,7 +117,7 @@ const UserDirectoryScreen: React.FC = () => {
 
     if (!originalUser) {
       log('Original user data not found');
-      showToast({
+      openToast({
         title: 'Error',
         description: 'Original user data not found.',
         type: 'error',
@@ -153,7 +136,7 @@ const UserDirectoryScreen: React.FC = () => {
 
     if (Object.keys(updates).length === 0) {
       log('No changes were made');
-      showToast({
+      openToast({
         title: 'No Changes',
         description: 'No changes were made.',
         type: 'info',
@@ -163,7 +146,7 @@ const UserDirectoryScreen: React.FC = () => {
     }
 
     try {
-      await editUser(userId, updates);
+      await editUser(editUserState._id, updates);
     } catch (error) {
       log('saveEditChanges exception', error);
     }
@@ -175,7 +158,7 @@ const UserDirectoryScreen: React.FC = () => {
     log('handleRefresh called');
     try {
       await fetchUsers();
-      showToast({
+      openToast({
         title: 'Refreshed!',
         description: 'Successfully fetched users!',
         type: 'success',
@@ -194,32 +177,33 @@ const UserDirectoryScreen: React.FC = () => {
       }}
     >
       <Box className="p-4 flex-1">
-        {/* Search Bar (only for admins) */}
-        {["admin", "executive", "advisor"].includes(user?.role ?? "") && (
-          <TextInput
-            placeholder="Search by name, email, or role"
-            value={searchQuery}
-            onChangeText={(text) => {
-              log('Search query changed', text);
-              setSearchQuery(text);
-            }}
-            className="border rounded-md p-3 mb-2 bg-inputBackground"
-            placeholderTextColor="var(--color-placeholder)"
-          />
+        {/* Search Bar (only for admins and higher roles) */}
+        {['admin', 'executive', 'advisor'].includes(user?.role ?? '') && (
+          <Input variant="outline" size="md" className="mb-4">
+            <InputField
+              value={searchQuery}
+              onChangeText={(text) => {
+                log('Search query changed', text);
+                setSearchQuery(text);
+              }}
+              placeholder="Search by name, email, or role"
+              placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+            />
+          </Input>
         )}
 
         {/* Filters */}
-        <View className="mb-2">
-          <View className="flex flex-row flex-wrap">
+        <View className="mb-4">
+          <View className="flex flex-row flex-wrap justify-between">
             {/* Subteam Filter */}
-            <View style={{ flex: 1, minWidth: '45%', marginRight: 5 }}>
+            <View style={{ flex: 1, minWidth: '45%', marginBottom: 10 }} className='mr-2'>
               <Select
                 selectedValue={selectedSubteam}
                 onValueChange={(itemValue) => setSelectedSubteam(itemValue)}
               >
-                <SelectTrigger variant="outline" size="md" className="mb-2">
+                <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
                   <SelectInput placeholder="Subteam" />
-                  <SelectIcon className="mr-2" as={ChevronDownIcon} />
+                  <SelectIcon className="mr-2 " as={ChevronDownIcon} />
                 </SelectTrigger>
                 <SelectPortal>
                   <SelectBackdrop />
@@ -237,12 +221,12 @@ const UserDirectoryScreen: React.FC = () => {
             </View>
 
             {/* Grade Filter */}
-            <View style={{ flex: 1, minWidth: '45%', marginRight: 5 }}>
+            <View style={{ flex: 1, minWidth: '45%', marginBottom: 10 }}>
               <Select
                 selectedValue={selectedGrade}
                 onValueChange={(itemValue) => setSelectedGrade(itemValue)}
               >
-                <SelectTrigger variant="outline" size="md" className="mb-2">
+                <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
                   <SelectInput placeholder="Grade" />
                   <SelectIcon className="mr-2" as={ChevronDownIcon} />
                 </SelectTrigger>
@@ -402,7 +386,7 @@ const UserDirectoryScreen: React.FC = () => {
                       <Text>{viewUser.email}</Text>
 
                       <Text className="font-medium">Phone:</Text>
-                      <Text>{viewUser.phone}</Text>
+                      <Text>{formatPhoneNumber(viewUser.phone)}</Text>
 
                       <Text className="font-medium">Student ID:</Text>
                       <Text>{viewUser.student_id}</Text>
@@ -440,58 +424,81 @@ const UserDirectoryScreen: React.FC = () => {
               </AlertDialogHeader>
               <AlertDialogBody>
                 <VStack space="sm">
-                  <TextInput
-                    placeholder="First Name"
-                    value={editUserState.first_name}
-                    className="border rounded-md p-3 bg-inputBackground"
-                    onChangeText={(text) => {
-                      log('Edit User first_name changed', text);
-                      setEditUserState({ ...editUserState, first_name: text });
-                    }}
-                    placeholderTextColor="var(--color-placeholder)"
-                  />
-                  <TextInput
-                    placeholder="Last Name"
-                    value={editUserState.last_name}
-                    className="border rounded-md p-3 bg-inputBackground"
-                    onChangeText={(text) => {
-                      log('Edit User last_name changed', text);
-                      setEditUserState({ ...editUserState, last_name: text });
-                    }}
-                    placeholderTextColor="var(--color-placeholder)"
-                  />
-                  <TextInput
-                    placeholder="Email"
-                    value={editUserState.email}
-                    className="border rounded-md p-3 bg-inputBackground"
-                    onChangeText={(text) => {
-                      log('Edit User email changed', text);
-                      setEditUserState({ ...editUserState, email: text });
-                    }}
-                    placeholderTextColor="var(--color-placeholder)"
-                  />
-                  <TextInput
-                    placeholder="Phone"
-                    value={editUserState.phone}
-                    className="border rounded-md p-3 bg-inputBackground"
-                    onChangeText={(text) => {
-                      log('Edit User phone changed', text);
-                      setEditUserState({ ...editUserState, phone: text });
-                    }}
-                    placeholderTextColor="var(--color-placeholder)"
-                  />
-                  <TextInput
-                    placeholder="Student ID"
-                    value={editUserState.student_id}
-                    className="border rounded-md p-3 bg-inputBackground"
-                    onChangeText={(text) => {
-                      log('Edit User student_id changed', text);
-                      setEditUserState({ ...editUserState, student_id: text });
-                    }}
-                    placeholderTextColor="var(--color-placeholder)"
-                  />
+                  {/* First Name */}
+                  <Text className="font-medium">First Name</Text>
+                  <Input variant="outline" size="md">
+                    <InputField
+                      value={editUserState.first_name}
+                      onChangeText={(text) => {
+                        log('Edit User first_name changed', text);
+                        setEditUserState({ ...editUserState, first_name: text });
+                      }}
+                      placeholder="First Name"
+                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                    />
+                  </Input>
+
+                  {/* Last Name */}
+                  <Text className="font-medium mt-3">Last Name</Text>
+                  <Input variant="outline" size="md">
+                    <InputField
+                      value={editUserState.last_name}
+                      onChangeText={(text) => {
+                        log('Edit User last_name changed', text);
+                        setEditUserState({ ...editUserState, last_name: text });
+                      }}
+                      placeholder="Last Name"
+                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                    />
+                  </Input>
+
+                  {/* Email */}
+                  <Text className="font-medium mt-3">Email</Text>
+                  <Input variant="outline" size="md">
+                    <InputField
+                      value={editUserState.email}
+                      onChangeText={(text) => {
+                        log('Edit User email changed', text);
+                        setEditUserState({ ...editUserState, email: text });
+                      }}
+                      placeholder="Email"
+                      keyboardType="email-address"
+                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                    />
+                  </Input>
+
+                  {/* Phone */}
+                  <Text className="font-medium mt-3">Phone</Text>
+                  <Input variant="outline" size="md">
+                    <InputField
+                      value={editUserState.phone}
+                      onChangeText={(text) => {
+                        log('Edit User phone changed', text);
+                        setEditUserState({ ...editUserState, phone: text });
+                      }}
+                      placeholder="Phone"
+                      keyboardType="phone-pad"
+                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                    />
+                  </Input>
+
+                  {/* Student ID */}
+                  <Text className="font-medium mt-3">Student ID</Text>
+                  <Input variant="outline" size="md">
+                    <InputField
+                      value={editUserState.student_id}
+                      onChangeText={(text) => {
+                        log('Edit User student_id changed', text);
+                        setEditUserState({ ...editUserState, student_id: text });
+                      }}
+                      placeholder="Student ID"
+                      keyboardType="numeric"
+                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                    />
+                  </Input>
+
                   {/* Grade Selector */}
-                  <Text className="font-medium">Grade</Text>
+                  <Text className="font-medium mt-3">Grade</Text>
                   <Select
                     selectedValue={editUserState.grade}
                     onValueChange={(value) => {
@@ -516,8 +523,9 @@ const UserDirectoryScreen: React.FC = () => {
                       </SelectContent>
                     </SelectPortal>
                   </Select>
+
                   {/* Role Selector */}
-                  <Text className="font-medium">Role</Text>
+                  <Text className="font-medium mt-3">Role</Text>
                   <Select
                     selectedValue={editUserState.role}
                     onValueChange={(value: string) => {
@@ -545,8 +553,9 @@ const UserDirectoryScreen: React.FC = () => {
                       </SelectContent>
                     </SelectPortal>
                   </Select>
+
                   {/* Subteam Selector */}
-                  <Text className="font-medium">Subteams</Text>
+                  <Text className="font-medium mt-3">Subteams</Text>
                   <CheckboxGroup
                     value={editUserState.subteam || []}
                     onChange={(selectedValues: string[]) => {
@@ -583,7 +592,7 @@ const UserDirectoryScreen: React.FC = () => {
                 <Button
                   onPress={() => {
                     log('Save button pressed in Edit Dialog');
-                    saveEditChanges(editUserState._id);
+                    saveEditChanges();
                   }}
                   action="primary"
                 >

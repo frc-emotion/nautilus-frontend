@@ -23,9 +23,10 @@ import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
 import { GRADES, QueuedRequest, SUBTEAMS } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { cleanPhoneNumber, formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const [hidePassword, setHidePassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +64,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       student_id: data.studentId,
       email: data.email,
       password: data.password,
-      phone: data.phone,
+      phone: cleanPhoneNumber(data.phone),
       subteam: [data.subteam?.toLowerCase()],
       grade: data.grade,
     };
@@ -82,7 +83,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           type: "success",
         });
 
-        showToast({
+        openToast({
           title: "Account Created",
           description: response.data.message,
           type: "success",
@@ -91,46 +92,18 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         reset();
       },
       errorHandler: async (error: AxiosError) => {
-        const statusCode = error.response?.status;
-
-        console.log("Status code:", statusCode);
-
-        if (!statusCode) {
-          openModal({
-            title: "Unexpected Error",
-            message: `${error.name} : ${error.message}\nCode: ${error.code}`,
-            type: "error",
-          });
-
-          showToast({
-            title: "Unexpected Error",
-            description: `${error.name} : ${error.message}\nCode: ${error.code}`,
-            type: "error",
-          });
-
-          return;
-        }
-
-        const errorData = error.response?.data;
-
-        // Jsonify the error message if it's a string
-        const errorMessage = typeof errorData === "string" ? JSON.parse(errorData) : errorData;
-
-        openModal({
-          title: "Registration failed: " + statusCode,
-          message: errorMessage.error,
-          type: "error",
-        });
-
-        showToast({
-          title: "Registration failed",
-          description: errorMessage.error,
-          type: "error",
+        handleErrorWithModalOrToast({
+          actionName: "Registration",
+          error,
+          showModal: false,
+          showToast: true,
+          openModal,
+          openToast,
         });
 
       },
       offlineHandler: async () => {
-        showToast({
+        openToast({
           title: "Offline",
           description: "Request saved. It will be processed when you're back online.",
           type: "info",
@@ -150,7 +123,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       await ApiClient.handleRequest(request);
     } catch (error: any) {
       console.error("Error during registration:", error);
-      showToast({
+      openToast({
         title: "That's a rare bug...",
         description: error.message,
         type: "error",
@@ -164,7 +137,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     console.error("Validation errors:", validationErrors);
     const firstError = Object.values(validationErrors)[0];
     if (firstError && "message" in firstError) {
-      showToast({
+      openToast({
         title: "Validation Error",
         description: (firstError as { message: string }).message,
         type: "error",
@@ -179,16 +152,22 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
-          keyboardShouldPersistTaps="never"
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 100,
           }}
-          automaticallyAdjustKeyboardInsets={true} showsVerticalScrollIndicator
+          bounces={false}
+          showsVerticalScrollIndicator={false}
         >
-          <VStack space="md" className="max-w-[600px] w-full mx-auto p-4 rounded-md shadow-lg">
+          <VStack 
+          space="md" 
+          className="w-full max-w-[600px] mx-auto p-4 rounded-md shadow-lg flex-1 justify-center"
+          style={{
+            minHeight: '100%',
+            paddingHorizontal: 16,
+            paddingVertical: Platform.OS === "ios" ? 24 : 16,
+          }}
+          >
 
             {/* First and Last Name */}
             <HStack space="sm">
@@ -251,8 +230,8 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               rules={{
                 required: "Phone Number is required",
                 pattern: {
-                  value: /^\d{10}$/,
-                  message: "Phone Number must be 10 digits",
+                  value: /^\(\d{3}\)\s\d{3}-\d{4}$/,
+                  message: "Phone Number must be in the format (123) 456-7890",
                 },
               }}
               render={({ field: { onChange, value } }) => (
@@ -261,7 +240,10 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     placeholder="Enter Phone Number"
                     keyboardType="phone-pad"
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => {
+                      const formattedText = formatPhoneNumber(text);
+                      onChange(formattedText);
+                    }}
                     autoCorrect={false}
                   />
                 </Input>
@@ -286,6 +268,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     placeholder="Enter Student ID"
                     keyboardType="numeric"
                     value={value}
+                    maxLength={7}
                     onChangeText={onChange}
                     autoCorrect={false}
                   />
@@ -369,7 +352,6 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     secureTextEntry={hidePassword}
                     value={value}
                     onChangeText={onChange}
-                    className="text-black-600"
                     autoCorrect={false}
                   />
                   <InputSlot className="pr-3" onPress={() => setHidePassword(!hidePassword)}>

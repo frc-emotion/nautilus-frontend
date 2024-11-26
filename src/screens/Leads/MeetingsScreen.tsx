@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  View,
-  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
@@ -22,61 +19,52 @@ import {
 import { Box } from "@/components/ui/box";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
-import { useAuth } from "../../utils/AuthContext";
-import ApiClient from "../../utils/Networking/APIClient";
-import { FailedRequest, MeetingObject, QueuedRequest } from "../../Constants";
+import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
 import { Icon, ThreeDotsIcon, InfoIcon } from "@/components/ui/icon";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useForm, Controller } from "react-hook-form";
-
-type FormData = {
-  title: string;
-  description: string;
-  location: string;
-  time_start: Date;
-  time_end: Date;
-  hours: string;
-};
-
-type UserObject = {
-  _id: number;
-  first_name: string;
-  last_name: string;
-  grade: string;
-  role: string;
-  subteam: string[];
-};
+import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
+import { useModal } from "@/src/utils/UI/CustomModalProvider";
+import { Card } from "@/components/ui/card";
+import { View } from "@/components/ui/view";
+import { Input, InputField, InputSlot, InputIcon } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
+import { useMeetings } from "@/src/utils/Context/MeetingContext";
+import { MeetingObject, FormData, QueuedRequest } from "@/src/Constants";
+import ApiClient from "@/src/utils/Networking/APIClient";
+import { useUsers } from "@/src/utils/Context/UsersContext";
 
 const MeetingsScreen: React.FC = () => {
   const { user } = useAuth();
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
+  const { openModal } = useModal();
   const { colorMode } = useThemeContext();
-  const [refreshing, setRefreshing] = useState(false);
+
+  const { users } = useUsers();
+
+  const {
+    meetings,
+    isLoadingMeetings,
+    fetchMeetings,
+    init,
+  } = useMeetings();
 
   // Logging function
   const log = (...args: any[]) => {
     console.log(`[${new Date().toISOString()}] [MeetingsScreen]`, ...args);
   };
 
-  const [meetings, setMeetings] = useState<MeetingObject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editMeeting, setEditMeeting] = useState<MeetingObject | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State variables for date pickers
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-
   // State for viewing meeting details
   const [viewMeeting, setViewMeeting] = useState<MeetingObject | null>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
-
-  // State to store user data
-  const [usersMap, setUsersMap] = useState<{ [key: number]: UserObject }>({});
 
   const {
     control,
@@ -101,126 +89,19 @@ const MeetingsScreen: React.FC = () => {
     if (!user) {
       return;
     }
-    fetchMeetings();
+
+    init();
   }, [user]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchMeetings();
-    showToast({
+    openToast({
       title: "Refreshed!",
       description: "Successfully fetched meetings!",
       type: "success",
     });
     setRefreshing(false);
-  };
-
-  const fetchMeetings = async () => {
-    log("fetchMeetings called");
-    setIsLoading(true);
-    const request: QueuedRequest = {
-      url: "/api/meetings/",
-      method: "get",
-      headers: { Authorization: `Bearer ${user?.token}` },
-      retryCount: 0,
-      successHandler: async (response: AxiosResponse) => {
-        log("fetchMeetings successHandler", response.data);
-        const fetchedMeetings = response.data.meetings;
-        setMeetings(fetchedMeetings);
-
-        // Fetch users after fetching meetings
-        await fetchUsersForMeetings(fetchedMeetings);
-        setIsLoading(false);
-      },
-      errorHandler: async (error: AxiosError) => {
-        log("fetchMeetings errorHandler", error);
-        showToast({
-          title: "Error",
-          description: "Failed to fetch meetings.",
-          type: "error",
-        });
-        setIsLoading(false);
-      },
-      offlineHandler: async () => {
-        log("fetchMeetings offlineHandler");
-        showToast({
-          title: "Offline",
-          description: "You are offline!",
-          type: "error",
-        });
-        setIsLoading(false);
-      },
-    };
-    try {
-      await ApiClient.handleRequest(request);
-      log("fetchMeetings request sent");
-    } catch (error) {
-      log("fetchMeetings exception", error);
-      setIsLoading(false);
-    }
-  };
-
-  const fetchUsersForMeetings = async (meetingsData: MeetingObject[]) => {
-    log("fetchUsersForMeetings called");
-    // Extract unique user IDs from meetings
-    const userIds = Array.from(
-      new Set(meetingsData.map((meeting) => meeting.created_by))
-    );
-    log("Unique user IDs:", userIds);
-
-    // Fetch user data for each unique user ID
-    const userPromises = userIds.map((userId) => fetchUserById(userId));
-    const usersArray = await Promise.all(userPromises);
-
-    // Map user data by user ID for quick access
-    const usersData: { [key: string]: UserObject } = {};
-    usersArray.forEach((user) => {
-      if (user) {
-        usersData[user._id.toString()] = user;
-      }
-    });
-
-    setUsersMap(usersData);
-    log("Users map:", usersData);
-  };
-
-  const fetchUserById = (userId: number): Promise<UserObject | null> => {
-    log("fetchUserById called for user ID:", userId);
-    return new Promise((resolve) => {
-      const request: QueuedRequest = {
-        url: `/api/account/users/directory/${userId}`,
-        method: "get",
-        headers: { Authorization: `Bearer ${user?.token}` },
-        retryCount: 0,
-        successHandler: async (response: AxiosResponse) => {
-          log("fetchUserById successHandler", response.data);
-          resolve(response.data.user);
-        },
-        errorHandler: async (error: AxiosError) => {
-          log("fetchUserById errorHandler", error);
-          showToast({
-            title: "Error",
-            description: `Failed to fetch user data for user ID: ${userId}`,
-            type: "error",
-          });
-          resolve(null);
-        },
-        offlineHandler: async () => {
-          log("fetchUserById offlineHandler");
-          showToast({
-            title: "Offline",
-            description: "You are offline!",
-            type: "error",
-          });
-          resolve(null);
-        },
-      };
-
-      ApiClient.handleRequest(request).catch((error) => {
-        log("fetchUserById exception", error);
-        resolve(null);
-      });
-    });
   };
 
   const handleDeleteMeeting = async (meetingId: number) => {
@@ -232,7 +113,7 @@ const MeetingsScreen: React.FC = () => {
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
         log("handleDeleteMeeting successHandler", response.data);
-        showToast({
+        openToast({
           title: "Success",
           description: "Meeting deleted.",
           type: "success",
@@ -241,15 +122,18 @@ const MeetingsScreen: React.FC = () => {
       },
       errorHandler: async (error: AxiosError) => {
         log("handleDeleteMeeting errorHandler", error);
-        showToast({
-          title: "Error",
-          description: "Failed to delete meeting.",
-          type: "error",
+        handleErrorWithModalOrToast({
+          actionName: "Delete Meeting",
+          error,
+          showModal: false,
+          showToast: true,
+          openModal,
+          openToast,
         });
       },
       offlineHandler: async () => {
         log("handleDeleteMeeting offlineHandler");
-        showToast({
+        openToast({
           title: "Offline",
           description: "You are offline!",
           type: "error",
@@ -280,7 +164,7 @@ const MeetingsScreen: React.FC = () => {
     log("saveEditChanges called", data);
     if (!editMeeting) {
       log("No editMeeting selected");
-      showToast({
+      openToast({
         title: "Error",
         description: "No meeting selected for editing.",
         type: "error",
@@ -306,7 +190,7 @@ const MeetingsScreen: React.FC = () => {
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
         log("saveEditChanges successHandler", response.data);
-        showToast({
+        openToast({
           title: "Success",
           description: "Meeting edited successfully!",
           type: "success",
@@ -319,7 +203,7 @@ const MeetingsScreen: React.FC = () => {
         log("saveEditChanges errorHandler", error);
 
         if (error.response?.status === 404) {
-          showToast({
+          openToast({
             title: "No change",
             description: "You did not submit any new information!",
             type: "warning",
@@ -329,17 +213,18 @@ const MeetingsScreen: React.FC = () => {
           return;
         }
 
-        showToast({
-          title: "Error: " + error.response?.status,
-          description:
-            (error.response?.data as FailedRequest).message ||
-            "Something went wrong",
-          type: "error",
+        handleErrorWithModalOrToast({
+          actionName: "Edit Meeting",
+          error,
+          showModal: false,
+          showToast: true,
+          openModal,
+          openToast,
         });
       },
       offlineHandler: async () => {
         log("saveEditChanges offlineHandler");
-        showToast({
+        openToast({
           title: "Offline",
           description: "You are offline!",
           type: "error",
@@ -377,6 +262,11 @@ const MeetingsScreen: React.FC = () => {
     });
   };
 
+  const getUserName = (userId: number): string => {
+    const user = users.find(u => u._id === userId);
+    return user ? `${user.first_name} ${user.last_name}` : `Lead ID: ${userId}`;
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -393,22 +283,23 @@ const MeetingsScreen: React.FC = () => {
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
           >
-            {isLoading ? (
+            {isLoadingMeetings ? (
               <View className="p-3">
-                <Text className="text-center ">Loading meetings...</Text>
+                <Text className="text-center">Loading meetings...</Text>
               </View>
             ) : meetings.length === 0 ? (
               <View className="p-3">
-                <Text className="text-center ">No meetings found.</Text>
+                <Text className="text-center">No meetings found.</Text>
               </View>
             ) : (
               meetings.map((meeting) => (
-                <View
+                <Card
                   key={meeting._id}
+                  variant="outline" // Use a variant if your Card supports it
                   className="bg-white p-4 mb-3 rounded-lg shadow-md"
                 >
                   <View className="flex flex-row justify-between items-center">
-                    <TouchableOpacity
+                    <Pressable
                       style={{ flex: 1 }}
                       onPress={() => handleViewMeeting(meeting)}
                     >
@@ -420,14 +311,14 @@ const MeetingsScreen: React.FC = () => {
                         {formatDateTime(meeting.time_start)} -{" "}
                         {formatDateTime(meeting.time_end)}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View className="flex flex-row items-center">
                       {(user?.role === "admin" || user?.role === "executive") && (
                         <Menu
                           trigger={({ ...triggerProps }) => (
-                            <TouchableOpacity {...triggerProps}>
+                            <Pressable {...triggerProps}>
                               <Icon as={ThreeDotsIcon} />
-                            </TouchableOpacity>
+                            </Pressable>
                           )}
                         >
                           <MenuItem
@@ -450,7 +341,7 @@ const MeetingsScreen: React.FC = () => {
                       )}
                     </View>
                   </View>
-                </View>
+                </Card>
               ))
             )}
           </ScrollView>
@@ -479,13 +370,18 @@ const MeetingsScreen: React.FC = () => {
                     name="title"
                     rules={{ required: "Title is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        placeholder="Title"
-                        value={value}
-                        onChangeText={onChange}
-                        className="border rounded-md p-3 bg-inputBackground"
-                        placeholderTextColor="var(--color-placeholder)"
-                      />
+                      <Input
+                        variant="outline"
+                        size="md"
+                      >
+                        <InputField
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder="Title"
+                          className="bg-inputBackground"
+                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                        />
+                      </Input>
                     )}
                   />
                   {errors.title && (
@@ -499,13 +395,18 @@ const MeetingsScreen: React.FC = () => {
                     name="description"
                     rules={{ required: "Description is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        placeholder="Description"
-                        value={value}
-                        onChangeText={onChange}
-                        className="border rounded-md p-3 bg-inputBackground"
-                        placeholderTextColor="var(--color-placeholder)"
-                      />
+                      <Input
+                        variant="outline"
+                        size="md"
+                      >
+                        <InputField
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder="Description"
+                          className="bg-inputBackground"
+                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                        />
+                      </Input>
                     )}
                   />
                   {errors.description && (
@@ -521,13 +422,18 @@ const MeetingsScreen: React.FC = () => {
                     name="location"
                     rules={{ required: "Location is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        placeholder="Location"
-                        value={value}
-                        onChangeText={onChange}
-                        className="border rounded-md p-3 bg-inputBackground"
-                        placeholderTextColor="var(--color-placeholder)"
-                      />
+                      <Input
+                        variant="outline"
+                        size="md"
+                      >
+                        <InputField
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder="Location"
+                          className="bg-inputBackground"
+                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                        />
+                      </Input>
                     )}
                   />
                   {errors.location && (
@@ -538,41 +444,22 @@ const MeetingsScreen: React.FC = () => {
 
                   {/* Start Time Picker */}
                   <Text className="font-medium">Start Time</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowStartDatePicker(true);
-                    }}
-                  >
-                    <Controller
-                      control={control}
-                      name="time_start"
-                      rules={{ required: "Start time is required" }}
-                      render={({ field: { value } }) => (
-                        <Text className="p-3 border rounded-md bg-inputBackground">
-                          {value.toLocaleString()}
-                        </Text>
-                      )}
-                    />
-                  </TouchableOpacity>
-                  {showStartDatePicker && (
-                    <Controller
-                      control={control}
-                      name="time_start"
-                      render={({ field: { onChange, value } }) => (
-                        <DateTimePicker
-                          value={value}
-                          mode="datetime"
-                          display="default"
-                          onChange={(event, selectedDate) => {
-                            setShowStartDatePicker(false);
-                            if (selectedDate) {
-                              onChange(selectedDate);
-                            }
-                          }}
-                        />
-                      )}
-                    />
-                  )}
+                  <Controller
+                    control={control}
+                    name="time_start"
+                    render={({ field: { onChange, value } }) => (
+                      <DateTimePicker
+                        value={value}
+                        mode="datetime"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          if (selectedDate) {
+                            onChange(selectedDate);
+                          }
+                        }}
+                      />
+                    )}
+                  />
                   {errors.time_start && (
                     <Text className="text-red-500">
                       {errors.time_start.message}
@@ -581,50 +468,32 @@ const MeetingsScreen: React.FC = () => {
 
                   {/* End Time Picker */}
                   <Text className="font-medium">End Time</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowEndDatePicker(true);
+                  <Controller
+                    control={control}
+                    name="time_end"
+                    rules={{
+                      required: "End time is required",
+                      validate: (value) => {
+                        const { time_start } = getValues();
+                        return (
+                          value > time_start ||
+                          "End time must be after start time"
+                        );
+                      },
                     }}
-                  >
-                    <Controller
-                      control={control}
-                      name="time_end"
-                      rules={{
-                        required: "End time is required",
-                        validate: (value) => {
-                          const { time_start } = getValues();
-                          return (
-                            value > time_start ||
-                            "End time must be after start time"
-                          );
-                        },
-                      }}
-                      render={({ field: { value } }) => (
-                        <Text className="p-3 border rounded-md bg-inputBackground">
-                          {value.toLocaleString()}
-                        </Text>
-                      )}
-                    />
-                  </TouchableOpacity>
-                  {showEndDatePicker && (
-                    <Controller
-                      control={control}
-                      name="time_end"
-                      render={({ field: { onChange, value } }) => (
-                        <DateTimePicker
-                          value={value}
-                          mode="datetime"
-                          display="default"
-                          onChange={(event, selectedDate) => {
-                            setShowEndDatePicker(false);
-                            if (selectedDate) {
-                              onChange(selectedDate);
-                            }
-                          }}
-                        />
-                      )}
-                    />
-                  )}
+                    render={({ field: { onChange, value } }) => (
+                      <DateTimePicker
+                        value={value}
+                        mode="datetime"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          if (selectedDate) {
+                            onChange(selectedDate);
+                          }
+                        }}
+                      />
+                    )}
+                  />
                   {errors.time_end && (
                     <Text className="text-red-500">
                       {errors.time_end.message}
@@ -644,14 +513,19 @@ const MeetingsScreen: React.FC = () => {
                       },
                     }}
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        placeholder="Hours"
-                        value={value}
-                        onChangeText={onChange}
-                        keyboardType="numeric"
-                        className="border rounded-md p-3 bg-inputBackground"
-                        placeholderTextColor="var(--color-placeholder)"
-                      />
+                      <Input
+                        variant="outline"
+                        size="md"
+                      >
+                        <InputField
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder="Hours"
+                          keyboardType="numeric"
+                          className="bg-inputBackground"
+                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                        />
+                      </Input>
                     )}
                   />
                   {errors.hours && (
@@ -719,16 +593,9 @@ const MeetingsScreen: React.FC = () => {
                   <Text className="font-medium">Hours:</Text>
                   <Text>{viewMeeting.hours}</Text>
 
-                  {/* Display creator's information */}
                   <Text className="font-medium">Created By:</Text>
-                  {usersMap[viewMeeting.created_by] ? (
-                    <Text>
-                      {usersMap[viewMeeting.created_by].first_name}{" "}
-                      {usersMap[viewMeeting.created_by].last_name}
-                    </Text>
-                  ) : (
-                    <Text>Unknown User</Text>
-                  )}
+                  <Text>{getUserName(viewMeeting.created_by)}</Text>
+                  
                 </VStack>
               </AlertDialogBody>
               <AlertDialogFooter className="flex justify-end space-x-3 pt-6">

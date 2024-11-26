@@ -177,7 +177,7 @@ class ApiClient {
         // Non-retryable errors
         if (statusCode && (statusCode < 500 || statusCode >= 600)) {
           console.error(`${DEBUG_PREFIX} Non-retryable error [${statusCode}] for request: ${url}`);
-          errorHandler && await errorHandler(error);
+          //errorHandler && await errorHandler(error);
           return Promise.reject(error);
         }
 

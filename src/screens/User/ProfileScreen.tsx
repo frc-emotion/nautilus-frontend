@@ -5,7 +5,7 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
-import { useAuth } from "../../utils/AuthContext";
+import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -14,16 +14,19 @@ import { AxiosError } from "axios";
 import ApiClient from "../../utils/Networking/APIClient";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
+import { useModal } from "@/src/utils/UI/CustomModalProvider";
 
 const icon = require("@/src/assets/icon.png");
 
 const ProfileScreen: React.FC = () => {
   const { user, logout, refreshUser, isLoading } = useAuth();
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
   const [refreshing, setRefreshing] = useState(false);
   const [displayUser, setDisplayUser] = useState<UserObject | null>(user);
   const { colorMode, toggleColorMode } = useThemeContext();
+  const { openModal } = useModal();
 
   useEffect(() => {
     if (user) {
@@ -46,7 +49,7 @@ const ProfileScreen: React.FC = () => {
 
         setDisplayUser(updatedUser);
 
-        showToast({
+        openToast({
           title: "Validation Successful",
           description: "User data has been updated.",
           type: "success",
@@ -55,17 +58,20 @@ const ProfileScreen: React.FC = () => {
       errorHandler: async (error: AxiosError) => {
         console.error("Token validation failed:", error);
 
-        showToast({
-          title: "Validation Failed",
-          description: "Unable to update user data with server.",
-          type: "error",
+        handleErrorWithModalOrToast({
+          actionName: "Validate session",
+          error,
+          showModal: true,
+          showToast: true,
+          openModal,
+          openToast,
         });
 
         // Optionally log out user if token validation fails
         handleLogout();
       },
       offlineHandler: async () => {
-        showToast({
+        openToast({
           title: "Offline",
           description: "Cannot refresh your profile without an internet connection!",
           type: "info",
@@ -86,7 +92,7 @@ const ProfileScreen: React.FC = () => {
       await refreshUser();
     } catch (error) {
       console.error("Error during user refresh:", error);
-      showToast({
+      openToast({
         title: "Refresh Failed",
         description: "An error occurred while refreshing user data.",
         type: "error",
@@ -100,7 +106,7 @@ const ProfileScreen: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      showToast({
+      openToast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
         type: "success",
@@ -108,7 +114,7 @@ const ProfileScreen: React.FC = () => {
       navigation.navigate("NotLoggedInTabs");
     } catch (error) {
       console.error("Error during logout:", error);
-      showToast({
+      openToast({
         title: "Logout Failed",
         description: "An error occurred while logging out.",
         type: "error",
@@ -166,7 +172,7 @@ const ProfileScreen: React.FC = () => {
 
           <HStack className="justify-between">
             <Text>Phone</Text>
-            <Text className="font-semibold">{displayUser?.phone}</Text>
+            <Text className="font-semibold">{displayUser?.phone ? formatPhoneNumber(displayUser?.phone) : displayUser?.phone}</Text>
           </HStack>
 
           <HStack className="justify-between">

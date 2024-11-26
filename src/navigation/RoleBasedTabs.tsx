@@ -1,7 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator, NativeStackNavigationOptions } from "@react-navigation/native-stack";
-import { useAuth } from "../utils/AuthContext";
+import { useAuth } from "../utils/Context/AuthContext";
 import { useThemeContext } from "../utils/UI/CustomThemeProvider";
 import {
   BookUser,
@@ -78,6 +78,7 @@ const AsyncStorageStackNavigator = createSingleScreenStack(TabNames.AsyncStorage
 // Attendance Stack Navigator with unique screen names
 const AttendanceStackNavigator: React.FC = () => {
   const Stack = createNativeStackNavigator();
+  const { colorMode } = useThemeContext();
 
   return (
     <Stack.Navigator screenOptions={{}}>
@@ -88,12 +89,12 @@ const AttendanceStackNavigator: React.FC = () => {
           title: 'Attendance',
           headerRight: () => (
             <TouchableOpacity onPress={() => navigation.navigate('BroadcastMain')}>
-              <Text style={{ marginRight: 10 }}>Broadcast</Text>
+              <Text style={{ marginRight: 10, color: colorMode === "light" ? "black" : "white" }}>Broadcast</Text>
             </TouchableOpacity>
           ),
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.navigate('MeetingsMain')}>
-              <Text style={{ marginLeft: 10 }}>Meetings</Text>
+              <Text style={{ marginLeft: 10, color: colorMode === "light" ? "black" : "white" }}>Meetings</Text>
             </TouchableOpacity>
           ),
         })}
@@ -120,6 +121,7 @@ const AttendanceStackNavigator: React.FC = () => {
 // Directory Stack Navigator with unique screen names
 const DirectoryStackNavigator: React.FC = () => {
   const Stack = createNativeStackNavigator();
+  const { colorMode } = useThemeContext();
 
   return (
     <Stack.Navigator screenOptions={{}}>
@@ -130,7 +132,7 @@ const DirectoryStackNavigator: React.FC = () => {
           title: 'Directory',
           headerRight: () => (
             <TouchableOpacity onPress={() => navigation.navigate('Verifier')}>
-              <Text style={{ marginRight: 10 }}>Verifier</Text>
+              <Text style={{ marginRight: 10, color: colorMode === "light" ? "black" : "white"}}>Verifier</Text>
             </TouchableOpacity>
           ),
         })}

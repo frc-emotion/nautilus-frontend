@@ -1,7 +1,8 @@
+// src/components/CreateMeetingButton.tsx
+
 import React, { useState } from "react";
 import {
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -20,24 +21,24 @@ import { useForm, Controller } from "react-hook-form";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { AxiosError, AxiosResponse } from "axios";
 import { QueuedRequest } from "../Constants";
-import { useAuth } from "../utils/AuthContext";
+import { useAuth } from "../utils/Context/AuthContext";
 import { useThemeContext } from "../utils/UI/CustomThemeProvider";
 import { useGlobalToast } from "../utils/UI/CustomToastProvider";
 import ApiClient from "../utils/Networking/APIClient";
 import { FormData } from "../Constants";
+import { handleErrorWithModalOrToast } from "../utils/Helpers";
+import { useModal } from "../utils/UI/CustomModalProvider";
+import { Input, InputField, InputSlot, InputIcon } from "@/components/ui/input"; // Import subcomponents
 
 const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
   onMeetingCreated,
 }) => {
   const { user } = useAuth();
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
+  const { openModal } = useModal();
   const { colorMode } = useThemeContext();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Date picker state variables
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const {
     control,
@@ -83,7 +84,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
         log("handleCreateMeeting successHandler", response.data);
-        showToast({
+        openToast({
           title: "Success",
           description: "Meeting created successfully!",
           type: "success",
@@ -96,15 +97,19 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       },
       errorHandler: async (error: AxiosError) => {
         log("handleCreateMeeting errorHandler", error);
-        showToast({
-          title: "Error",
-          description: "Failed to create meeting.",
-          type: "error",
+
+        handleErrorWithModalOrToast({
+          actionName: "Creating meeting",
+          error,
+          showModal: false,
+          showToast: true,
+          openModal,
+          openToast,
         });
       },
       offlineHandler: async () => {
         log("handleCreateMeeting offlineHandler");
-        showToast({
+        openToast({
           title: "Offline",
           description: "You are offline!",
           type: "error",
@@ -120,6 +125,17 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Helper function to format date and time
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    });
   };
 
   return (
@@ -158,14 +174,16 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                   name="title"
                   rules={{ required: "Title is required" }}
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      placeholder="Title"
-                      value={value}
-                      onChangeText={onChange}
-                      className="border rounded-md p-3 bg-inputBackground"
-                      placeholderTextColor="var(--color-placeholder)"
-                      autoCorrect={false}
-                    />
+                    <Input variant="outline" size="md">
+                      <InputField
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Title"
+                        placeholderTextColor={
+                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                        }
+                      />
+                    </Input>
                   )}
                 />
                 {errors.title && (
@@ -179,14 +197,16 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                   name="description"
                   rules={{ required: "Description is required" }}
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      placeholder="Description"
-                      value={value}
-                      onChangeText={onChange}
-                      className="border rounded-md p-3 bg-inputBackground"
-                      placeholderTextColor="var(--color-placeholder)"
-                      autoCorrect={false}
-                    />
+                    <Input variant="outline" size="md">
+                      <InputField
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Description"
+                        placeholderTextColor={
+                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                        }
+                      />
+                    </Input>
                   )}
                 />
                 {errors.description && (
@@ -202,14 +222,16 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                   name="location"
                   rules={{ required: "Location is required" }}
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      placeholder="Location"
-                      value={value}
-                      onChangeText={onChange}
-                      className="border rounded-md p-3 bg-inputBackground"
-                      placeholderTextColor="var(--color-placeholder)"
-                      autoCorrect={false}
-                    />
+                    <Input variant="outline" size="md">
+                      <InputField
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Location"
+                        placeholderTextColor={
+                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                        }
+                      />
+                    </Input>
                   )}
                 />
                 {errors.location && (
@@ -220,41 +242,21 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
 
                 {/* Start Time Picker */}
                 <Text className="font-medium">Start Time</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowStartDatePicker(true);
-                  }}
-                >
                   <Controller
                     control={control}
                     name="time_start"
-                    rules={{ required: "Start time is required" }}
-                    render={({ field: { value } }) => (
-                      <Text className="p-3 border rounded-md bg-inputBackground">
-                        {value.toLocaleString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "numeric",
-                        })}
-                      </Text>
-                    )}
-                  />
-                </TouchableOpacity>
-                {showStartDatePicker && (
-                  <Controller
-                    control={control}
-                    name="time_start"
+                    rules={{
+                      required: "Start time is required",
+                      }}
+                      
                     render={({ field: { onChange, value } }) => (
                       <DateTimePicker
                         value={value}
                         mode="datetime"
                         display={
-                          Platform.OS === "ios" ? "spinner" : "default"
+                          "default"
                         }
                         onChange={(event, selectedDate) => {
-                          setShowStartDatePicker(false);
                           if (selectedDate) {
                             onChange(selectedDate);
                           }
@@ -262,7 +264,6 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                       />
                     )}
                   />
-                )}
                 {errors.time_start && (
                   <Text className="text-red-500">
                     {errors.time_start.message}
@@ -271,11 +272,6 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
 
                 {/* End Time Picker */}
                 <Text className="font-medium">End Time</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowEndDatePicker(true);
-                  }}
-                >
                   <Controller
                     control={control}
                     name="time_end"
@@ -289,32 +285,14 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                         );
                       },
                     }}
-                    render={({ field: { value } }) => (
-                      <Text className="p-3 border rounded-md bg-inputBackground">
-                        {value.toLocaleString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "numeric",
-                        })}
-                      </Text>
-                    )}
-                  />
-                </TouchableOpacity>
-                {showEndDatePicker && (
-                  <Controller
-                    control={control}
-                    name="time_end"
                     render={({ field: { onChange, value } }) => (
                       <DateTimePicker
                         value={value}
                         mode="datetime"
                         display={
-                          Platform.OS === "ios" ? "spinner" : "default"
+                          "default"
                         }
                         onChange={(event, selectedDate) => {
-                          setShowEndDatePicker(false);
                           if (selectedDate) {
                             onChange(selectedDate);
                           }
@@ -322,7 +300,6 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                       />
                     )}
                   />
-                )}
                 {errors.time_end && (
                   <Text className="text-red-500">
                     {errors.time_end.message}
@@ -342,15 +319,17 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                     },
                   }}
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      placeholder="Hours"
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="numeric"
-                      className="border rounded-md p-3 bg-inputBackground"
-                      placeholderTextColor="var(--color-placeholder)"
-                      autoCorrect={false}
-                    />
+                    <Input variant="outline" size="md">
+                      <InputField
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Hours"
+                        keyboardType="numeric"
+                        placeholderTextColor={
+                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                        }
+                      />
+                    </Input>
                   )}
                 />
                 {errors.hours && (

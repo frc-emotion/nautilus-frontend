@@ -1,88 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
-  ActivityIndicator,
-  RefreshControl,
   TouchableOpacity,
   View,
+  RefreshControl,
 } from 'react-native';
-import { Text } from '@/components/ui/text';
+import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
+import { useModal } from '../../utils/UI/CustomModalProvider';
+import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useBLE } from '../../utils/BLE/BLEContext';
+import { APP_UUID } from '../../Constants';
+import { useMeetings } from '../../utils/Context/MeetingContext';
+import { useAuth } from '../../utils/Context/AuthContext';
+import {
+  Lock,
+  AlertCircle,
+  Bluetooth,
+  BluetoothOff,
+  RefreshCw,
+} from 'lucide-react-native';
+import * as Linking from 'expo-linking';
+import { Text } from "@/components/ui/text";
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
-import { useModal } from '@/src/utils/UI/CustomModalProvider';
-import { useThemeContext } from '@/src/utils/UI/CustomThemeProvider';
-import { useBLE } from '@/src/utils/BLE/BLEContext';
-import { APP_UUID } from '@/src/Constants';
-import { useMeetings } from '@/src/utils/MeetingContext';
-import { useAuth } from '@/src/utils/AuthContext';
-import { Lock, AlertCircle, Bluetooth, BluetoothOff, RefreshCw } from 'lucide-react-native';
+import { useLocation } from '@/src/utils/BLE/LocationContext';
+import { BluetoothStatusIndicator, LocationStatusIndicator } from '@/src/utils/Helpers';
+import { Card } from '@/components/ui/card';
 
-const BluetoothStatusIndicator: React.FC<{ state: string }> = ({ state }) => {
-  let IconComponent = Bluetooth;
-  let color = 'gray';
-  let statusText = 'Unknown';
-
-  switch (state) {
-    case 'poweredOn':
-      IconComponent = Bluetooth;
-      color = 'green';
-      statusText = 'Powered On';
-      break;
-    case 'poweredOff':
-      IconComponent = BluetoothOff;
-      color = 'red';
-      statusText = 'Powered Off';
-      break;
-    case 'unsupported':
-      IconComponent = AlertCircle;
-      color = 'orange';
-      statusText = 'Unsupported';
-      break;
-    case 'unauthorized':
-      IconComponent = Lock;
-      color = 'purple';
-      statusText = 'Unauthorized';
-      break;
-    case 'resetting':
-      IconComponent = RefreshCw;
-      color = 'yellow';
-      statusText = 'Resetting';
-      break;
-    default:
-      IconComponent = Bluetooth;
-      color = 'gray';
-      statusText = 'Unknown';
-      break;
-  }
-
-  return (
-    <View className="flex-row items-center">
-      <IconComponent size={24} color={color} />
-      <Text className={`ml-2`} size="md">
-        Bluetooth: {statusText}
-      </Text>
-    </View>
-  );
-};
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 
 const BroadcastAttendancePortal: React.FC = () => {
   const { user } = useAuth();
-  const { showToast } = useGlobalToast();
+  const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const { colorMode } = useThemeContext();
+  const { locationStatus, checkLocationStatus } = useLocation();
 
-  // Utilize BLE Context
+
+  // BLE Context
   const {
     bluetoothState,
     isBroadcasting,
     startBroadcasting,
     stopBroadcasting,
+
   } = useBLE();
 
-  // Utilize Meetings Context
+  // Meetings Context
   const {
     meetings,
     isLoadingMeetings,
@@ -94,16 +59,61 @@ const BroadcastAttendancePortal: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Logging function
+  const log = (...args: any[]) => {
+    console.log(`[${new Date().toISOString()}] ${DEBUG_PREFIX}`, ...args);
+  };
+
+  const handleBluetoothPermissions = async (): Promise<boolean> => {
+    if (bluetoothState === 'unauthorized') {
+      openToast({
+        title: 'Bluetooth Unauthorized',
+        description: 'Please allow Bluetooth access to listen for attendance.',
+        type: 'error',
+      });
+      openModal({
+        title: 'Bluetooth Unauthorized',
+        message: 'Please allow Bluetooth access to listen for attendance.',
+        type: 'error',
+      });
+  
+      setTimeout(() => {
+        Linking.openSettings();
+      }, 2000);
+      return false;
+    }
+    return true;
+  };
+  
+  const handleLocationPermissions = async (): Promise<boolean> => {
+    if (locationStatus !== 'enabled') {
+      openToast({
+        title: 'Location Services Required',
+        description: 'Please enable location services to listen for attendance.',
+        type: 'error',
+      });
+      openModal({
+        title: 'Location Services Required',
+        message: 'Please enable location services to listen for attendance.',
+        type: 'error',
+      });
+  
+      setTimeout(() => {
+        Linking.openSettings();
+      }, 2000);
+      return false;
+    }
+    return true;
+  };
+
+  /**
+   * Toggle broadcasting state.
+   */
   const toggleBroadcasting = async () => {
-    console.log(
-      `${DEBUG_PREFIX} Toggling broadcasting. Current state: ${
-        isBroadcasting ? 'Broadcasting' : 'Not Broadcasting'
-      }`
-    );
+    log('Toggling broadcasting', { isBroadcasting, selectedMeeting });
 
     if (!selectedMeeting) {
-      console.error(`${DEBUG_PREFIX} No meeting selected.`);
-      showToast({
+      openToast({
         title: 'No Meeting Selected',
         description: 'Please select a meeting to broadcast.',
         type: 'error',
@@ -112,17 +122,25 @@ const BroadcastAttendancePortal: React.FC = () => {
     }
 
     setLoading(true);
-    console.log(`${DEBUG_PREFIX} Starting toggleBroadcasting, loading state set to true.`);
+    log('Broadcasting state set to loading');
 
     try {
       if (isBroadcasting) {
-        console.log(`${DEBUG_PREFIX} Attempting to stop broadcasting.`);
+        log('Attempting to stop broadcasting');
         await stopBroadcasting();
-        console.log(`${DEBUG_PREFIX} Broadcasting stopped successfully.`);
+        openToast({
+          title: 'Broadcast Stopped',
+          description: 'Broadcasting has been stopped successfully.',
+          type: 'success',
+        });
       } else {
+        const hasLocation = await handleLocationPermissions();
+        const hasBluetooth = await handleBluetoothPermissions();
+      
+        if (!hasLocation || !hasBluetooth) return;
+
         if (bluetoothState !== 'poweredOn') {
-          // Utilize modal and toast instead of Alert
-          showToast({
+          openToast({
             title: 'Bluetooth Required',
             description: 'Please enable Bluetooth to start broadcasting.',
             type: 'error',
@@ -132,47 +150,46 @@ const BroadcastAttendancePortal: React.FC = () => {
             message: 'Please enable Bluetooth to start broadcasting.',
             type: 'error',
           });
-          setLoading(false); // Stop loading if Bluetooth is not enabled
+          Linking.openSettings();
           return;
         }
 
         const majorValue = Number(selectedMeeting._id);
-        const minorValue = Number(user?._id); // Ensure `user` is accessible here
+        const minorValue = Number(user?._id);
 
-        console.log(
-          `${DEBUG_PREFIX} Starting broadcasting with UUID: ${APP_UUID}, Major: ${majorValue}, Minor: ${minorValue}`
-        );
+        log('Starting broadcasting', { APP_UUID, majorValue, minorValue });
 
         await startBroadcasting(APP_UUID, majorValue, minorValue);
 
-        console.log(`${DEBUG_PREFIX} Broadcasting started successfully.`);
+        openToast({
+          title: 'Broadcasting Started',
+          description: `Broadcasting for meeting "${selectedMeeting.title}" has started.`,
+          type: 'success',
+        });
       }
     } catch (error: any) {
-      console.error(`${DEBUG_PREFIX} Error toggling broadcasting:`, error);
-      if (error instanceof Error) {
-        showToast({
-          title: 'Broadcast Error',
-          description: error.message,
-          type: 'error',
-        });
-      } else {
-        showToast({
-          title: 'Broadcast Error',
-          description: 'An unknown error occurred.',
-          type: 'error',
-        });
-      }
+      log('Error toggling broadcasting', error);
+      openToast({
+        title: 'Broadcast Error',
+        description: error.message || 'An unknown error occurred.',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
-      console.log(`${DEBUG_PREFIX} toggleBroadcasting completed, loading state set to false.`);
+      log('Broadcasting toggle completed, loading state set to false');
     }
   };
 
+  /**
+   * Format UNIX timestamp to readable string.
+   * @param timestamp - UNIX timestamp in seconds.
+   * @returns Formatted date-time string.
+   */
   const formatDateTime = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString(undefined, {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
@@ -180,11 +197,21 @@ const BroadcastAttendancePortal: React.FC = () => {
     });
   };
 
+  /**
+   * Handle pull-to-refresh action.
+   */
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMeetings();
     setRefreshing(false);
   };
+
+  /**
+   * Effect to fetch meetings on component mount.
+   */
+  useEffect(() => {
+    fetchMeetings();
+  }, []);
 
   return (
     <ScrollView
@@ -197,45 +224,53 @@ const BroadcastAttendancePortal: React.FC = () => {
     >
       <VStack space="lg" className="items-center">
         {/* Bluetooth Status Indicator */}
-      <View className="flex-row justify-center">
-        <BluetoothStatusIndicator state={bluetoothState} />
-      </View>
-      
-        <Text className="font-bold text-lg">
+        <View className="flex items-center justify-center">
+          <BluetoothStatusIndicator state={bluetoothState} />
+          <LocationStatusIndicator state={locationStatus} />
+        </View>
+
+        {/* Broadcasting Status */}
+        <Text className="font-bold text-xl mb-6">
           {isBroadcasting
-            ? `Broadcasting Meeting: ${selectedMeeting?.title}`
+            ? `Broadcasting: ${selectedMeeting?.title}`
             : 'Not Broadcasting'}
         </Text>
 
-        
-
+        {/* Meetings List */}
         {isLoadingMeetings ? (
-          <ActivityIndicator size="large" />
+          <Spinner/>
         ) : meetings.length === 0 ? (
-          <Text className="text-md">No eligible meetings available.</Text>
+          <Text className="text-md text-center">No eligible meetings available.</Text>
         ) : (
-          meetings.map((meeting) => (
-            <TouchableOpacity
-              key={meeting._id}
-              onPress={() => setSelectedMeeting(meeting)}
-              className={'p-4 mb-3 rounded-lg border'}
-              style={{
-                borderColor:
-                  selectedMeeting?._id === meeting._id ? '#3B82F6' : '#D1D5DB',
-              }}
-            >
-              <Text className="text-md font-bold">{meeting.title}</Text>
-              <Text className="text-sm mt-2">{meeting.location}</Text>
-              <Text className="text-sm">
-                {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
-              </Text>
-            </TouchableOpacity>
-          ))
+          <VStack className="w-full">
+            {meetings.map((meeting) => (
+              <TouchableOpacity
+                key={meeting._id}
+                onPress={() => setSelectedMeeting(meeting)}
+              >
+                <Card
+                  variant={selectedMeeting?._id === meeting._id ? 'filled' : 'outline'}
+                  className={`p-4 rounded-lg border ${
+                    selectedMeeting?._id === meeting._id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300'
+                  }`}
+                >
+                  <Text className="text-md font-semibold">{meeting.title}</Text>
+                  <Text className="text-sm mt-1 text-gray-600">{meeting.location}</Text>
+                  <Text className="text-sm mt-1 text-gray-600">
+                    {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
+                  </Text>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </VStack>
         )}
 
+        {/* Start/Stop Broadcasting Button */}
         <Button
           onPress={toggleBroadcasting}
-          className={'mt-4 py-2 rounded-md'}
+          className="mt-8 w-full rounded-lg"
           size="lg"
           disabled={
             loading ||
@@ -243,8 +278,9 @@ const BroadcastAttendancePortal: React.FC = () => {
             bluetoothState !== 'poweredOn' ||
             !selectedMeeting
           }
+          action={isBroadcasting ? 'secondary' : 'primary'}
         >
-          <ButtonText>
+          <ButtonText className="text-lg">
             {loading ? (
               <Spinner />
             ) : isBroadcasting ? (
