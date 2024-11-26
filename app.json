@@ -2,6 +2,7 @@
   "expo": {
     "name": "nautilus",
     "slug": "nautilus",
+    "scheme": "nautilus",
     "version": "1.0.0",
     "platforms": [
       "ios",
@@ -39,6 +40,16 @@
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "frc-team-2658",
+          "project": "nautilus-app",
+          "url": "https://sentry.io/"
+        }
+      ]
+    ]
   }
 }
