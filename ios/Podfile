@@ -34,8 +34,11 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-target 'nautilus' do
+target 'Nautilus' do
   use_expo_modules!
+
+  pod 'BeaconBroadcaster', :path => '../modules/BeaconBroadcaster/ios'
+  
   config = use_native_modules!
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']

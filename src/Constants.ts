@@ -16,6 +16,22 @@ export type AppStackParamList = {
     NotLoggedInTabs: undefined;
 };
 
+export interface BeaconBroadcasterType {
+    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<string>;
+    stopBroadcasting: () => Promise<string>;
+    startListening: (uuid: string) => Promise<string>;
+    stopListening: () => Promise<string>;
+    getDetectedBeacons: () => Promise<Array<{ uuid: string; major: number; minor: number }>>;
+  
+    // Event subscription methods
+    addBluetoothStateListener: (callback: (event: { state: string }) => void) => EmitterSubscription;
+    removeBluetoothStateListener: (subscription: EmitterSubscription) => void;
+  
+    addBeaconDetectedListener: (callback: (event: { beacons: Array<{ uuid: string; major: number; minor: number }> }) => void) => EmitterSubscription;
+    removeBeaconDetectedListener: (subscription: EmitterSubscription) => void;
+  
+  }
+
 export interface FailedRequest {
     message: string;
     status: number;
@@ -211,14 +227,6 @@ export interface QueuedRequest {
     offlineHandler?: () => Promise<void>;
 }
 
-export interface BeaconBroadcasterType {
-    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<string>;
-    stopBroadcasting: () => Promise<string>;
-    startListening: (uuid: string) => Promise<string>;
-    stopListening: () => Promise<string>;
-    getDetectedBeacons: () => Promise<Array<{ uuid: string; major: number; minor: number }>>;
-};
-
 export interface ModalConfig {
     title: string;
     message: string;
@@ -243,22 +251,6 @@ export interface ThemeContextType {
     colorMode: 'light' | 'dark';
     toggleColorMode: () => void;
 };
-
-export interface BeaconBroadcasterType {
-    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<string>;
-    stopBroadcasting: () => Promise<string>;
-    startListening: (uuid: string) => Promise<string>;
-    stopListening: () => Promise<string>;
-    getDetectedBeacons: () => Promise<Array<{ uuid: string; major: number; minor: number }>>;
-
-    // Event subscription methods
-    addBluetoothStateListener: (callback: (event: { state: string }) => void) => EmitterSubscription;
-    removeBluetoothStateListener: (subscription: EmitterSubscription) => void;
-
-    addBeaconDetectedListener: (callback: (event: { beacons: Array<{ uuid: string; major: number; minor: number }> }) => void) => EmitterSubscription;
-    removeBeaconDetectedListener: (subscription: EmitterSubscription) => void;
-
-}
 
 export type Beacon = { uuid: string; major: number; minor: number };
 
