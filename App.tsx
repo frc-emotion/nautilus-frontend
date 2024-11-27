@@ -1,4 +1,3 @@
-import React from 'react';
 import "@/global.css";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { NavigationContainer } from "@react-navigation/native";
@@ -19,7 +18,7 @@ import * as Sentry from '@sentry/react-native';
 import { LocationProvider } from './src/utils/BLE/LocationContext';
 import { AppStateProvider } from './src/utils/Context/AppStateContext';
 import AppInitializer from './src/screens/Auth/AppInitializer';
-
+import BLETestScreen from "./src/ui/BLETestScreen";
 const prefix = Linking.createURL('/');
 
 // Sentry.init({
@@ -91,11 +90,14 @@ function AppContent() {
 }
 
 function App() {
+
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    // <ThemeProvider>
+    //   <AppContent />
+    // </ThemeProvider>
+    <BLETestScreen />
   );
 }
+
 
 export default Sentry.wrap(App);
