@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { LocationContextProps } from '@/src/Constants';
 import { useModal } from '../UI/CustomModalProvider';
+import { AppLifecycle, useAppLifecycle } from 'react-native-applifecycle';
+import { Platform } from 'react-native';
 
 const LocationContext = createContext<LocationContextProps | undefined>(undefined);
 
@@ -23,7 +24,6 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { openModal } = useModal();
 
   const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
-  const appStateRef = useRef(AppState.currentState); // Track the current app state
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStatusRef = useRef<'enabled' | 'disabled' | 'unauthorized' | 'unknown' | null>(null);
 
@@ -83,14 +83,6 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  const handleAppStateChange = (nextAppState: AppStateStatus) => {
-    if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log(`${DEBUG_PREFIX} App has come to the foreground. Rechecking location services.`);
-      checkLocationServices();
-    }
-    appStateRef.current = nextAppState;
-  };
-
   const startPolling = () => {
     if (!pollingIntervalRef.current) {
       console.log(`${DEBUG_PREFIX} Starting location polling.`);
@@ -135,15 +127,22 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     // Perform an initial check and start monitoring
     checkLocationServices();
-    monitorLocationServices();
-    startPolling();
+    if (Platform.OS === 'ios') {
+      monitorLocationServices();
+      startPolling();
+    }
 
-    // Listen for AppState changes using the new subscription pattern
-    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+    const appStateListener = AppLifecycle.addEventListener('change', (state) => {
+      console.log(`${DEBUG_PREFIX} App state changed:`, state);
+      if (state === 'active') {
+        console.log(`${DEBUG_PREFIX} App is active. Rechecking location services.`);
+        checkLocationServices();
+      }
+    });
 
     return () => {
       console.log(`${DEBUG_PREFIX} Cleaning up.`);
-      appStateSubscription.remove(); // Properly unsubscribe
+      appStateListener.remove();
       if (locationSubscriptionRef.current) {
         locationSubscriptionRef.current.remove();
         locationSubscriptionRef.current = null;
