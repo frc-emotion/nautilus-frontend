@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   View,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
 import { useModal } from '../../utils/UI/CustomModalProvider';
 import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { useBLE } from '../../utils/BLE/BLEContext';
-import { APP_UUID } from '../../Constants';
+import { APP_UUID, MeetingObject } from '../../Constants';
 import { useMeetings } from '../../utils/Context/MeetingContext';
 import { useAuth } from '../../utils/Context/AuthContext';
 import {
@@ -27,6 +30,10 @@ import { Spinner } from '@/components/ui/spinner';
 import { useLocation } from '@/src/utils/BLE/LocationContext';
 import { BluetoothStatusIndicator, LocationStatusIndicator } from '@/src/utils/Helpers';
 import { Card } from '@/components/ui/card';
+import { Input, InputField } from '@/components/ui/input';
+import { Box } from '@/components/ui/box';
+import { Menu, MenuItem, MenuItemLabel } from "@/components/ui/menu";
+import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 
@@ -37,14 +44,12 @@ const BroadcastAttendancePortal: React.FC = () => {
   const { colorMode } = useThemeContext();
   const { locationStatus, checkLocationStatus } = useLocation();
 
-
   // BLE Context
   const {
     bluetoothState,
     isBroadcasting,
     startBroadcasting,
     stopBroadcasting,
-
   } = useBLE();
 
   // Meetings Context
@@ -58,6 +63,29 @@ const BroadcastAttendancePortal: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [validMeetings, setValidMeetings] = useState<MeetingObject[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
+
+  useEffect(() => {
+    log('useEffect [searchQuery]', searchQuery);
+    console.log(filteredMeetings)
+    console.log(meetings)
+    if (!searchQuery) {
+      setFilteredMeetings(meetings);
+      return;
+    }
+
+    const filtered = meetings.filter((meeting) => {
+      return (
+        meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meeting.location.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+
+    setFilteredMeetings(filtered);
+  }, [searchQuery, meetings]);
 
   // Logging function
   const log = (...args: any[]) => {
@@ -76,7 +104,7 @@ const BroadcastAttendancePortal: React.FC = () => {
         message: 'Please allow Bluetooth access to listen for attendance.',
         type: 'error',
       });
-  
+
       setTimeout(() => {
         Linking.openSettings();
       }, 2000);
@@ -84,7 +112,7 @@ const BroadcastAttendancePortal: React.FC = () => {
     }
     return true;
   };
-  
+
   const handleLocationPermissions = async (): Promise<boolean> => {
     if (locationStatus !== 'enabled') {
       openToast({
@@ -97,7 +125,7 @@ const BroadcastAttendancePortal: React.FC = () => {
         message: 'Please enable location services to listen for attendance.',
         type: 'error',
       });
-  
+
       setTimeout(() => {
         Linking.openSettings();
       }, 2000);
@@ -136,7 +164,7 @@ const BroadcastAttendancePortal: React.FC = () => {
       } else {
         const hasLocation = await handleLocationPermissions();
         const hasBluetooth = await handleBluetoothPermissions();
-      
+
         if (!hasLocation || !hasBluetooth) return;
 
         if (bluetoothState !== 'poweredOn') {
@@ -203,95 +231,124 @@ const BroadcastAttendancePortal: React.FC = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMeetings();
+
     setRefreshing(false);
   };
 
   /**
-   * Effect to fetch meetings on component mount.
+   * Filter meetings that are currently active.
    */
   useEffect(() => {
-    fetchMeetings();
-  }, []);
+    const currentTime = Math.floor(Date.now() / 1000);
+    const eligibleMeetings = meetings.filter(
+      (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
+    );
+    setValidMeetings(eligibleMeetings);
+  }, [meetings]);
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 16,
-        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{
+        flex: 1,
+        backgroundColor: colorMode === "light" ? "#FFFFFF" : "#1A202C",
       }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <VStack space="lg" className="items-center">
-        {/* Bluetooth Status Indicator */}
-        <View className="flex items-center justify-center">
-          <BluetoothStatusIndicator state={bluetoothState} />
-          <LocationStatusIndicator state={locationStatus} />
-        </View>
+      <Box className="p-4 flex-1">
+        <VStack space="lg" className="items-center" style={{ backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}>
+          {/* Bluetooth and Location Status Indicators */}
+          <View className="flex flex-row items-center justify-center mt-4 space-x-4">
+            <BluetoothStatusIndicator state={bluetoothState} />
+            <LocationStatusIndicator state={locationStatus} />
+          </View>
 
-        {/* Broadcasting Status */}
-        <Text className="font-bold text-xl mb-6">
-          {isBroadcasting
-            ? `Broadcasting: ${selectedMeeting?.title}`
-            : 'Not Broadcasting'}
-        </Text>
+          {/* Broadcasting Status */}
+          <Text className="font-bold text-xl text-center">
+            {isBroadcasting
+              ? `Broadcasting: ${selectedMeeting?.title}`
+              : 'Not Broadcasting'}
+          </Text>
 
-        {/* Meetings List */}
-        {isLoadingMeetings ? (
-          <Spinner/>
-        ) : meetings.length === 0 ? (
-          <Text className="text-md text-center">No eligible meetings available.</Text>
-        ) : (
-          <VStack className="w-full">
-            {meetings.map((meeting) => (
-              <TouchableOpacity
-                key={meeting._id}
-                onPress={() => setSelectedMeeting(meeting)}
-              >
-                <Card
-                  variant={selectedMeeting?._id === meeting._id ? 'filled' : 'outline'}
-                  className={`p-4 rounded-lg border ${
-                    selectedMeeting?._id === meeting._id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300'
-                  }`}
-                >
-                  <Text className="text-md font-semibold">{meeting.title}</Text>
-                  <Text className="text-sm mt-1 text-gray-600">{meeting.location}</Text>
-                  <Text className="text-sm mt-1 text-gray-600">
-                    {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
-                  </Text>
-                </Card>
-              </TouchableOpacity>
-            ))}
-          </VStack>
-        )}
+          {/* Search Input */}
+          <Input variant="outline" size="md" className="mb-4">
+            <InputField
+              value={searchQuery}
+              onChangeText={(text) => {
+                log('Search query changed', text);
+                setSearchQuery(text);
+              }}
+              placeholder="Search by name, description, location..."
+              placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+            />
+          </Input>
 
-        {/* Start/Stop Broadcasting Button */}
-        <Button
-          onPress={toggleBroadcasting}
-          className="mt-8 w-full rounded-lg"
-          size="lg"
-          disabled={
-            loading ||
-            meetings.length === 0 ||
-            bluetoothState !== 'poweredOn' ||
-            !selectedMeeting
-          }
-          action={isBroadcasting ? 'secondary' : 'primary'}
-        >
-          <ButtonText className="text-lg">
-            {loading ? (
-              <Spinner />
-            ) : isBroadcasting ? (
-              'Stop Broadcasting'
-            ) : (
-              'Start Broadcasting'
-            )}
-          </ButtonText>
-        </Button>
-      </VStack>
-    </ScrollView>
+          {/* Meetings List */}
+          <Box className="rounded-lg overflow-hidden max-h-[67%]">
+            <ScrollView
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+              {isLoadingMeetings ? (
+                <View className="p-3">
+                  <Spinner />
+                  <Text className="text-center">Loading meetings...</Text>
+                </View>
+              ) : filteredMeetings.length === 0 ? (
+                <View className="p-3">
+                  <Text className="text-center">No meetings found.</Text>
+                </View>
+              ) : (
+                filteredMeetings.map((meeting) => (
+                  <Pressable
+                    key={meeting._id}
+                    onPress={() => setSelectedMeeting(meeting)}
+                  >
+                    <Card
+                      variant={selectedMeeting?._id === meeting._id ? 'filled' : 'outline'}
+                      className={`p-4 mb-3 rounded-lg border ${selectedMeeting?._id === meeting._id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300'
+                        }`}
+                    >
+                      <View className="flex flex-col">
+                        <Text className="text-lg font-semibold">{meeting.title}</Text>
+                        <Text className="text-sm mt-1 text-gray-600">{meeting.location}</Text>
+                        <Text className="text-sm mt-1 text-gray-600">
+                          {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
+                        </Text>
+                      </View>
+                    </Card>
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </Box>
+
+          {/* Start/Stop Broadcasting Button */}
+          <Button
+            onPress={toggleBroadcasting}
+            className="mt-4 rounded-lg mr-1 justify-center"
+            size="lg"
+            disabled={
+              loading ||
+              meetings.length === 0 ||
+              bluetoothState !== 'poweredOn' ||
+              !selectedMeeting
+            }
+            action={isBroadcasting ? 'secondary' : 'primary'}
+          >
+            <ButtonText className="text-lg">
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : isBroadcasting ? (
+                'Stop Broadcasting'
+              ) : (
+                'Start Broadcasting'
+              )}
+            </ButtonText>
+          </Button>
+        </VStack>
+      </Box>
+    </KeyboardAvoidingView>
   );
 };
 

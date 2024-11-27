@@ -1,4 +1,5 @@
 import { Theme } from "@react-navigation/native";
+import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from 'expo-constants';
 import { EmitterSubscription } from 'react-native';
@@ -15,6 +16,12 @@ export type AppStackParamList = {
     RoleBasedTabs: undefined;
     NotLoggedInTabs: undefined;
 };
+
+export type SingleScreenStackProps = {
+    screenName: string;
+    component: React.ComponentType<any>;
+    options?: NativeStackNavigationOptions;
+  };
 
 export interface BeaconBroadcasterType {
     startBroadcasting: (uuid: string, major: number, minor: number) => Promise<string>;

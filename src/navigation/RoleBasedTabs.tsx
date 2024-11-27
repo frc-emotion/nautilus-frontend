@@ -22,16 +22,9 @@ import MeetingsScreen from "../screens/Leads/MeetingsScreen";
 import CreateMeetingButton from "../components/CreateMeetingButton";
 import { TouchableOpacity, Text } from "react-native";
 import HomeScreen from "../screens/User/HomeScreen";
-import { roleHierarchy, Roles, TabNames } from "../Constants";
+import { roleHierarchy, Roles, TabNames, SingleScreenStackProps } from "../Constants";
 
 const Tab = createBottomTabNavigator();
-
-// Define a reusable SingleScreenStack component
-type SingleScreenStackProps = {
-  screenName: string;
-  component: React.ComponentType<any>;
-  options?: NativeStackNavigationOptions;
-};
 
 const SingleScreenStack: React.FC<SingleScreenStackProps> = ({ screenName, component, options }) => {
   const Stack = createNativeStackNavigator();

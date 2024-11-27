@@ -69,7 +69,7 @@ const UserDirectoryScreen: React.FC = () => {
     setSelectedGrade,
     filteredUsers,
     applyFilters,
-  } = useUsers(); // Use UsersContext
+  } = useUsers();
 
   // Logging function
   const log = (...args: any[]) => {

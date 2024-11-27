@@ -22,23 +22,23 @@ import AppInitializer from './src/screens/Auth/AppInitializer';
 
 const prefix = Linking.createURL('/');
 
-Sentry.init({
-  _experiments: {
-    replaysSessionSampleRate: 1.0,
-    replaysOnErrorSampleRate: 1.0,
-  },
-  integrations: [
-    Sentry.mobileReplayIntegration({
-      maskAllText: false,
-      maskAllImages: false,
-      maskAllVectors: false,
-    }),
-    Sentry.reactNativeTracingIntegration()
-  ],
-  tracesSampleRate: 1.0,
-  dsn: 'https://7936f94eafb814c3209eb90c93eac658@o4508361827745792.ingest.us.sentry.io/4508361836527616',
-  debug: true, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
-});
+// Sentry.init({
+//   _experiments: {
+//     replaysSessionSampleRate: 1.0,
+//     replaysOnErrorSampleRate: 1.0,
+//   },
+//   integrations: [
+//     Sentry.mobileReplayIntegration({
+//       maskAllText: false,
+//       maskAllImages: false,
+//       maskAllVectors: false,
+//     }),
+//     Sentry.reactNativeTracingIntegration()
+//   ],
+//   tracesSampleRate: 1.0,
+//   dsn: 'https://7936f94eafb814c3209eb90c93eac658@o4508361827745792.ingest.us.sentry.io/4508361836527616',
+//   debug: true, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
+// });
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 

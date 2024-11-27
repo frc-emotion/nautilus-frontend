@@ -36,6 +36,7 @@ import { useMeetings } from "@/src/utils/Context/MeetingContext";
 import { MeetingObject, FormData, QueuedRequest } from "@/src/Constants";
 import ApiClient from "@/src/utils/Networking/APIClient";
 import { useUsers } from "@/src/utils/Context/UsersContext";
+import { Spinner } from "@/components/ui/spinner";
 
 const MeetingsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -61,6 +62,8 @@ const MeetingsScreen: React.FC = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editMeeting, setEditMeeting] = useState<MeetingObject | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
 
   // State for viewing meeting details
   const [viewMeeting, setViewMeeting] = useState<MeetingObject | null>(null);
@@ -92,6 +95,26 @@ const MeetingsScreen: React.FC = () => {
 
     init();
   }, [user]);
+
+  // Filter meetings based on search query
+  useEffect(() => {
+    log('useEffect [searchQuery]', searchQuery);
+    if (!searchQuery) {
+      setFilteredMeetings(meetings);
+      return;
+    }
+
+    const filtered = meetings.filter((meeting) => {
+      return (
+        meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meeting.location.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+
+    setFilteredMeetings(filtered);
+  }, [searchQuery, meetings]);
+
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -276,6 +299,20 @@ const MeetingsScreen: React.FC = () => {
       }}
     >
       <Box className="p-4 flex-1">
+      
+          <Input variant="outline" size="md" className="mb-4">
+            <InputField
+              value={searchQuery}
+              onChangeText={(text) => {
+                log('Search query changed', text);
+                setSearchQuery(text);
+              }}
+              placeholder="Search by name, description, location..."
+              placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+            />
+          </Input>
+        
+
         {/* Meetings List */}
         <Box className="rounded-lg overflow-hidden flex-1">
           <ScrollView
@@ -285,17 +322,18 @@ const MeetingsScreen: React.FC = () => {
           >
             {isLoadingMeetings ? (
               <View className="p-3">
+                <Spinner />
                 <Text className="text-center">Loading meetings...</Text>
               </View>
-            ) : meetings.length === 0 ? (
+            ) : filteredMeetings.length === 0 ? (
               <View className="p-3">
                 <Text className="text-center">No meetings found.</Text>
               </View>
             ) : (
-              meetings.map((meeting) => (
+              filteredMeetings.map((meeting) => (
                 <Card
                   key={meeting._id}
-                  variant="outline" // Use a variant if your Card supports it
+                  variant="outline"
                   className="bg-white p-4 mb-3 rounded-lg shadow-md"
                 >
                   <View className="flex flex-row justify-between items-center">

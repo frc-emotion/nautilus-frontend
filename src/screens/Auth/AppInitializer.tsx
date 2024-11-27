@@ -37,6 +37,7 @@ const AppInitializer: React.FC = () => {
         }
       }
 
+      console.log("I GOT HERE")
       navigateToAppropriateScreen();
     };
 
@@ -58,7 +59,10 @@ const AppInitializer: React.FC = () => {
 
   const navigateToAppropriateScreen = () => {
     setIsInitializing(false);
-    navigation.replace(isLoggedIn ? "RoleBasedTabs" : "NotLoggedInTabs");
+    setTimeout(() => {
+      navigation.replace(isLoggedIn ? "RoleBasedTabs" : "NotLoggedInTabs");
+    } , 0);
+    
   };
 
   return (

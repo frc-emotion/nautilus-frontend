@@ -55,15 +55,14 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       successHandler: async (response: AxiosResponse) => {
         console.log(`${DEBUG_PREFIX} Meetings fetched successfully.`);
         const fetchedMeetings: MeetingObject[] = response.data.meetings;
-        const currentTime = Math.floor(Date.now() / 1000);
 
-        // Filter meetings that are currently active
-        const eligibleMeetings = fetchedMeetings.filter(
-          (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
-        );
+        // // Filter meetings that are currently active
+        // const eligibleMeetings = fetchedMeetings.filter(
+        //   (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
+        // );
 
-        setMeetings(eligibleMeetings);
-        await cacheMeetings(eligibleMeetings);
+        setMeetings(fetchedMeetings);
+        await cacheMeetings(fetchedMeetings);
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} API error while fetching meetings:`, error.message);
