@@ -28,7 +28,7 @@ const AuthLoadingScreen: React.FC = () => {
       <Button onPress={() => navigation.replace("RoleBasedTabs")}>
         <Text>Continue</Text>
       </Button>
-      <Button onPress={() => navigation.replace("NotLoggedInTabs")}>
+      <Button onPress={() => navigation.replace("NotLoggedInTabs", {})}>
         <Text>Not Logged In</Text>
       </Button>
     </HStack>

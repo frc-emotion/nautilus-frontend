@@ -11,8 +11,11 @@ export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '
 export type AppStackParamList = {
     AuthLoading: undefined;
     RoleBasedTabs: undefined;
-    NotLoggedInTabs: undefined;
-};
+    NotLoggedInTabs: {
+      screen?: "ForgotPassword";
+      token?: string;
+    };
+  };
 
 export interface FailedRequest {
     message: string;

@@ -22,21 +22,29 @@ import { useEffect } from 'react';
 import { LogBox } from 'react-native';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
-LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message (optional)
-LogBox.ignoreAllLogs(); //Ignore all log notifications (optional)
+const prefix = Linking.createURL('/');
+
 function AppContent() {
   const { colorMode } = useThemeContext();
-  useEffect(() => {
-    const handleDeepLink = (event) => {
-      console.log('Received deep link:', event.url); // Logs the URL the app receives
-    };
-
-    Linking.addEventListener('url', handleDeepLink);
-
-    return () => {
-      Linking.removeEventListener('url', handleDeepLink);
-    };
-  }, []);
+  const config = {
+    screens: {
+      NotLoggedInTabs: {
+        // screens: {
+        //   ForgotPassword: {
+            path: 'forgot-password/:email?/:token?',
+            parse:{
+              email: (email) => `${email}`,
+              token: (token) => `${token}`
+            }
+        //   },
+        // },
+      },
+    },
+  };
+  const linking = {
+    prefixes: [prefix],
+    config,
+  };
 
 
   return (
@@ -44,7 +52,7 @@ function AppContent() {
       <ToastProvider>
         <ModalProvider>
           <GlobalModal />
-          <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme}>
+          <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
             <AuthProvider>
               <UsersProvider>
                 <MeetingsProvider>
@@ -64,6 +72,7 @@ function AppContent() {
                         name="NotLoggedInTabs"
                         component={NotLoggedIn}
                         options={{ gestureEnabled: false }}
+                        //getFr={({ params }) => params.token}
                       />
                     </Stack.Navigator>
                   </BLEProvider>

@@ -27,7 +27,6 @@ const icon = require("@/src/assets/icon.png")
 import * as Linking from 'expo-linking';
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-    console.log("URL for login",Linking.useURL())
     const { colorMode, toggleColorMode } = useThemeContext();
 
     const { showToast } = useGlobalToast();
@@ -122,7 +121,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     try {
-        await ApiClient.handleNewRequest(request);
+        await ApiClient.handleRequest(request);
     } catch (error: any) {
         console.error("Error during email send:", error);
         showToast({
