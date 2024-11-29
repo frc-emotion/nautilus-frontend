@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,145 +8,34 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  PermissionsAndroid,
-  Platform,
 } from 'react-native';
-import BleBeaconBroadcaster from '@/./modules/BLEBeaconManager'; // Ensure the correct path
-import { Subscription } from 'expo-modules-core';
-
-interface Beacon {
-  uid: string;
-  major: number;
-  minor: number;
-  rssi: number;
-  timestamp: number;
-}
+import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
+import { useModal } from '@/src/utils/UI/CustomModalProvider';
+import { APP_UUID } from '@/src/Constants';
+import { useBLE } from '../utils/BLE/BLEContext';
 
 const BLETestScreen: React.FC = () => {
-  // State variables for Bluetooth status and BLE support
-  const [bluetoothEnabled, setBluetoothEnabled] = useState<boolean>(false);
-  const [bleSupported, setBleSupported] = useState<string>('');
+  const {
+    bluetoothState,
+    detectedBeacons,
+    isListening,
+    isBroadcasting,
+    startListening,
+    stopListening,
+    startBroadcasting,
+    stopBroadcasting,
+    getDetectedBeacons,
+    testEvent
+  } = useBLE();
+
   const [logs, setLogs] = useState<string[]>([]);
 
-  // State variables for broadcasting
-  const [broadcastUUID, setBroadcastUUID] = useState<string>('');
-  const [broadcastMajor, setBroadcastMajor] = useState<string>(''); // Using string to handle input
-  const [broadcastMinor, setBroadcastMinor] = useState<string>('');
+  const [broadcastUUID, setBroadcastUUID] = useState<string>(APP_UUID);
+  const [broadcastMajor, setBroadcastMajor] = useState<string>('100'); // Default values
+  const [broadcastMinor, setBroadcastMinor] = useState<string>('200');
 
-  // State variables for RSSI
-  const [peripheralID, setPeripheralID] = useState<string>('');
-  const [rssiValue, setRssiValue] = useState<number | null>(null);
-
-  // State variables for detected beacons
-  const [detectedBeacons, setDetectedBeacons] = useState<Beacon[]>([]);
-  const [beaconListenerSubscription, setBeaconListenerSubscription] = useState<
-    Subscription | null
-  >(null);
-
-  // State variables for company ID
-  const [companyID, setCompanyID] = useState<string>('0x1234'); // Default value
-
-  // Effect to initialize Bluetooth and request permissions on component mount
-  useEffect(() => {
-    const initialize = async () => {
-      await requestBLEPermissions();
-      initializeBluetooth();
-    };
-
-    initialize();
-
-    return () => {
-      // Clean up the event listener on unmount
-      if (beaconListenerSubscription) {
-        BleBeaconBroadcaster.removeBeaconListener(beaconListenerSubscription);
-      }
-    };
-  }, []);
-
-  // Function to request BLE permissions
-  const requestBLEPermissions = async () => {
-    if (Platform.OS !== 'android') {
-      return;
-    }
-
-    // Define the permissions required for different Android versions
-    const permissions: string[] = [];
-
-    if (Platform.Version >= 31) { // Android 12 and above
-      permissions.push(
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT
-      );
-    } else { // Below Android 12
-      permissions.push(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
-      );
-    }
-
-    try {
-      const granted = await PermissionsAndroid.requestMultiple(permissions);
-
-      let allGranted = true;
-      for (const permission of permissions) {
-        if (granted[permission] !== PermissionsAndroid.RESULTS.GRANTED) {
-          allGranted = false;
-          break;
-        }
-      }
-
-      if (allGranted) {
-        logMessage('All BLE permissions granted.');
-      } else {
-        Alert.alert(
-          'Permissions Required',
-          'Please grant all BLE permissions to use this feature.',
-          [{ text: 'OK' }],
-          { cancelable: false }
-        );
-        logMessage('BLE permissions denied.');
-      }
-    } catch (err) {
-      console.warn('Permission Request Error: ', err);
-      logMessage(`Permission Request Error: ${err}`);
-    }
-  };
-
-  // Function to initialize Bluetooth
-  const initializeBluetooth = async () => {
-    try {
-      await BleBeaconBroadcaster.enableBluetooth();
-      logMessage('Bluetooth initialization called.');
-      // Optionally, check if Bluetooth is enabled
-      // Note: There's no direct method to check Bluetooth status via the module
-      // You might need to implement such a method in the native module
-      checkBluetoothStatus();
-    } catch (error: any) {
-      console.error('Initialization Error:', error);
-      logMessage(`Initialization Error: ${error.message}`);
-    }
-  };
-
-  // Function to check Bluetooth status
-  const checkBluetoothStatus = async () => {
-    // Since the native module doesn't provide a method to check Bluetooth status,
-    // you can use the React Native Bluetooth library or implement a native method.
-    // For simplicity, we'll assume Bluetooth is enabled after initialization.
-    setBluetoothEnabled(true);
-    logMessage('Bluetooth is enabled.');
-  };
-
-  // Function to set the company ID
-  const handleSetCompanyId = () => {
-    try {
-      BleBeaconBroadcaster.setCompanyId(companyID);
-      logMessage(`Company ID set to ${companyID}`);
-    } catch (error: any) {
-      console.error('SetCompanyId Error:', error);
-      logMessage(`SetCompanyId Error: ${error.message}`);
-    }
-  };
+  const { openToast } = useGlobalToast();
+  const { openModal } = useModal();
 
   // Function to start broadcasting
   const handleStartBroadcasting = async () => {
@@ -171,170 +60,100 @@ const BLETestScreen: React.FC = () => {
         return;
       }
 
-      const result = await BleBeaconBroadcaster.broadcast(broadcastUUID, major, minor);
-      logMessage(result);
+      const result = await startBroadcasting(broadcastUUID, major, minor);
+      logMessage(`Broadcasting started: ${result}`);
+      openToast({ title: 'Success', description: 'Broadcasting started.', type: 'success' });
     } catch (error: any) {
       console.error('Broadcast Error:', error);
       logMessage(`Broadcast Error: ${error.message}`);
+      openToast({ title: 'Error', description: 'Failed to start broadcasting.', type: 'error' });
     }
   };
 
   // Function to stop broadcasting
   const handleStopBroadcasting = async () => {
     try {
-      const stoppedUids = await BleBeaconBroadcaster.stopBroadcast();
-      logMessage(`Stopped Broadcasting for UIDs: ${stoppedUids.join(', ')}`);
+      const result = await stopBroadcasting();
+      logMessage(`Broadcasting stopped: ${result}`);
+      openToast({ title: 'Info', description: 'Broadcasting stopped.', type: 'info' });
     } catch (error: any) {
       console.error('StopBroadcast Error:', error);
       logMessage(`StopBroadcast Error: ${error.message}`);
-    }
-  };
-
-  // Function to check BLE support
-  const handleCheckBleSupport = async () => {
-    try {
-      const status = await BleBeaconBroadcaster.checkIfBLESupported();
-      setBleSupported(status);
-      logMessage(`BLE Supported Status: ${status}`);
-    } catch (error: any) {
-      console.error('CheckIfBLESupported Error:', error);
-      logMessage(`CheckIfBLESupported Error: ${error.message}`);
-    }
-  };
-
-  // Function to read RSSI
-  const handleReadRSSI = async () => {
-    if (!peripheralID) {
-      Alert.alert('Missing Peripheral ID', 'Please enter a Peripheral ID.');
-      return;
-    }
-
-    try {
-      const rssi = await BleBeaconBroadcaster.readRSSI(peripheralID);
-      setRssiValue(rssi);
-      logMessage(`RSSI for ${peripheralID}: ${rssi}`);
-    } catch (error: any) {
-      console.error('ReadRSSI Error:', error);
-      logMessage(`ReadRSSI Error: ${error.message}`);
+      openToast({ title: 'Error', description: 'Failed to stop broadcasting.', type: 'error' });
     }
   };
 
   // Function to start listening for beacons
-  const handleStartListening = () => {
+  const handleStartListening = async () => {
     if (!broadcastUUID) {
       Alert.alert('Missing UUID', 'Please enter a UUID to listen for.');
       return;
     }
 
     try {
-      BleBeaconBroadcaster.startListening(broadcastUUID);
+      await startListening();
       logMessage(`Started listening for UUID: ${broadcastUUID}`);
-      // Subscribe to BeaconDetected events
-      const subscription = BleBeaconBroadcaster.addBeaconListener((beacon: Beacon) => {
-        logMessage(`Beacon Detected: UID=${beacon.uid}, Major=${beacon.major}, Minor=${beacon.minor}, RSSI=${beacon.rssi}`);
-        setDetectedBeacons((prevBeacons) => {
-          // Check if the beacon already exists
-          const index = prevBeacons.findIndex(
-            (b) => b.uid === beacon.uid && b.major === beacon.major && b.minor === beacon.minor
-          );
-          if (index !== -1) {
-            // Update existing beacon
-            const updatedBeacons = [...prevBeacons];
-            updatedBeacons[index] = beacon;
-            return updatedBeacons;
-          } else {
-            // Add new beacon
-            return [...prevBeacons, beacon];
-          }
-        });
-      });
-      setBeaconListenerSubscription(subscription);
+      openToast({ title: 'Started Listening', description: 'Now listening for beacons.', type: 'success' });
     } catch (error: any) {
       console.error('StartListening Error:', error);
       logMessage(`StartListening Error: ${error.message}`);
+      openToast({ title: 'Error', description: 'Failed to start listening.', type: 'error' });
     }
   };
 
   // Function to stop listening for beacons
-  const handleStopListening = () => {
+  const handleStopListening = async () => {
     try {
-      BleBeaconBroadcaster.stopListening();
-      logMessage('Stopped listening for beacons.');
-      // Remove the event listener
-      if (beaconListenerSubscription) {
-        BleBeaconBroadcaster.removeBeaconListener(beaconListenerSubscription);
-        setBeaconListenerSubscription(null);
-      }
+      const result = await stopListening();
+      logMessage(`Stopped listening: ${result}`);
+      openToast({ title: 'Info', description: 'Stopped listening for beacons.', type: 'info' });
     } catch (error: any) {
       console.error('StopListening Error:', error);
       logMessage(`StopListening Error: ${error.message}`);
+      openToast({ title: 'Error', description: 'Failed to stop listening.', type: 'error' });
     }
   };
 
   // Function to get detected beacons
   const handleGetDetectedBeacons = async () => {
     try {
-      const beacons = await BleBeaconBroadcaster.getDetectedBeacons();
-      setDetectedBeacons(beacons);
+      const beacons = await getDetectedBeacons();
       logMessage('Retrieved detected beacons.');
+      openToast({ title: 'Info', description: 'Retrieved detected beacons.', type: 'info' });
     } catch (error: any) {
       console.error('GetDetectedBeacons Error:', error);
       logMessage(`GetDetectedBeacons Error: ${error.message}`);
+      openToast({ title: 'Error', description: 'Failed to retrieve beacons.', type: 'error' });
     }
   };
 
-  // Function to enable Bluetooth adapter
-  const handleEnableBluetooth = () => {
-    try {
-      BleBeaconBroadcaster.enableBluetooth();
-      setBluetoothEnabled(true);
-      logMessage('Bluetooth adapter enabled.');
-    } catch (error: any) {
-      console.error('EnableBluetooth Error:', error);
-      logMessage(`EnableBluetooth Error: ${error.message}`);
-    }
-  };
-
-  // Function to disable Bluetooth adapter
-  const handleDisableBluetooth = () => {
-    try {
-      BleBeaconBroadcaster.disableBluetooth();
-      setBluetoothEnabled(false);
-      logMessage('Bluetooth adapter disabled.');
-    } catch (error: any) {
-      console.error('DisableBluetooth Error:', error);
-      logMessage(`DisableBluetooth Error: ${error.message}`);
-    }
-  };
-
-  // Function to log messages
+  // Function to log messages (for debugging purposes)
   const logMessage = (message: string) => {
     setLogs((prevLogs) => [...prevLogs, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
+
+  const doTestEvent = async () => {
+      await testEvent();
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.header}>BLE Beacon Manager Test</Text>
 
-      {/* Company ID Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Set Company ID</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Company ID (e.g., 0x1234)"
-          value={companyID}
-          onChangeText={setCompanyID}
+        <Button
+          title="Test Event"
+          onPress={doTestEvent}
         />
-        <Button title="Set Company ID" onPress={handleSetCompanyId} />
       </View>
 
       {/* Bluetooth Control Section */}
-      <View style={styles.section}>
+      {/* <View style={styles.section}>
         <Text style={styles.sectionHeader}>Bluetooth Control</Text>
-        <Text>Status: {bluetoothEnabled ? 'Enabled' : 'Disabled'}</Text>
-        <Button title="Enable Bluetooth" onPress={handleEnableBluetooth} />
-        <Button title="Disable Bluetooth" onPress={handleDisableBluetooth} />
-      </View>
+        <Text>Status: {bluetoothState}</Text>
+        <Button title="Enable Bluetooth" onPress={BLEHelper.enableBluetooth} />
+        <Button title="Disable Bluetooth" onPress={BLEHelper.disableBluetooth} />
+      </View> */}
 
       {/* Broadcast Section */}
       <View style={styles.section}>
@@ -360,35 +179,31 @@ const BLETestScreen: React.FC = () => {
           onChangeText={setBroadcastMinor}
           keyboardType="numeric"
         />
-        <Button title="Start Broadcasting" onPress={handleStartBroadcasting} />
-        <Button title="Stop Broadcasting" onPress={handleStopBroadcasting} />
-      </View>
-
-      {/* BLE Support Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Check BLE Support</Text>
-        <Button title="Check BLE Support" onPress={handleCheckBleSupport} />
-        <Text>BLE Supported Status: {bleSupported}</Text>
-      </View>
-
-      {/* RSSI Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Read RSSI</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Peripheral ID"
-          value={peripheralID}
-          onChangeText={setPeripheralID}
+        <Button
+          title="Start Broadcasting"
+          onPress={handleStartBroadcasting}
+          disabled={isBroadcasting}
         />
-        <Button title="Read RSSI" onPress={handleReadRSSI} />
-        {rssiValue !== null && <Text>RSSI: {rssiValue}</Text>}
+        <Button
+          title="Stop Broadcasting"
+          onPress={handleStopBroadcasting}
+          disabled={!isBroadcasting}
+        />
       </View>
 
       {/* Listening Section */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Listen for Beacons</Text>
-        <Button title="Start Listening" onPress={handleStartListening} />
-        <Button title="Stop Listening" onPress={handleStopListening} />
+        <Button
+          title="Start Listening"
+          onPress={handleStartListening}
+          disabled={isListening}
+        />
+        <Button
+          title="Stop Listening"
+          onPress={handleStopListening}
+          disabled={!isListening}
+        />
       </View>
 
       {/* Detected Beacons Section */}
@@ -400,13 +215,13 @@ const BLETestScreen: React.FC = () => {
         ) : (
           <FlatList
             data={detectedBeacons}
-            keyExtractor={(item, index) => `${item.uid}-${item.major}-${item.minor}-${index}`}
+            keyExtractor={(item, index) => `${item.uuid}-${item.major}-${item.minor}-${index}`}
             renderItem={({ item }) => (
               <View style={styles.beaconItem}>
-                <Text style={styles.beaconText}>UID: {item.uid}</Text>
+                <Text style={styles.beaconText}>UID: {item.uuid}</Text>
                 <Text style={styles.beaconText}>Major: {item.major}</Text>
                 <Text style={styles.beaconText}>Minor: {item.minor}</Text>
-                <Text style={styles.beaconText}>RSSI: {item.rssi}</Text>
+                {/* <Text style={styles.beaconText}>RSSI: {item.rssi}</Text> */}
                 <Text style={styles.beaconText}>
                   Timestamp: {new Date(item.timestamp).toLocaleString()}
                 </Text>

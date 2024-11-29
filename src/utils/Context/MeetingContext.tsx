@@ -51,10 +51,9 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       url: '/api/meetings/info',
       method: 'get',
       retryCount: 0,
-      headers: { Authorization: `Bearer ${user?.token}` },
       successHandler: async (response: AxiosResponse) => {
         console.log(`${DEBUG_PREFIX} Meetings fetched successfully.`);
-        const fetchedMeetings: MeetingObject[] = response.data.meetings;
+        const fetchedMeetings: MeetingObject[] = response.data.data.meetings;
 
         // // Filter meetings that are currently active
         // const eligibleMeetings = fetchedMeetings.filter(

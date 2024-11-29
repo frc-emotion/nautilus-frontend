@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ApiClient from "../Networking/APIClient";
-import { AppStackParamList, AuthContextType, UserObject } from "../../Constants";
+import { AuthContextType, UserObject } from "../../Constants";
 import { ActivityIndicator, View } from "react-native";
 import { useAppState } from "./AppStateContext";
 

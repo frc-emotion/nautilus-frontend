@@ -2,7 +2,7 @@ import { Theme } from "@react-navigation/native";
 import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from 'expo-constants';
-import { EmitterSubscription } from 'react-native';
+import { Subscription } from "expo-modules-core";
 
 export const GRADES = ["9", "10", "11", "12"];
 export const ROLES = ["unverified", "member", "leadership", "executive", "advisor", "admin"];
@@ -10,6 +10,14 @@ export const SUBTEAMS = ["Build", "Software", "Marketing", "Electrical", "Design
 export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '00000000-0000-0000-0000-000000000000';
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
+
+export interface Beacon {
+    uuid: string;
+    major: number;
+    minor: number;
+    //rssi: number;
+    timestamp: number;
+}
 
 export type AppStackParamList = {
     AppInitializer: undefined;
@@ -21,26 +29,40 @@ export type SingleScreenStackProps = {
     screenName: string;
     component: React.ComponentType<any>;
     options?: NativeStackNavigationOptions;
-  };
+};
 
-export interface BeaconBroadcasterType {
-    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<string>;
-    stopBroadcasting: () => Promise<string>;
-    startListening: (uuid: string) => Promise<string>;
-    stopListening: () => Promise<string>;
-    getDetectedBeacons: () => Promise<Array<{ uuid: string; major: number; minor: number }>>;
-  
-    // Event subscription methods
-    addBluetoothStateListener: (callback: (event: { state: string }) => void) => EmitterSubscription;
-    removeBluetoothStateListener: (subscription: EmitterSubscription) => void;
-  
-    addBeaconDetectedListener: (callback: (event: { beacons: Array<{ uuid: string; major: number; minor: number }> }) => void) => EmitterSubscription;
-    removeBeaconDetectedListener: (subscription: EmitterSubscription) => void;
-  
-  }
+export interface BLEHelperType {
+    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<void>;
+    stopBroadcasting: () => Promise<void>;
+    startListening: (uuid: string) => Promise<void>;
+    stopListening: () => Promise<void>;
+    getDetectedBeacons: () => Promise<Beacon[]>;
+    addBluetoothStateListener: (callback: (event: { state: string }) => void) => Subscription;
+    removeBluetoothStateListener: (subscription: Subscription) => void;
+    addBeaconDetectedListener: (listener: (event: Beacon) => void) => Subscription;
+    removeBeaconDetectedListener: (subscription: Subscription) => void;
+    // enableBluetooth: () => Promise<string>;
+    // disableBluetooth: () => Promise<string>;
+    getBluetoothState: () => Promise<string>;
+    testBeaconEvent: () => Promise<void>;
+}
+
+export interface BLEContextProps {
+    bluetoothState: string;
+    detectedBeacons: Beacon[];
+    isListening: boolean;
+    isBroadcasting: boolean;
+    startListening: () => Promise<void>;
+    stopListening: () => Promise<void>;
+    startBroadcasting: (uuid: string, major: number, minor: number, title: string) => Promise<void>;
+    stopBroadcasting: () => Promise<void>;
+    getDetectedBeacons: () => Promise<void>;
+    testEvent: () => Promise<void>;
+    fetchInitialBluetoothState: () => Promise<void>;
+}
 
 export interface FailedRequest {
-    message: string;
+    error: string;
     status: number;
 }
 
@@ -51,28 +73,17 @@ export interface MeetingsContextProps {
     selectedMeeting: MeetingObject | null;
     setSelectedMeeting: (meeting: MeetingObject | null) => void;
     init: () => Promise<void>;
-  }
-
-export interface BLEContextProps {
-    bluetoothState: string;
-    detectedBeacons: Beacon[];
-    isListening: boolean;
-    isBroadcasting: boolean;
-    startListening: () => Promise<void>;
-    stopListening: () => Promise<void>;
-    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<void>;
-    stopBroadcasting: () => Promise<void>;
 }
 
 export interface LocationContextProps {
     locationStatus: 'enabled' | 'disabled' | 'unauthorized' | 'unknown';
-    checkLocationStatus: () => Promise<void>;
+    checkLocationServices: () => Promise<void>;
 }
 
 export interface AppStateContextType {
     isAppReady: boolean;
     setAppReady: () => void;
-  }
+}
 
 export interface UserObject {
     token: string;
@@ -130,7 +141,7 @@ export interface UsersContextProps {
     setSelectedGrade: (grade: string) => void; // Update grade filter
     applyFilters: () => void; // Apply current filters
     init: () => Promise<void>; // Initialize the users context
-  }
+}
 
 export interface ErrorHandlerOptions {
     actionName: string;
@@ -209,12 +220,12 @@ export type OpenToastFunction = (options: ToastOptions) => void;
 export type OpenModalFunction = (options: ModalConfig) => void;
 
 export interface ErrorHandlerOptions {
-  actionName: string;
-  error: AxiosError;
-  showModal?: boolean;
-  showToast?: boolean;
-  openModal: OpenModalFunction;
-  openToast: OpenToastFunction;
+    actionName: string;
+    error: AxiosError;
+    showModal?: boolean;
+    showToast?: boolean;
+    openModal: OpenModalFunction;
+    openToast: OpenToastFunction;
 }
 
 export interface ToastContextType {
@@ -240,13 +251,6 @@ export interface ModalConfig {
     type: "success" | "error" | "warning" | "info";
 }
 
-export interface ToastConfig {
-    title: string;
-    description?: string;
-    type: "success" | "error" | "warning" | "info";
-    duration?: number; // Optional, defaults to 3000ms
-}
-
 export interface ModalContextProps {
     isOpen: boolean;
     config: ModalConfig | null;
@@ -258,8 +262,6 @@ export interface ThemeContextType {
     colorMode: 'light' | 'dark';
     toggleColorMode: () => void;
 };
-
-export type Beacon = { uuid: string; major: number; minor: number };
 
 export const LightTheme: Theme = {
     dark: false,

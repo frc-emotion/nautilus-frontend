@@ -1,10 +1,7 @@
-// src/components/CreateMeetingButton.tsx
-
 import React, { useState } from "react";
 import {
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { Button, ButtonText } from "@/components/ui/button";
 import {
@@ -28,12 +25,11 @@ import ApiClient from "../utils/Networking/APIClient";
 import { FormData } from "../Constants";
 import { handleErrorWithModalOrToast } from "../utils/Helpers";
 import { useModal } from "../utils/UI/CustomModalProvider";
-import { Input, InputField, InputSlot, InputIcon } from "@/components/ui/input"; // Import subcomponents
+import { Input, InputField } from "@/components/ui/input"; // Import subcomponents
 
 const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
   onMeetingCreated,
 }) => {
-  const { user } = useAuth();
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const { colorMode } = useThemeContext();
@@ -79,7 +75,6 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
     const request: QueuedRequest = {
       url: `/api/meetings/`,
       method: "post",
-      headers: { Authorization: `Bearer ${user?.token}` },
       data: payload,
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {

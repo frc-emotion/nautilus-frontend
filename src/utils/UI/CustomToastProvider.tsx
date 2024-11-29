@@ -16,7 +16,7 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Pressable } from "react-native";
 import { ToastContextType, ToastOptions } from "../../Constants";
-import { useThemeContext } from "./CustomThemeProvider";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -57,13 +57,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     title,
     description,
     type = "info",
-    duration = 5000,
+    duration = 8000,
     placement = "top",
   }: ToastOptions) => {
     toast.show({
       placement,
       duration,
       render: ({ id }) => (
+        <SafeAreaView>
 
 
         <Pressable onPress={() => toast.close(id)}>
@@ -93,6 +94,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
             </HStack>
           </Toast>
         </Pressable>
+        </SafeAreaView>
       ),
     });
   };

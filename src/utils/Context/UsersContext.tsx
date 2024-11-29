@@ -54,9 +54,8 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       url,
       method: 'get',
       retryCount: 0,
-      headers: { Authorization: `Bearer ${user.token}` },
       successHandler: async (response: AxiosResponse) => {
-        const fetchedUsers: UserObject[] = response.data.users || [];
+        const fetchedUsers: UserObject[] = response.data.data.users || [];
         console.log(`${DEBUG_PREFIX} Users fetched successfully. Count: ${fetchedUsers.length}`);
         setUsers(fetchedUsers);
         await cacheUsers(fetchedUsers);
@@ -119,10 +118,10 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       method: 'put',
       data: updates,
       retryCount: 0,
-      headers: { Authorization: `Bearer ${user.token}` },
       successHandler: async (response: AxiosResponse) => {
         console.log(`${DEBUG_PREFIX} User edited successfully.`);
-        const updatedUser: UserObject = response.data.user;
+        console.log(`${DEBUG_PREFIX} Updated user data:`, response.data.data);
+        const updatedUser: UserObject = response.data.data.user;
         setUsers((prevUsers) =>
           prevUsers.map((u) => (u._id === updatedUser._id ? updatedUser : u))
         );
@@ -187,7 +186,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       url,
       method: 'delete',
       retryCount: 0,
-      headers: { Authorization: `Bearer ${user.token}` },
       successHandler: async () => {
         console.log(`${DEBUG_PREFIX} User deleted successfully.`);
         setUsers((prevUsers) => prevUsers.filter((u) => u._id !== userId));

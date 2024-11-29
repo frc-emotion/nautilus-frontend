@@ -13,15 +13,18 @@ const NotLoggedIn: React.FC = () => {
   return (
     <Tab.Navigator>
       <Tab.Screen options={{
+        headerTitleAlign: "center",
         tabBarIcon: ({ }) => (
           <LogIn color={colorMode === "light" ? "black" : "white"} />
         )
       }} name="Login" component={LoginScreen} />
       <Tab.Screen options={{
+        headerTitleAlign: "center",
         tabBarIcon: ({ }) => (
           <UserRoundPen color={colorMode === "light" ? "black" : "white"} />
         )
       }} name="Register" component={RegisterScreen} />
+      {/* <Tab.Screen name="BLETest" component={BLETestScreen}/> */}
     </Tab.Navigator>
   )
 };

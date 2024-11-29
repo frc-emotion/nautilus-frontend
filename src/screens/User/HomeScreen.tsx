@@ -38,10 +38,9 @@ const HomeScreen: React.FC = () => {
     const request: QueuedRequest = {
       url: "/api/meetings/info",
       method: "get",
-      headers: { Authorization: `Bearer ${token}` },
       retryCount: 0,
       successHandler: async (response) => {
-        const meetings: MeetingObject[] = response.data.meetings;
+        const meetings: MeetingObject[] = response.data.data.meetings;
         try {
           await AsyncStorage.setItem('meetings', JSON.stringify(meetings));
           openToast({
@@ -90,10 +89,9 @@ const HomeScreen: React.FC = () => {
     const request: QueuedRequest = {
       url: "/api/attendance/hours",
       method: "get",
-      headers: { Authorization: `Bearer ${token}` },
       retryCount: 0,
       successHandler: async (response) => {
-        setAttendanceHours(response.data.total_hours);
+        setAttendanceHours(response.data.data.total_hours);
 
         openToast({
           title: "Attendance Updated",

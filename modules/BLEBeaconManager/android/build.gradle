@@ -9,6 +9,11 @@ applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
 useExpoPublishing()
 
+dependencies {
+  implementation 'org.altbeacon:android-beacon-library:2.20.7'
+  implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+}
+
 // If you want to use the managed Android SDK versions from expo-modules-core, set this to true.
 // The Android SDK versions will be bumped from time to time in SDK releases and may introduce breaking changes in your module code.
 // Most of the time, you may like to manage the Android SDK versions yourself.

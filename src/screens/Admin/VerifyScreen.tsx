@@ -21,7 +21,6 @@ import {
     Checkbox,
     CheckboxIndicator,
     CheckboxIcon,
-    CheckboxLabel,
 } from "@/components/ui/checkbox";
 import {
     AlertDialog,
@@ -95,11 +94,10 @@ const VerifyScreen: React.FC = () => {
         const request: QueuedRequest = {
             url: "/api/account/users",
             method: "get",
-            headers: { Authorization: `Bearer ${user?.token}` },
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
                 log("fetchUnverifiedUsers successHandler", response.data);
-                const unverifiedUsers = response.data.users.filter(
+                const unverifiedUsers = response.data.data.users.filter(
                     (user: UserObject) =>
                         user.role === "unverified"
                 );
@@ -108,7 +106,7 @@ const VerifyScreen: React.FC = () => {
                 const usersWithFlags = unverifiedUsers.map(
                     (user: UserObject) => ({
                         ...user,
-                        flags: getUserFlags(user, response.data.users),
+                        flags: getUserFlags(user, response.data.data.users),
                     })
                 );
                 setUsers(usersWithFlags);
@@ -216,7 +214,6 @@ const VerifyScreen: React.FC = () => {
         const request: QueuedRequest = {
             url: `/api/account/users/verify`,
             method: "post",
-            headers: { Authorization: `Bearer ${user?.token}` },
             data: { users: selectedUsers },
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {

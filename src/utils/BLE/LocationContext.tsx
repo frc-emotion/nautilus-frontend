@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { LocationContextProps } from '@/src/Constants';
 import { useModal } from '../UI/CustomModalProvider';
-import { AppLifecycle, useAppLifecycle } from 'react-native-applifecycle';
+import { AppLifecycle } from 'react-native-applifecycle';
 import { Platform } from 'react-native';
 
 const LocationContext = createContext<LocationContextProps | undefined>(undefined);
@@ -65,16 +65,55 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const checkLocationServices = async () => {
-    console.log(`${DEBUG_PREFIX} Checking location services status.`);
+    console.log(`${DEBUG_PREFIX} Checking location services.`);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const currentPermissions = await Location.getForegroundPermissionsAsync();
       const isEnabled = await Location.hasServicesEnabledAsync();
 
+      if (!isEnabled) {
+        console.log(`${DEBUG_PREFIX} Location services are disabled.`);
+        updateLocationStatus('disabled');
+      }
+
+      if (currentPermissions.status === 'denied') {
+        console.log(`${DEBUG_PREFIX} Location permissions denied.`);
+        updateLocationStatus('unauthorized');
+      }
+
+      if (currentPermissions.status === 'granted') {
+        console.log(`${DEBUG_PREFIX} Location permissions granted.`);
+        updateLocationStatus('enabled');
+      }
+
+      if (currentPermissions.status === 'undetermined') {
+        console.log(`${DEBUG_PREFIX} Location permissions undetermined.`);
+        updateLocationStatus('unknown');
+      }
+
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Error checking location services:`, error);
+      updateLocationStatus('unknown');
+    }
+  }
+
+
+  const requestLocationServices = async () => {
+    console.log(`${DEBUG_PREFIX} Checking location services status.`);
+    try {
+      console.log(`${DEBUG_PREFIX} Requesting location permissions.`);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log(`${DEBUG_PREFIX} Location permissions status:`, status);
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      console.log(`${DEBUG_PREFIX} Location services status:`, status, isEnabled);
+
       if (status === 'granted' && isEnabled) {
+        console.log(`${DEBUG_PREFIX} Location services are enabled.`);
         updateLocationStatus('enabled');
       } else if (status !== 'granted') {
+        console.log(`${DEBUG_PREFIX} Location permissions not granted.`);
         updateLocationStatus('unauthorized');
       } else {
+        console.log(`${DEBUG_PREFIX} Location services are disabled.`);
         updateLocationStatus('disabled');
       }
     } catch (error) {
@@ -87,7 +126,7 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (!pollingIntervalRef.current) {
       console.log(`${DEBUG_PREFIX} Starting location polling.`);
       pollingIntervalRef.current = setInterval(async () => {
-        await checkLocationServices();
+        await requestLocationServices();
       }, 10000); // Check every 10 seconds
     }
   };
@@ -126,7 +165,7 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     // Perform an initial check and start monitoring
-    checkLocationServices();
+    requestLocationServices();
     if (Platform.OS === 'ios') {
       monitorLocationServices();
       startPolling();
@@ -153,9 +192,7 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const contextValue: LocationContextProps = {
     locationStatus,
-    checkLocationStatus: async () => {
-      await checkLocationServices();
-    },
+    checkLocationServices
   };
 
   return <LocationContext.Provider value={contextValue}>{children}</LocationContext.Provider>;

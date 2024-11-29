@@ -10,7 +10,7 @@ import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AxiosError } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import ApiClient from "../../utils/Networking/APIClient";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
@@ -25,7 +25,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
   const [refreshing, setRefreshing] = useState(false);
   const [displayUser, setDisplayUser] = useState<UserObject | null>(user);
-  const { colorMode, toggleColorMode } = useThemeContext();
+  const { colorMode } = useThemeContext();
   const { openModal } = useModal();
 
   useEffect(() => {
@@ -39,15 +39,15 @@ const ProfileScreen: React.FC = () => {
     const request: QueuedRequest = {
       url: "/api/account/validate",
       method: "get",
-      headers: { Authorization: `Bearer ${token}` },
       retryCount: 0,
-      successHandler: async (response) => {
-        const { user: updatedUser } = response.data;
+      successHandler: async (response: AxiosResponse) => {
+        console.log(response.data)
+        const user = response.data.data.user;
 
         // Save updated user to local storage
-        await AsyncStorage.setItem("userData", JSON.stringify(updatedUser));
+        await AsyncStorage.setItem("userData", JSON.stringify(user));
 
-        setDisplayUser(updatedUser);
+        setDisplayUser(user);
 
         openToast({
           title: "Validation Successful",

@@ -18,7 +18,7 @@ import * as Sentry from '@sentry/react-native';
 import { LocationProvider } from './src/utils/BLE/LocationContext';
 import { AppStateProvider } from './src/utils/Context/AppStateContext';
 import AppInitializer from './src/screens/Auth/AppInitializer';
-import BLETestScreen from "./src/ui/BLETestScreen";
+
 const prefix = Linking.createURL('/');
 
 // Sentry.init({
@@ -90,12 +90,10 @@ function AppContent() {
 }
 
 function App() {
-
   return (
-    // <ThemeProvider>
-    //   <AppContent />
-    // </ThemeProvider>
-    <BLETestScreen />
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

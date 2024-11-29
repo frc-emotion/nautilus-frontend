@@ -11,7 +11,6 @@ import {
   NotebookPenIcon,
 } from "lucide-react-native";
 
-// Import screens
 import ProfileScreen from "../screens/User/ProfileScreen";
 import DebugAsyncStorageScreen from "../screens/DebugAsyncStorageScreen";
 import VerifyScreen from "../screens/Admin/VerifyScreen";
@@ -56,6 +55,7 @@ const createSingleScreenStack = (
       screenName={`${screenName}Screen`} // Append 'Screen' to make it unique
       component={Component}
       options={{
+        headerTitleAlign: "center",
         title,
         headerRight,
       }}
@@ -79,6 +79,7 @@ const AttendanceStackNavigator: React.FC = () => {
         name="AttendanceMain" // Unique name
         component={LogAttendance}
         options={({ navigation }) => ({
+          headerTitleAlign: "center",
           title: 'Attendance',
           headerRight: () => (
             <TouchableOpacity onPress={() => navigation.navigate('BroadcastMain')}>
@@ -96,6 +97,7 @@ const AttendanceStackNavigator: React.FC = () => {
         name="BroadcastMain" // Unique name
         component={BroadcastAttendancePortal}
         options={{
+          headerTitleAlign: "center",
           title: 'Broadcast',
         }}
       />
@@ -103,6 +105,7 @@ const AttendanceStackNavigator: React.FC = () => {
         name="MeetingsMain" // Unique name
         component={MeetingsScreen}
         options={({ navigation }) => ({
+          headerTitleAlign: "center",
           title: 'Meetings',
           headerRight: () => <CreateMeetingButton />,
         })}
@@ -122,6 +125,7 @@ const DirectoryStackNavigator: React.FC = () => {
         name="DirectoryMain" // Unique name
         component={UserDirectoryScreen}
         options={({ navigation }) => ({
+          headerTitleAlign: "center",
           title: 'Directory',
           headerRight: () => (
             <TouchableOpacity onPress={() => navigation.navigate('Verifier')}>
@@ -134,6 +138,7 @@ const DirectoryStackNavigator: React.FC = () => {
         name="Verifier" // Unique name
         component={VerifyScreen}
         options={{
+          headerTitleAlign: "center",
           title: 'Verifier',
         }}
       />
@@ -245,6 +250,7 @@ const RoleBasedTabs: React.FC = () => {
           name={name}
           component={component}
           options={{
+            headerTitleAlign: "center",
             tabBarIcon: ({ size = 24 }) => getIcon(name, colorMode),
           }}
         />
