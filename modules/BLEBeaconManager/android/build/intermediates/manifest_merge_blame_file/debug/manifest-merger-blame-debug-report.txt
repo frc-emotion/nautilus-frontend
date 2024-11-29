@@ -1,0 +1,32 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.team2658" >
+4
+5    <uses-sdk android:minSdkVersion="23" />
+6
+7    <!-- Required for Android versions below 12 -->
+8    <!-- <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" /> -->
+9    <!-- <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" /> -->
+10    <!-- <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> -->
+11    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+11-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:8:5-79
+11-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:8:22-76
+12    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+12-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:9:5-85
+12-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:9:22-82
+13    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+13-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:10:5-76
+13-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:10:22-74
+14    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+14-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:11:5-72
+14-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:11:22-70
+15
+16    <!-- Required for Android 12 and above -->
+17    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+17-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:14:5-78
+17-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:14:22-75
+18    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+18-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:15:5-76
+18-->/Users/arshan/Desktop/nautilus-frontend/modules/BLEBeaconManager/android/src/main/AndroidManifest.xml:15:22-73
+19
+20</manifest>

@@ -30,4 +30,7 @@ RCT_EXTERN_METHOD(stopListening:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(getDetectedBeacons:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(getBluetoothState:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 @end

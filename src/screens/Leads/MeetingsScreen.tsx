@@ -30,7 +30,7 @@ import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useModal } from "@/src/utils/UI/CustomModalProvider";
 import { Card } from "@/components/ui/card";
 import { View } from "@/components/ui/view";
-import { Input, InputField, InputSlot, InputIcon } from "@/components/ui/input";
+import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { useMeetings } from "@/src/utils/Context/MeetingContext";
 import { MeetingObject, FormData, QueuedRequest } from "@/src/Constants";
@@ -132,7 +132,6 @@ const MeetingsScreen: React.FC = () => {
     const request: QueuedRequest = {
       url: `/api/meetings/${meetingId}`,
       method: "delete",
-      headers: { Authorization: `Bearer ${user?.token}` },
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
         log("handleDeleteMeeting successHandler", response.data);
@@ -208,7 +207,6 @@ const MeetingsScreen: React.FC = () => {
     const request: QueuedRequest = {
       url: `/api/meetings/${editMeeting._id}`,
       method: "put",
-      headers: { Authorization: `Bearer ${user?.token}` },
       data: payload,
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
@@ -334,7 +332,7 @@ const MeetingsScreen: React.FC = () => {
                 <Card
                   key={meeting._id}
                   variant="outline"
-                  className="bg-white p-4 mb-3 rounded-lg shadow-md"
+                  className="bg-white p-4 mb-3 rounded-lg"
                 >
                   <View className="flex flex-row justify-between items-center">
                     <Pressable

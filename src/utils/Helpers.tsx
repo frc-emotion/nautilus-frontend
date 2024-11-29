@@ -5,21 +5,21 @@ import { Text } from "@/components/ui/text";
 import { ErrorHandlerOptions, FailedRequest } from "@/src/Constants";
 
 export const formatPhoneNumber = (input: string): string => {
-    // Remove all non-digit characters
-    const digits = input.replace(/\D/g, "");
+  // Remove all non-digit characters
+  const digits = input.replace(/\D/g, "");
 
-    // Format the phone number based on the length of the digits
-    if (digits.length <= 3) {
-        return `(${digits}`;
-    } else if (digits.length <= 6) {
-        return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    } else {
-        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-    }
+  // Format the phone number based on the length of the digits
+  if (digits.length <= 3) {
+    return `(${digits}`;
+  } else if (digits.length <= 6) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  } else {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  }
 };
 
 export const cleanPhoneNumber = (input: string): string => {
-    return input.replace(/\D/g, "");
+  return input.replace(/\D/g, "");
 }
 
 export const handleErrorWithModalOrToast = ({
@@ -56,10 +56,13 @@ export const handleErrorWithModalOrToast = ({
     return;
   }
 
-  const errorData = error.response?.data as { message?: string };
-  const errorMessage = errorData?.message || "An error occurred.";
+  console.log(error)
 
-  const toastDescription = `Failed to ${actionName.toLowerCase()}: ${errorMessage}`;
+  const errorData = error.response?.data as FailedRequest;
+
+  console.log(errorData)
+
+  const errorMessage = errorData?.error || "An error occurred.";
 
   if (showModal) {
     openModal({
@@ -71,64 +74,64 @@ export const handleErrorWithModalOrToast = ({
 
   if (showToast) {
     openToast({
-      title: `${actionName} failed`,
-      description: toastDescription,
+      title: `${actionName} failed: ${statusCode}`,
+      description: errorMessage,
       type: "error",
     });
   }
 };
 
 export const BluetoothStatusIndicator = ({ state }: { state: string }) => {
-    let IconComponent = Bluetooth;
-    let color = 'gray';
-    let statusText = 'Unknown';
+  let IconComponent = Bluetooth;
+  let color = 'gray';
+  let statusText = 'Unknown';
 
-    switch (state) {
-        case 'poweredOn':
-            IconComponent = Bluetooth;
-            color = 'green';
-            statusText = 'Powered On';
-            break;
-        case 'poweredOff':
-            IconComponent = BluetoothOff;
-            color = 'red';
-            statusText = 'Powered Off';
-            break;
-        case 'unsupported':
-            IconComponent = AlertCircle;
-            color = 'orange';
-            statusText = 'Unsupported';
-            break;
-        case 'unauthorized':
-            IconComponent = Lock;
-            color = 'purple';
-            statusText = 'Unauthorized';
-            break;
-        case 'resetting':
-            IconComponent = RefreshCw;
-            color = 'yellow';
-            statusText = 'Resetting';
-            break;
-        default:
-            IconComponent = Bluetooth;
-            color = 'gray';
-            statusText = 'Unknown';
-            break;
-    }
+  switch (state) {
+    case 'poweredOn':
+      IconComponent = Bluetooth;
+      color = 'green';
+      statusText = 'Powered On';
+      break;
+    case 'poweredOff':
+      IconComponent = BluetoothOff;
+      color = 'red';
+      statusText = 'Powered Off';
+      break;
+    case 'unsupported':
+      IconComponent = AlertCircle;
+      color = 'orange';
+      statusText = 'Unsupported';
+      break;
+    case 'unauthorized':
+      IconComponent = Lock;
+      color = 'purple';
+      statusText = 'Unauthorized';
+      break;
+    case 'resetting':
+      IconComponent = RefreshCw;
+      color = 'yellow';
+      statusText = 'Resetting';
+      break;
+    default:
+      IconComponent = Bluetooth;
+      color = 'gray';
+      statusText = 'Unknown';
+      break;
+  }
 
-    return (
-        <View className= "flex-row items-center" >
-        <Icon as={IconComponent} size="xl" color={color}/>
-            <Text className={ `ml-2` } size = "md" >
-                Bluetooth: { statusText }
-    </Text>
-        </View>
-    );
-  };
+  return (
+    <View className="flex-row items-center" >
+      <Icon as={IconComponent} size="xl" color={color} />
+      <Text className={`ml-2`} size="md" >
+        Bluetooth: {statusText}
+      </Text>
+    </View>
+  );
+};
 
 
 export const LocationStatusIndicator = ({ state }: { state: string }) => {
-    let IconComponent = MapPin;
+  let IconComponent = MapPin;
   let color = 'gray';
   let statusText = 'Unknown';
 
@@ -155,11 +158,11 @@ export const LocationStatusIndicator = ({ state }: { state: string }) => {
       break;
   }
   return (
-    <View className= "flex-row items-center" >
-    <Icon as={IconComponent} size="xl" color={color}/>
-        <Text className={ `ml-2` } size = "md" >
-            Location Services: { statusText }
-</Text>
+    <View className="flex-row items-center" >
+      <Icon as={IconComponent} size="xl" color={color} />
+      <Text className={`ml-2`} size="md" >
+        Location Services: {statusText}
+      </Text>
     </View>
-);
+  );
 }

@@ -30,7 +30,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { openModal } = useModal();
   const [hidePassword, setHidePassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { colorMode, toggleColorMode } = useThemeContext();
+  const { colorMode } = useThemeContext();
 
   const {
     control,

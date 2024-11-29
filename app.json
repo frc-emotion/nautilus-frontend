@@ -32,7 +32,22 @@
       }
     },
     "android": {
-      "package": "com.team2658.nautilus"
+      "package": "com.team2658.nautilus",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.VIBRATE"
+      ]
     },
     "plugins": [
       [
@@ -44,6 +59,7 @@
         }
         
       ]
+  
     ]
     
   }

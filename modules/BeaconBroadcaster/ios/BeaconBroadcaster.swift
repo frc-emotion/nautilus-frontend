@@ -78,6 +78,12 @@ class BeaconBroadcaster: RCTEventEmitter {
         resolver(detectedBeacons)
     }
 
+    @objc func getBluetoothState(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+        let state = getCurrentStateString()
+        print("\(DEBUG_PREFIX) Fetching Bluetooth state: \(state)")
+        resolver(state)
+    }
+
     @objc func startBroadcasting(
         _ uuidString: String,
         major: NSNumber,
@@ -199,20 +205,42 @@ class BeaconBroadcaster: RCTEventEmitter {
 // MARK: - CLLocationManagerDelegate
 
 extension BeaconBroadcaster: CLLocationManagerDelegate {
+
     func locationManager(_ manager: CLLocationManager, didRange beacons: [CLBeacon], satisfying constraint: CLBeaconIdentityConstraint) {
         print("\(DEBUG_PREFIX) Ranging beacons: \(beacons.count) found.")
         
-        detectedBeacons = beacons.map {
-            [
-                "uuid": $0.uuid.uuidString,
-                "major": $0.major,
-                "minor": $0.minor
-            ]
+        // Check if null, or empty
+        print(beacons)
+        if beacons.isEmpty {
+            print("\(DEBUG_PREFIX) No beacons found.")
+            return
         }
+
+        // detectedBeacons = beacons.map {
+        //     [
+        //         "uuid": $0.uuid.uuidString,
+        //         "major": $0.major,
+        //         "minor": $0.minor
+        //     ]
+        // }
         
-        // Emit beacon detected event
-        let beaconsArray = detectedBeacons
-        emitEvent(name: BeaconBroadcaster.BeaconDetected, body: ["beacons": beaconsArray])
+        // // Emit beacon detected event
+        // let beaconsArray = detectedBeacons
+        // emitEvent(name: BeaconBroadcaster.BeaconDetected, body: ["beacons": beaconsArray])
+
+        // For each beacon, emit an event
+        for beacon: CLBeacon in beacons {
+            let beaconDict: [String : Any] = [
+                "uuid": beacon.uuid.uuidString,
+                "major": beacon.major,
+                "minor": beacon.minor,
+                "timestamp": Date().timeIntervalSince1970
+                // "proximity": beacon.proximity.rawValue,
+                // "accuracy": beacon.accuracy,
+                // "rssi": beacon.rssi
+            ]
+            emitEvent(name: BeaconBroadcaster.BeaconDetected, body: beaconDict)
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {

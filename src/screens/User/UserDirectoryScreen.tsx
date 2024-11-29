@@ -21,7 +21,6 @@ import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '../../utils/Context/AuthContext';
-import { useModal } from '../../utils/UI/CustomModalProvider';
 import { GRADES, SUBTEAMS, ROLES, UserObject } from '../../Constants';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
 import { CheckIcon, ChevronDownIcon, Icon, ThreeDotsIcon } from '@/components/ui/icon';
@@ -48,12 +47,23 @@ import {
 } from '@/components/ui/checkbox';
 import { formatPhoneNumber } from '@/src/utils/Helpers';
 import { useUsers } from '@/src/utils/Context/UsersContext';
-import { Input, InputField, InputSlot, InputIcon } from '@/components/ui/input'; // Import subcomponents
+import { Input, InputField } from '@/components/ui/input';
+import { useForm, Controller, FieldErrors } from 'react-hook-form';
+
+interface EditUserFormData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  student_id: string;
+  grade: string;
+  role: string;
+  subteam: string[];
+}
 
 const UserDirectoryScreen: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
   const { colorMode } = useThemeContext();
   const {
     users,
@@ -68,7 +78,6 @@ const UserDirectoryScreen: React.FC = () => {
     selectedGrade,
     setSelectedGrade,
     filteredUsers,
-    applyFilters,
   } = useUsers();
 
   // Logging function
@@ -80,9 +89,23 @@ const UserDirectoryScreen: React.FC = () => {
   const [viewUser, setViewUser] = useState<UserObject | null>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
 
-  // Admin-specific states
-  const [editUserState, setEditUserState] = useState<UserObject | null>(null);
+  // State for editing user ID
+  const [editUserId, setEditUserId] = useState<number | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+
+  // Initialize react-hook-form
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<EditUserFormData>({
+    defaultValues: {
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      student_id: '',
+      grade: '',
+      role: '',
+      subteam: [],
+    },
+  });
 
   const handleViewUser = (user: UserObject) => {
     log('handleViewUser called', user);
@@ -92,7 +115,17 @@ const UserDirectoryScreen: React.FC = () => {
 
   const handleEditUser = (user: UserObject) => {
     log('handleEditUser called', user);
-    setEditUserState(user);
+    setEditUserId(user._id);
+    reset({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      phone: user.phone,
+      student_id: user.student_id,
+      grade: user.grade,
+      role: user.role,
+      subteam: user.subteam,
+    });
     setShowEditDialog(true);
   };
 
@@ -101,9 +134,10 @@ const UserDirectoryScreen: React.FC = () => {
     deleteUser(userId);
   };
 
-  const saveEditChanges = async () => {
-    if (!editUserState) {
-      log('No editUser selected');
+
+  const saveEditChanges = handleSubmit(async (data: EditUserFormData) => {
+    if (editUserId === null) {
+      log('No user selected for editing');
       openToast({
         title: 'Error',
         description: 'No user selected for editing.',
@@ -112,8 +146,7 @@ const UserDirectoryScreen: React.FC = () => {
       return;
     }
 
-    const updates: Partial<UserObject> = {};
-    const originalUser = users.find((u) => u._id === editUserState._id);
+    const originalUser = users.find((u) => u._id === editUserId);
 
     if (!originalUser) {
       log('Original user data not found');
@@ -125,10 +158,12 @@ const UserDirectoryScreen: React.FC = () => {
       return;
     }
 
-    for (const key in editUserState) {
-      const typedKey = key as keyof UserObject;
-      if (editUserState[typedKey] !== originalUser[typedKey]) {
-        updates[typedKey] = editUserState[typedKey];
+    const updates: Partial<UserObject> = {};
+
+    for (const key in data) {
+      const typedKey = key as keyof EditUserFormData;
+      if (data[typedKey] !== originalUser[typedKey]) {
+        updates[typedKey] = data[typedKey];
       }
     }
 
@@ -146,13 +181,23 @@ const UserDirectoryScreen: React.FC = () => {
     }
 
     try {
-      await editUser(editUserState._id, updates);
+      await editUser(editUserId, updates);
     } catch (error) {
       log('saveEditChanges exception', error);
     }
 
     setShowEditDialog(false);
-  };
+  }, (validationErrors: FieldErrors) => {
+    log('Validation errors:', validationErrors);
+    const firstError = Object.values(validationErrors)[0];
+    if (firstError && 'message' in firstError) {
+      openToast({
+        title: 'Validation Error',
+        description: (firstError as { message: string }).message,
+        type: 'error',
+      });
+    }
+  });
 
   const handleRefresh = async () => {
     log('handleRefresh called');
@@ -196,7 +241,7 @@ const UserDirectoryScreen: React.FC = () => {
         <View className="mb-4">
           <View className="flex flex-row flex-wrap justify-between">
             {/* Subteam Filter */}
-            <View style={{ flex: 1, minWidth: '45%', marginBottom: 10 }} className='mr-2'>
+            <View style={{ flex: 1, minWidth: '45%', marginBottom: 10 }} className="mr-2">
               <Select
                 selectedValue={selectedSubteam}
                 onValueChange={(itemValue) => setSelectedSubteam(itemValue)}
@@ -409,7 +454,7 @@ const UserDirectoryScreen: React.FC = () => {
         )}
 
         {/* Edit User Dialog */}
-        {editUserState && showEditDialog && (
+        {showEditDialog && (
           <AlertDialog
             isOpen={showEditDialog}
             onClose={() => {
@@ -423,161 +468,247 @@ const UserDirectoryScreen: React.FC = () => {
                 <Text className="text-lg font-semibold">Edit User</Text>
               </AlertDialogHeader>
               <AlertDialogBody>
-                <VStack space="sm">
-                  {/* First Name */}
-                  <Text className="font-medium">First Name</Text>
-                  <Input variant="outline" size="md">
-                    <InputField
-                      value={editUserState.first_name}
-                      onChangeText={(text) => {
-                        log('Edit User first_name changed', text);
-                        setEditUserState({ ...editUserState, first_name: text });
-                      }}
-                      placeholder="First Name"
-                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                <ScrollView>
+                  <VStack space="sm">
+                    {/* First Name */}
+                    <Text className="font-medium">First Name</Text>
+                    <Controller
+                      control={control}
+                      name="first_name"
+                      rules={{ required: 'First Name is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Input variant="outline" size="md">
+                            <InputField
+                              value={value}
+                              onChangeText={onChange}
+                              placeholder="First Name"
+                              placeholderTextColor={
+                                colorMode === 'light' ? '#A0AEC0' : '#4A5568'
+                              }
+                            />
+                          </Input>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
                     />
-                  </Input>
 
-                  {/* Last Name */}
-                  <Text className="font-medium mt-3">Last Name</Text>
-                  <Input variant="outline" size="md">
-                    <InputField
-                      value={editUserState.last_name}
-                      onChangeText={(text) => {
-                        log('Edit User last_name changed', text);
-                        setEditUserState({ ...editUserState, last_name: text });
-                      }}
-                      placeholder="Last Name"
-                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                    {/* Last Name */}
+                    <Text className="font-medium mt-3">Last Name</Text>
+                    <Controller
+                      control={control}
+                      name="last_name"
+                      rules={{ required: 'Last Name is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Input variant="outline" size="md">
+                            <InputField
+                              value={value}
+                              onChangeText={onChange}
+                              placeholder="Last Name"
+                              placeholderTextColor={
+                                colorMode === 'light' ? '#A0AEC0' : '#4A5568'
+                              }
+                            />
+                          </Input>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
                     />
-                  </Input>
 
-                  {/* Email */}
-                  <Text className="font-medium mt-3">Email</Text>
-                  <Input variant="outline" size="md">
-                    <InputField
-                      value={editUserState.email}
-                      onChangeText={(text) => {
-                        log('Edit User email changed', text);
-                        setEditUserState({ ...editUserState, email: text });
+                    {/* Email */}
+                    <Text className="font-medium mt-3">Email</Text>
+                    <Controller
+                      control={control}
+                      name="email"
+                      rules={{
+                        required: 'Email is required',
+                        pattern: {
+                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                          message: 'Invalid Email',
+                        },
                       }}
-                      placeholder="Email"
-                      keyboardType="email-address"
-                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Input variant="outline" size="md">
+                            <InputField
+                              value={value}
+                              onChangeText={onChange}
+                              placeholder="Email"
+                              keyboardType="email-address"
+                              placeholderTextColor={
+                                colorMode === 'light' ? '#A0AEC0' : '#4A5568'
+                              }
+                            />
+                          </Input>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
                     />
-                  </Input>
 
-                  {/* Phone */}
-                  <Text className="font-medium mt-3">Phone</Text>
-                  <Input variant="outline" size="md">
-                    <InputField
-                      value={editUserState.phone}
-                      onChangeText={(text) => {
-                        log('Edit User phone changed', text);
-                        setEditUserState({ ...editUserState, phone: text });
+                    {/* Phone */}
+                    <Text className="font-medium mt-3">Phone</Text>
+                    <Controller
+                      control={control}
+                      name="phone"
+                      rules={{
+                        required: 'Phone Number is required',
+                        pattern: {
+                          value: /^\d{10}$/,
+                          message: 'Phone Number must be 10 digits',
+                        },
                       }}
-                      placeholder="Phone"
-                      keyboardType="phone-pad"
-                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Input variant="outline" size="md">
+                            <InputField
+                              value={value}
+                              onChangeText={(text) => {
+                                const formattedText = formatPhoneNumber(text);
+                                onChange(formattedText);
+                              }}
+                              placeholder="Phone"
+                              keyboardType="phone-pad"
+                              placeholderTextColor={
+                                colorMode === 'light' ? '#A0AEC0' : '#4A5568'
+                              }
+                            />
+                          </Input>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
                     />
-                  </Input>
 
-                  {/* Student ID */}
-                  <Text className="font-medium mt-3">Student ID</Text>
-                  <Input variant="outline" size="md">
-                    <InputField
-                      value={editUserState.student_id}
-                      onChangeText={(text) => {
-                        log('Edit User student_id changed', text);
-                        setEditUserState({ ...editUserState, student_id: text });
+                    {/* Student ID */}
+                    <Text className="font-medium mt-3">Student ID</Text>
+                    <Controller
+                      control={control}
+                      name="student_id"
+                      rules={{
+                        required: 'Student ID is required',
+                        pattern: {
+                          value: /^\d{7}$/,
+                          message: 'Student ID must be 7 digits',
+                        },
                       }}
-                      placeholder="Student ID"
-                      keyboardType="numeric"
-                      placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Input variant="outline" size="md">
+                            <InputField
+                              value={value}
+                              onChangeText={onChange}
+                              placeholder="Student ID"
+                              keyboardType="numeric"
+                              maxLength={7}
+                              placeholderTextColor={
+                                colorMode === 'light' ? '#A0AEC0' : '#4A5568'
+                              }
+                            />
+                          </Input>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
                     />
-                  </Input>
 
-                  {/* Grade Selector */}
-                  <Text className="font-medium mt-3">Grade</Text>
-                  <Select
-                    selectedValue={editUserState.grade}
-                    onValueChange={(value) => {
-                      log('Edit User grade changed', value);
-                      setEditUserState({ ...editUserState, grade: value });
-                    }}
-                  >
-                    <SelectTrigger
-                      variant="outline"
-                      size="md"
-                      className="rounded justify-between"
-                    >
-                      <SelectInput placeholder="Select Grade" />
-                      <SelectIcon as={ChevronDownIcon} className="mr-2" />
-                    </SelectTrigger>
-                    <SelectPortal>
-                      <SelectBackdrop />
-                      <SelectContent>
-                        {GRADES.map((grade) => (
-                          <SelectItem key={grade} label={grade} value={grade} />
-                        ))}
-                      </SelectContent>
-                    </SelectPortal>
-                  </Select>
+                    {/* Grade Selector */}
+                    <Text className="font-medium mt-3">Grade</Text>
+                    <Controller
+                      control={control}
+                      name="grade"
+                      rules={{ required: 'Grade is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Select
+                            selectedValue={value}
+                            onValueChange={onChange}
+                          >
+                            <SelectTrigger
+                              variant="outline"
+                              size="md"
+                              className="rounded justify-between"
+                            >
+                              <SelectInput placeholder="Select Grade" />
+                              <SelectIcon as={ChevronDownIcon} className="mr-2" />
+                            </SelectTrigger>
+                            <SelectPortal>
+                              <SelectBackdrop />
+                              <SelectContent>
+                                {GRADES.map((grade) => (
+                                  <SelectItem key={grade} label={grade} value={grade} />
+                                ))}
+                              </SelectContent>
+                            </SelectPortal>
+                          </Select>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
+                    />
 
-                  {/* Role Selector */}
-                  <Text className="font-medium mt-3">Role</Text>
-                  <Select
-                    selectedValue={editUserState.role}
-                    onValueChange={(value: string) => {
-                      log('Edit User role changed', value);
-                      setEditUserState({
-                        ...editUserState,
-                        role: value as UserObject['role'],
-                      });
-                    }}
-                  >
-                    <SelectTrigger
-                      variant="outline"
-                      size="md"
-                      className="rounded justify-between"
-                    >
-                      <SelectInput placeholder="Select Role" />
-                      <SelectIcon as={ChevronDownIcon} className="mr-2" />
-                    </SelectTrigger>
-                    <SelectPortal>
-                      <SelectBackdrop />
-                      <SelectContent>
-                        {ROLES.map((role) => (
-                          <SelectItem key={role} label={role} value={role} />
-                        ))}
-                      </SelectContent>
-                    </SelectPortal>
-                  </Select>
+                    {/* Role Selector */}
+                    <Text className="font-medium mt-3">Role</Text>
+                    <Controller
+                      control={control}
+                      name="role"
+                      rules={{ required: 'Role is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Select
+                            selectedValue={value}
+                            onValueChange={onChange}
+                          >
+                            <SelectTrigger
+                              variant="outline"
+                              size="md"
+                              className="rounded justify-between"
+                            >
+                              <SelectInput placeholder="Select Role" />
+                              <SelectIcon as={ChevronDownIcon} className="mr-2" />
+                            </SelectTrigger>
+                            <SelectPortal>
+                              <SelectBackdrop />
+                              <SelectContent>
+                                {ROLES.map((role) => (
+                                  <SelectItem key={role} label={role} value={role} />
+                                ))}
+                              </SelectContent>
+                            </SelectPortal>
+                          </Select>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
+                    />
 
-                  {/* Subteam Selector */}
-                  <Text className="font-medium mt-3">Subteams</Text>
-                  <CheckboxGroup
-                    value={editUserState.subteam || []}
-                    onChange={(selectedValues: string[]) => {
-                      log('Edit User subteam changed', selectedValues);
-                      setEditUserState({
-                        ...editUserState,
-                        subteam: selectedValues,
-                      });
-                    }}
-                  >
-                    <VStack space="sm">
-                      {SUBTEAMS.map((team) => (
-                        <Checkbox key={team} value={team.toLowerCase()}>
-                          <CheckboxIndicator>
-                            <CheckboxIcon as={CheckIcon} />
-                          </CheckboxIndicator>
-                          <CheckboxLabel>{team}</CheckboxLabel>
-                        </Checkbox>
-                      ))}
-                    </VStack>
-                  </CheckboxGroup>
-                </VStack>
+                    {/* Subteam Selector */}
+                    <Text className="font-medium mt-3">Subteams</Text>
+                    <Controller
+                      control={control}
+                      name="subteam"
+                      rules={{ required: 'At least one subteam is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <CheckboxGroup
+                            value={value || []}
+                            onChange={onChange}
+                          >
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                              {SUBTEAMS.map((team, index) => (
+                                <View key={team} style={{ width: '50%', paddingVertical: 5 }}>
+                                  <Checkbox value={team}>
+                                    <CheckboxIndicator>
+                                      <CheckboxIcon as={CheckIcon} />
+                                    </CheckboxIndicator>
+                                    <CheckboxLabel>{team}</CheckboxLabel>
+                                  </Checkbox>
+                                </View>
+                              ))}
+                            </View>
+                          </CheckboxGroup>
+                          {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                        </>
+                      )}
+                    />
+                  </VStack>
+                </ScrollView>
               </AlertDialogBody>
               <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
                 <Button
@@ -590,10 +721,7 @@ const UserDirectoryScreen: React.FC = () => {
                   <ButtonText>Cancel</ButtonText>
                 </Button>
                 <Button
-                  onPress={() => {
-                    log('Save button pressed in Edit Dialog');
-                    saveEditChanges();
-                  }}
+                  onPress={saveEditChanges}
                   action="primary"
                 >
                   <ButtonText>Save</ButtonText>

@@ -75,7 +75,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     type: "success",
                 });
 
-                const { user } = response.data;
+                const user = response.data.data.user;
 
                 await login(user.token, user);
 
@@ -89,7 +89,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 handleErrorWithModalOrToast({
                     actionName: "Login",
                     error,
-                    showModal: false,
+                    showModal: true,
           showToast: true,
           openModal,
           openToast,

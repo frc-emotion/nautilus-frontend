@@ -1,4 +1,3 @@
-import React from 'react';
 import "@/global.css";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { NavigationContainer } from "@react-navigation/native";
@@ -97,5 +96,6 @@ function App() {
     </ThemeProvider>
   );
 }
+
 
 export default Sentry.wrap(App);

@@ -7,23 +7,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
-import { useModal } from '../../utils/UI/CustomModalProvider';
 import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { useBLE } from '../../utils/BLE/BLEContext';
 import { APP_UUID, MeetingObject } from '../../Constants';
 import { useMeetings } from '../../utils/Context/MeetingContext';
 import { useAuth } from '../../utils/Context/AuthContext';
-import {
-  Lock,
-  AlertCircle,
-  Bluetooth,
-  BluetoothOff,
-  RefreshCw,
-} from 'lucide-react-native';
-import * as Linking from 'expo-linking';
-import { Text } from "@/components/ui/text";
+import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -32,17 +24,14 @@ import { BluetoothStatusIndicator, LocationStatusIndicator } from '@/src/utils/H
 import { Card } from '@/components/ui/card';
 import { Input, InputField } from '@/components/ui/input';
 import { Box } from '@/components/ui/box';
-import { Menu, MenuItem, MenuItemLabel } from "@/components/ui/menu";
-import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 
 const BroadcastAttendancePortal: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
   const { colorMode } = useThemeContext();
-  const { locationStatus, checkLocationStatus } = useLocation();
+  const { locationStatus, checkLocationServices } = useLocation();
 
   // BLE Context
   const {
@@ -50,6 +39,7 @@ const BroadcastAttendancePortal: React.FC = () => {
     isBroadcasting,
     startBroadcasting,
     stopBroadcasting,
+    fetchInitialBluetoothState,
   } = useBLE();
 
   // Meetings Context
@@ -69,14 +59,12 @@ const BroadcastAttendancePortal: React.FC = () => {
 
   useEffect(() => {
     log('useEffect [searchQuery]', searchQuery);
-    console.log(filteredMeetings)
-    console.log(meetings)
     if (!searchQuery) {
-      setFilteredMeetings(meetings);
+      setFilteredMeetings(validMeetings);
       return;
     }
 
-    const filtered = meetings.filter((meeting) => {
+    const filtered = validMeetings.filter((meeting) => {
       return (
         meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -85,7 +73,7 @@ const BroadcastAttendancePortal: React.FC = () => {
     });
 
     setFilteredMeetings(filtered);
-  }, [searchQuery, meetings]);
+  }, [searchQuery, validMeetings]);
 
   // Logging function
   const log = (...args: any[]) => {
@@ -96,12 +84,7 @@ const BroadcastAttendancePortal: React.FC = () => {
     if (bluetoothState === 'unauthorized') {
       openToast({
         title: 'Bluetooth Unauthorized',
-        description: 'Please allow Bluetooth access to listen for attendance.',
-        type: 'error',
-      });
-      openModal({
-        title: 'Bluetooth Unauthorized',
-        message: 'Please allow Bluetooth access to listen for attendance.',
+        description: 'Please allow Bluetooth access to broadcast attendance.',
         type: 'error',
       });
 
@@ -117,12 +100,7 @@ const BroadcastAttendancePortal: React.FC = () => {
     if (locationStatus !== 'enabled') {
       openToast({
         title: 'Location Services Required',
-        description: 'Please enable location services to listen for attendance.',
-        type: 'error',
-      });
-      openModal({
-        title: 'Location Services Required',
-        message: 'Please enable location services to listen for attendance.',
+        description: 'Please enable location services to broadcast attendance.',
         type: 'error',
       });
 
@@ -156,16 +134,14 @@ const BroadcastAttendancePortal: React.FC = () => {
       if (isBroadcasting) {
         log('Attempting to stop broadcasting');
         await stopBroadcasting();
-        openToast({
-          title: 'Broadcast Stopped',
-          description: 'Broadcasting has been stopped successfully.',
-          type: 'success',
-        });
       } else {
         const hasLocation = await handleLocationPermissions();
         const hasBluetooth = await handleBluetoothPermissions();
 
-        if (!hasLocation || !hasBluetooth) return;
+        if (!hasLocation || !hasBluetooth) {
+          setLoading(false);
+          return;
+        }
 
         if (bluetoothState !== 'poweredOn') {
           openToast({
@@ -173,12 +149,8 @@ const BroadcastAttendancePortal: React.FC = () => {
             description: 'Please enable Bluetooth to start broadcasting.',
             type: 'error',
           });
-          openModal({
-            title: 'Bluetooth Required',
-            message: 'Please enable Bluetooth to start broadcasting.',
-            type: 'error',
-          });
           Linking.openSettings();
+          setLoading(false);
           return;
         }
 
@@ -187,13 +159,7 @@ const BroadcastAttendancePortal: React.FC = () => {
 
         log('Starting broadcasting', { APP_UUID, majorValue, minorValue });
 
-        await startBroadcasting(APP_UUID, majorValue, minorValue);
-
-        openToast({
-          title: 'Broadcasting Started',
-          description: `Broadcasting for meeting "${selectedMeeting.title}" has started.`,
-          type: 'success',
-        });
+        await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeeting.title);
       }
     } catch (error: any) {
       log('Error toggling broadcasting', error);
@@ -231,7 +197,8 @@ const BroadcastAttendancePortal: React.FC = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchMeetings();
-
+    await checkLocationServices();
+    await fetchInitialBluetoothState();
     setRefreshing(false);
   };
 
@@ -244,33 +211,49 @@ const BroadcastAttendancePortal: React.FC = () => {
       (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
     );
     setValidMeetings(eligibleMeetings);
+    setFilteredMeetings(eligibleMeetings); // Update filteredMeetings when validMeetings change
   }, [meetings]);
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{
         flex: 1,
-        backgroundColor: colorMode === "light" ? "#FFFFFF" : "#1A202C",
+        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
       }}
     >
       <Box className="p-4 flex-1">
-        <VStack space="lg" className="items-center" style={{ backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}>
+        <VStack space="lg" className="flex-1">
           {/* Bluetooth and Location Status Indicators */}
-          <View className="flex flex-row items-center justify-center mt-4 space-x-4">
+          <View className="flex items-center justify-center">
             <BluetoothStatusIndicator state={bluetoothState} />
-            <LocationStatusIndicator state={locationStatus} />
+            <View className="ml-4">
+              <LocationStatusIndicator state={locationStatus} />
+            </View>
           </View>
 
+          {/* Open Settings Button */}
+          {(bluetoothState === 'unknown' ||
+            locationStatus === 'unknown' ||
+            bluetoothState === 'unauthorized' ||
+            locationStatus === 'unauthorized') && (
+            <Button
+              onPress={() => Linking.openSettings()}
+              className="px-6 py-2 rounded-lg bg-blue-500 mt-4"
+            >
+              <ButtonText className="font-bold text-center">Open Settings</ButtonText>
+            </Button>
+          )}
+
           {/* Broadcasting Status */}
-          <Text className="font-bold text-xl text-center">
+          <Text className="font-bold text-xl text-center mt-4">
             {isBroadcasting
               ? `Broadcasting: ${selectedMeeting?.title}`
               : 'Not Broadcasting'}
           </Text>
 
           {/* Search Input */}
-          <Input variant="outline" size="md" className="mb-4">
+          <Input variant="outline" size="md" className="mt-4">
             <InputField
               value={searchQuery}
               onChangeText={(text) => {
@@ -278,22 +261,23 @@ const BroadcastAttendancePortal: React.FC = () => {
                 setSearchQuery(text);
               }}
               placeholder="Search by name, description, location..."
-              placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
             />
           </Input>
 
           {/* Meetings List */}
-          <Box className="rounded-lg overflow-hidden max-h-[67%]">
+          <Box className="flex-1 mt-4 w-full">
             <ScrollView
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1 }}
             >
               {isLoadingMeetings ? (
-                <View className="p-3">
+                <View className="p-3 flex-1 justify-center items-center">
                   <Spinner />
                   <Text className="text-center">Loading meetings...</Text>
                 </View>
               ) : filteredMeetings.length === 0 ? (
-                <View className="p-3">
+                <View className="p-3 flex-1 justify-center items-center">
                   <Text className="text-center">No meetings found.</Text>
                 </View>
               ) : (
@@ -304,15 +288,12 @@ const BroadcastAttendancePortal: React.FC = () => {
                   >
                     <Card
                       variant={selectedMeeting?._id === meeting._id ? 'filled' : 'outline'}
-                      className={`p-4 mb-3 rounded-lg border ${selectedMeeting?._id === meeting._id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-300'
-                        }`}
+                      className={`p-4 mb-3 rounded-lg border `}
                     >
                       <View className="flex flex-col">
                         <Text className="text-lg font-semibold">{meeting.title}</Text>
-                        <Text className="text-sm mt-1 text-gray-600">{meeting.location}</Text>
-                        <Text className="text-sm mt-1 text-gray-600">
+                        <Text className="text-sm mt-1">{meeting.location}</Text>
+                        <Text className="text-sm mt-1">
                           {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
                         </Text>
                       </View>
@@ -326,7 +307,7 @@ const BroadcastAttendancePortal: React.FC = () => {
           {/* Start/Stop Broadcasting Button */}
           <Button
             onPress={toggleBroadcasting}
-            className="mt-4 rounded-lg mr-1 justify-center"
+            className="mt-4 rounded-lg justify-center"
             size="lg"
             disabled={
               loading ||
@@ -338,7 +319,7 @@ const BroadcastAttendancePortal: React.FC = () => {
           >
             <ButtonText className="text-lg">
               {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" />
               ) : isBroadcasting ? (
                 'Stop Broadcasting'
               ) : (

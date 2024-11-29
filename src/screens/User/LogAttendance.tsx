@@ -35,9 +35,10 @@ const LogAttendance: React.FC = () => {
     isListening,
     startListening,
     stopListening,
+    fetchInitialBluetoothState
   } = useBLE();
 
-  const { locationStatus } = useLocation();
+  const { locationStatus, checkLocationServices } = useLocation();
 
   const { meetings, fetchMeetings, isLoadingMeetings } = useMeetings();
   const { users, isLoading: isUsersLoading } = useUsers();
@@ -110,19 +111,9 @@ const LogAttendance: React.FC = () => {
       if (isListening) {
         log('Attempting to stop listening');
         await stopListening();
-        openToast({
-          title: 'Stopped Listening',
-          description: 'Listening for attendance has been stopped.',
-          type: 'success',
-        });
       } else {
         log('Attempting to start listening');
         await startListening();
-        openToast({
-          title: 'Started Listening',
-          description: 'Listening for attendance has been started.',
-          type: 'success',
-        });
       }
     } catch (error: any) {
       log('Error toggling listening', error);
@@ -211,7 +202,6 @@ const LogAttendance: React.FC = () => {
       url: '/api/attendance/log',
       method: 'post',
       data: payload,
-      headers: { Authorization: `Bearer ${user.token}` },
       retryCount: 3,
       successHandler: async () => {
         openToast({
@@ -263,10 +253,9 @@ const LogAttendance: React.FC = () => {
     const request: QueuedRequest = {
       url: `/api/meetings/${meetingId}/info`,
       method: 'get',
-      headers: { Authorization: `Bearer ${user?.token}` },
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
-        fetchedMeeting = response.data.meeting as MeetingObject; // Capture the fetched meeting
+        fetchedMeeting = response.data.data.meeting as MeetingObject; // Capture the fetched meeting
         await fetchMeetings(); // Update context cache
       },
       errorHandler: async (error: AxiosError): Promise<void> => {
@@ -330,7 +319,14 @@ const LogAttendance: React.FC = () => {
    */
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchMeetings();
+    //await fetchMeetings();
+
+    console.log('Refreshing...');
+    await checkLocationServices();
+    console.log('Location status checked.');
+    await fetchInitialBluetoothState();
+    console.log(  'Bluetooth state checked.');
+
     setRefreshing(false);
   };
 
@@ -368,6 +364,16 @@ const LogAttendance: React.FC = () => {
             <LocationStatusIndicator state={locationStatus} />
           </View>
         </View>
+
+        {/* Button to take user to settings if bluetooth or location status unknown */}
+        {(bluetoothState === 'unknown' || locationStatus === 'unknown' || bluetoothState === 'unauthorized' || locationStatus === 'unauthorized') && (
+          <Button
+            onPress={() => Linking.openSettings()}
+            className="mt-4 px-6 py-2 rounded-lg bg-blue-500"
+          >
+            <ButtonText className="font-bold text-center">Open Settings</ButtonText>
+          </Button>
+        )}
 
         {/* Listening Status */}
         <Text size="2xl" bold className="text-center mt-4 mb-4">

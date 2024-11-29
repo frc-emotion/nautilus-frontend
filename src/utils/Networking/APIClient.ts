@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
@@ -49,17 +49,16 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // Response Interceptor: Handle 401 Unauthorized globally
-    this.client.interceptors.response.use(
-      response => response,
-      (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          console.warn(`${DEBUG_PREFIX} Unauthorized access - possibly invalid token.`);
-          // Additional global handling can be added here
-        }
-        return Promise.reject(error);
-      }
-    );
+    // Response Interceptor
+    // this.client.interceptors.response.use(
+    //   response => response,
+    //   (error: AxiosError) => {
+    //     if (error.response?.status === 401) {
+    //       console.warn(`${DEBUG_PREFIX} Unauthorized access - possibly invalid token.`);
+    //     }
+    //     return Promise.reject(error);
+    //   }
+    // );
   }
 
   public async connected(): Promise<boolean> {
@@ -146,6 +145,7 @@ class ApiClient {
   // Request Execution
   private async executeRequest(request: QueuedRequest): Promise<AxiosResponse<any>> {
     const { url, method, data, headers, config, successHandler, errorHandler } = request;
+    
 
     try {
       let response: AxiosResponse<any>;
@@ -175,9 +175,9 @@ class ApiClient {
         const statusCode = error.response?.status;
 
         // Non-retryable errors
-        if (statusCode && (statusCode < 500 || statusCode >= 600)) {
+        if (statusCode) {
           console.error(`${DEBUG_PREFIX} Non-retryable error [${statusCode}] for request: ${url}`);
-          //errorHandler && await errorHandler(error);
+          errorHandler && await errorHandler(error);
           return Promise.reject(error);
         }
 
@@ -214,7 +214,12 @@ class ApiClient {
 
     try {
       await this.executeRequest(request);
-    } catch (error) {
+     } catch (error) {
+
+      // Make sure its not an error from the request failing (400s)
+
+
+
       console.error(`${DEBUG_PREFIX} Error executing request: ${request.url}`, error);
       request.errorHandler && await request.errorHandler(error);
       return;
@@ -251,7 +256,7 @@ class ApiClient {
           return null;
         }
 
-        const { user } = response.data;
+        const user = response.data.data.user;
         await AsyncStorage.setItem("userData", JSON.stringify(user));
         console.log(`${DEBUG_PREFIX} User data updated in storage.`);
         return user as UserObject;
