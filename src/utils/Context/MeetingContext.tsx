@@ -5,6 +5,8 @@ import { AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
+import { handleErrorWithModalOrToast } from '../Helpers';
+import { useModal } from '../UI/CustomModalProvider';
 
 const MeetingsContext = createContext<MeetingsContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[MeetingsProvider]';
@@ -12,7 +14,7 @@ const DEBUG_PREFIX = '[MeetingsProvider]';
 export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth(); // User context for token authentication
   const { openToast } = useGlobalToast(); // Toast context for error and info messages
-
+  const { openModal } = useModal(); // Modal context for error and info messages
   const [meetings, setMeetings] = useState<MeetingObject[]>([]);
   const [isLoadingMeetings, setIsLoadingMeetings] = useState<boolean>(false);
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingObject | null>(null);
@@ -47,8 +49,10 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log(`${DEBUG_PREFIX} Fetching meetings from API...`);
     setIsLoadingMeetings(true);
 
+    const url = (user && (user.role === 'admin' || user.role === 'leadership' || user.role === 'advisor' || user.role === 'executive')) ? '/api/meetings/' : '/api/meetings/info';
+
     const request: QueuedRequest = {
-      url: '/api/meetings/info',
+      url: url,
       method: 'get',
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
@@ -65,11 +69,19 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} API error while fetching meetings:`, error.message);
-        openToast({
-          title: 'Error',
-          description: 'Failed to fetch meetings. Loading cached meetings if available.',
-          type: 'error',
-        });
+        // openToast({
+        //   title: 'Error',
+        //   description: 'Failed to fetch meetings. Loading cached meetings if available.',
+        //   type: 'error',
+        // });
+        handleErrorWithModalOrToast({
+          actionName: 'Fetch Meetings',
+          error,
+          showModal: false,
+          showToast: true,
+          openModal,
+          openToast,
+        })
         await loadCachedMeetings();
       },
       offlineHandler: async () => {

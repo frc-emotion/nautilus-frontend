@@ -270,9 +270,8 @@ const VerifyScreen: React.FC = () => {
             }}
         >
             <Box className="p-4 flex-1">
-                {/* Optional: Add a search bar if needed */}
-                {/* Example:
-                <View className="mb-4">
+                {/* Search Bar */}
+                {/* <View className="mb-4">
                     <Input variant="outline" size="md">
                         <InputField
                             value={searchQuery}
@@ -284,8 +283,8 @@ const VerifyScreen: React.FC = () => {
                             placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
                         />
                     </Input>
-                </View>
-                */}
+                </View> */}
+               
 
                 {/* Users List */}
                 <Box className="rounded-lg overflow-hidden flex-1">

@@ -1,3 +1,5 @@
+// MeetingsScreen.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -22,7 +24,7 @@ import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
-import { Icon, ThreeDotsIcon, InfoIcon } from "@/components/ui/icon";
+import { Icon, ThreeDotsIcon, EyeIcon } from "@/components/ui/icon"; // Import EyeIcon
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useForm, Controller } from "react-hook-form";
@@ -33,7 +35,7 @@ import { View } from "@/components/ui/view";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { useMeetings } from "@/src/utils/Context/MeetingContext";
-import { MeetingObject, FormData, QueuedRequest } from "@/src/Constants";
+import { MeetingObject, FormData, QueuedRequest, UserObject } from "@/src/Constants";
 import ApiClient from "@/src/utils/Networking/APIClient";
 import { useUsers } from "@/src/utils/Context/UsersContext";
 import { Spinner } from "@/components/ui/spinner";
@@ -66,8 +68,8 @@ const MeetingsScreen: React.FC = () => {
   const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
 
   // State for viewing meeting details
-  const [viewMeeting, setViewMeeting] = useState<MeetingObject | null>(null);
-  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [viewingUsers, setViewingUsers] = useState<UserObject[]>([]);
+  const [showViewUsersDialog, setShowViewUsersDialog] = useState<boolean>(false);
 
   const {
     control,
@@ -263,11 +265,31 @@ const MeetingsScreen: React.FC = () => {
     }
   };
 
-  // Function to handle viewing meeting details
+  // Function to handle viewing meeting details (existing functionality)
   const handleViewMeeting = (meeting: MeetingObject) => {
     log("handleViewMeeting called", meeting);
-    setViewMeeting(meeting);
-    setShowViewDialog(true);
+    // Existing functionality to view meeting details
+    // You can enhance this as needed
+  };
+
+  // Function to handle viewing logged users
+  const handleViewUsers = (meeting: MeetingObject) => {
+    log("handleViewUsers called", meeting);
+    
+    if (!meeting.members_logged || meeting.members_logged.length === 0) {
+      openToast({
+        title: "No Users Logged",
+        description: "No users have logged for this meeting.",
+        type: "info",
+      });
+      return;
+    }
+    
+    // Map user IDs to UserObject
+    const loggedUsers: UserObject[] = users.filter(u => meeting.members_logged?.includes(u._id));
+    
+    setViewingUsers(loggedUsers);
+    setShowViewUsersDialog(true);
   };
 
   // Helper function to format date and time
@@ -342,38 +364,49 @@ const MeetingsScreen: React.FC = () => {
                       <Text className="text-lg font-semibold">
                         {meeting.title}
                       </Text>
-                      <Text className="text-gray-600">{meeting.location}</Text>
-                      <Text className="text-gray-600">
+                      <Text>{meeting.location}</Text>
+                      <Text>
                         {formatDateTime(meeting.time_start)} -{" "}
                         {formatDateTime(meeting.time_end)}
                       </Text>
                     </Pressable>
                     <View className="flex flex-row items-center">
-                      {(user?.role === "admin" || user?.role === "executive") && (
-                        <Menu
-                          trigger={({ ...triggerProps }) => (
-                            <Pressable {...triggerProps}>
-                              <Icon as={ThreeDotsIcon} />
-                            </Pressable>
-                          )}
-                        >
-                          <MenuItem
-                            onPress={() => {
-                              log("Edit meeting pressed", meeting._id);
-                              handleEditMeeting(meeting);
-                            }}
+                      {(user?.role === "admin" || user?.role === "executive" || user?.role === "advisor" || user?.role === "leadership") && (
+                        <>
+                          {/* Eye Icon for Viewing Logged Users */}
+                          <Pressable
+                            onPress={() => handleViewUsers(meeting)}
+                            className="mr-2"
                           >
-                            <MenuItemLabel>Edit</MenuItemLabel>
-                          </MenuItem>
-                          <MenuItem
-                            onPress={() => {
-                              log("Delete meeting pressed", meeting._id);
-                              handleDeleteMeeting(meeting._id);
-                            }}
+                            <Icon as={EyeIcon} />
+                          </Pressable>
+                          
+                          {/* Existing Menu for Edit/Delete */}
+                          <Menu
+                            trigger={({ ...triggerProps }) => (
+                              <Pressable {...triggerProps}>
+                                <Icon as={ThreeDotsIcon} />
+                              </Pressable>
+                            )}
                           >
-                            <MenuItemLabel>Delete</MenuItemLabel>
-                          </MenuItem>
-                        </Menu>
+                            <MenuItem
+                              onPress={() => {
+                                log("Edit meeting pressed", meeting._id);
+                                handleEditMeeting(meeting);
+                              }}
+                            >
+                              <MenuItemLabel>Edit</MenuItemLabel>
+                            </MenuItem>
+                            <MenuItem
+                              onPress={() => {
+                                log("Delete meeting pressed", meeting._id);
+                                handleDeleteMeeting(meeting._id);
+                              }}
+                            >
+                              <MenuItemLabel>Delete</MenuItemLabel>
+                            </MenuItem>
+                          </Menu>
+                        </>
                       )}
                     </View>
                   </View>
@@ -595,51 +628,31 @@ const MeetingsScreen: React.FC = () => {
           </AlertDialog>
         )}
 
-        {/* View Meeting Details Dialog */}
-        {viewMeeting && showViewDialog && (
+        {/* View Logged Users Dialog */}
+        {showViewUsersDialog && (
           <AlertDialog
-            isOpen={showViewDialog}
-            onClose={() => {
-              log("View meeting dialog closed");
-              setShowViewDialog(false);
-            }}
+            isOpen={showViewUsersDialog}
+            onClose={() => setShowViewUsersDialog(false)}
           >
             <AlertDialogBackdrop />
             <AlertDialogContent>
               <AlertDialogHeader className="pb-4">
-                <Text className="text-lg font-semibold">Meeting Details</Text>
+                <Text className="text-lg font-semibold">Attending Users</Text>
               </AlertDialogHeader>
               <AlertDialogBody>
-                <VStack space="sm">
-                  <Text className="font-medium">Title:</Text>
-                  <Text>{viewMeeting.title}</Text>
-
-                  <Text className="font-medium">Description:</Text>
-                  <Text>{viewMeeting.description}</Text>
-
-                  <Text className="font-medium">Location:</Text>
-                  <Text>{viewMeeting.location}</Text>
-
-                  <Text className="font-medium">Start Time:</Text>
-                  <Text>{formatDateTime(viewMeeting.time_start)}</Text>
-
-                  <Text className="font-medium">End Time:</Text>
-                  <Text>{formatDateTime(viewMeeting.time_end)}</Text>
-
-                  <Text className="font-medium">Hours:</Text>
-                  <Text>{viewMeeting.hours}</Text>
-
-                  <Text className="font-medium">Created By:</Text>
-                  <Text>{getUserName(viewMeeting.created_by)}</Text>
-                  
-                </VStack>
+                {viewingUsers.length > 0 ? (
+                  viewingUsers.map(user => (
+                    <VStack key={user._id} className="mb-2">
+                      <Text className="font-medium">{user.first_name} {user.last_name}</Text>
+                    </VStack>
+                  ))
+                ) : (
+                  <Text>No users have logged for this meeting.</Text>
+                )}
               </AlertDialogBody>
               <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
                 <Button
-                  onPress={() => {
-                    log("Close button pressed in View Dialog");
-                    setShowViewDialog(false);
-                  }}
+                  onPress={() => setShowViewUsersDialog(false)}
                 >
                   <ButtonText>Close</ButtonText>
                 </Button>

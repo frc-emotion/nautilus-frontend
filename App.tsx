@@ -18,6 +18,7 @@ import * as Sentry from '@sentry/react-native';
 import { LocationProvider } from './src/utils/BLE/LocationContext';
 import { AppStateProvider } from './src/utils/Context/AppStateContext';
 import AppInitializer from './src/screens/Auth/AppInitializer';
+import { AttendanceProvider } from "./src/utils/Context/AttendanceContext";
 
 const prefix = Linking.createURL('/');
 
@@ -57,27 +58,29 @@ function AppContent() {
               <AuthProvider>
                 <UsersProvider>
                   <MeetingsProvider>
-                    <BLEProvider>
-                      <LocationProvider>
-                        <Stack.Navigator screenOptions={{ headerShown: false }}>
-                          <Stack.Screen
-                            name="AppInitializer"
-                            component={AppInitializer}
-                            options={{ gestureEnabled: false }}
-                          />
-                          <Stack.Screen
-                            name="RoleBasedTabs"
-                            component={RoleBasedTabs}
-                            options={{ gestureEnabled: false }}
-                          />
-                          <Stack.Screen
-                            name="NotLoggedInTabs"
-                            component={NotLoggedIn}
-                            options={{ gestureEnabled: false }}
-                          />
-                        </Stack.Navigator>
-                      </LocationProvider>
-                    </BLEProvider>
+                    <AttendanceProvider>
+                      <BLEProvider>
+                        <LocationProvider>
+                          <Stack.Navigator screenOptions={{ headerShown: false }}>
+                            <Stack.Screen
+                              name="AppInitializer"
+                              component={AppInitializer}
+                              options={{ gestureEnabled: false }}
+                            />
+                            <Stack.Screen
+                              name="RoleBasedTabs"
+                              component={RoleBasedTabs}
+                              options={{ gestureEnabled: false }}
+                            />
+                            <Stack.Screen
+                              name="NotLoggedInTabs"
+                              component={NotLoggedIn}
+                              options={{ gestureEnabled: false }}
+                            />
+                          </Stack.Navigator>
+                        </LocationProvider>
+                      </BLEProvider>
+                    </AttendanceProvider>
                   </MeetingsProvider>
                 </UsersProvider>
               </AuthProvider>

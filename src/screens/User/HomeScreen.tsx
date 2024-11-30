@@ -1,223 +1,221 @@
-import React, { useEffect, useState } from "react";
-import { ScrollView, RefreshControl, Alert } from "react-native";
-import { VStack } from "@/components/ui/vstack";
-import { HStack } from "@/components/ui/hstack";
-import { Text } from "@/components/ui/text";
-import { Button, ButtonText } from "@/components/ui/button";
-import { Progress, ProgressFilledTrack } from "@/components/ui/progress";
-import { useAuth } from "../../utils/Context/AuthContext";
-import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
-import ApiClient from "../../utils/Networking/APIClient";
-import { MeetingObject, QueuedRequest } from "../../Constants"; // Ensure Meeting type is defined appropriately
-import { Fab, FabIcon } from "@/components/ui/fab";
-import { MoonIcon, SunIcon } from "lucide-react-native";
-import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// HomeScreen.tsx
+
+import React, { useState, useEffect } from 'react';
+import { ScrollView, RefreshControl } from 'react-native';
+import { useAuth } from '../../utils/Context/AuthContext';
+import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useAttendance } from '../../utils/Context/AttendanceContext';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Text } from '@/components/ui/text';
+import { Progress, ProgressFilledTrack } from '@/components/ui/progress';
+import { Button, ButtonText } from '@/components/ui/button';
+import {
+    Select,
+    SelectTrigger,
+    SelectInput,
+    SelectIcon,
+    SelectPortal,
+    SelectBackdrop,
+    SelectContent,
+    SelectItem,
+} from '@/components/ui/select';
+import { MoonIcon, SunIcon, ChevronDownIcon } from 'lucide-react-native';
+import { Fab, FabIcon } from '@/components/ui/fab';
 
 const HomeScreen: React.FC = () => {
-  const { colorMode, toggleColorMode } = useThemeContext();
+    const { colorMode, toggleColorMode } = useThemeContext();
+    const { user, refreshUser } = useAuth();
+    const { userAttendanceHours, isLoading, schoolYears, schoolTerms } = useAttendance();
 
-  const { user, refreshUser } = useAuth();
-  const { openToast } = useGlobalToast();
-  const [refreshing, setRefreshing] = useState(false);
-  const [attendanceHours, setAttendanceHours] = useState<number | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [selectedYear, setSelectedYear] = useState<string>('All Years');
+    const [selectedTerm, setSelectedTerm] = useState<string>('All Terms');
+    const [availableYears, setAvailableYears] = useState<string[]>([]);
+    const [termsByYear, setTermsByYear] = useState<{ [year: string]: string[] }>({});
+    const [termOptions, setTermOptions] = useState<string[]>(['All Terms']);
 
-  useEffect(() => {
-    if (user && user.role !== "unverified") {
-      console.log("HomeScreen: Fetching attendance hours and meetings.");
-      fetchAttendanceHours(user.token);
-      fetchAndCacheMeetings(user.token);
-    }
-  }, [user]);
+    useEffect(() => {
+        // Extract available years and terms from attendance data
+        const yearsSet = new Set<string>();
+        const tempTermsByYear: { [year: string]: Set<string> } = {};
 
-  /**
-   * Fetches all meetings from the backend and caches them in AsyncStorage.
-   * @param token User's authentication token.
-   */
-  const fetchAndCacheMeetings = async (token: string) => {
-    const request: QueuedRequest = {
-      url: "/api/meetings/info",
-      method: "get",
-      retryCount: 0,
-      successHandler: async (response) => {
-        const meetings: MeetingObject[] = response.data.data.meetings;
-        try {
-          await AsyncStorage.setItem('meetings', JSON.stringify(meetings));
-          openToast({
-            title: "Meetings Cached",
-            description: "All meetings have been cached locally.",
-            type: "success",
-          });
-        } catch (storageError) {
-          console.error("Error saving meetings to AsyncStorage:", storageError);
-          openToast({
-            title: "Error",
-            description: "Failed to cache meetings locally.",
-            type: "error",
-          });
+        Object.keys(userAttendanceHours).forEach(key => {
+            const [year, term] = key.split('_');
+            if (year && term) {
+                yearsSet.add(year);
+                if (!tempTermsByYear[year]) {
+                    tempTermsByYear[year] = new Set();
+                }
+                tempTermsByYear[year].add(term);
+            }
+        });
+
+        const yearsArray = Array.from(yearsSet).sort();
+        setAvailableYears(yearsArray);
+
+        const termsObj: { [year: string]: string[] } = {};
+        yearsArray.forEach(year => {
+            termsObj[year] = Array.from(tempTermsByYear[year]).sort((a, b) => parseInt(a) - parseInt(b));
+        });
+        setTermsByYear(termsObj);
+    }, [userAttendanceHours, schoolYears, schoolTerms]);
+
+    useEffect(() => {
+        // Update term options based on selected year
+        if (selectedYear !== 'All Years' && termsByYear[selectedYear]) {
+            setTermOptions(['All Terms', ...termsByYear[selectedYear]]);
+            if (!termsByYear[selectedYear].includes(selectedTerm)) {
+                setSelectedTerm('All Terms');
+            }
+        } else {
+            setTermOptions(['All Terms']);
+            setSelectedTerm('All Terms');
         }
-      },
-      errorHandler: async (error) => {
-        console.error("Failed to fetch meetings:", error);
-        openToast({
-          title: "Error",
-          description: "Unable to fetch meetings.",
-          type: "error",
-        });
-      },
-      offlineHandler: async () => {
-        openToast({
-          title: "Offline",
-          description: "Cannot fetch meetings while offline.",
-          type: "info",
-        });
-      },
+    }, [selectedYear, termsByYear, selectedTerm]);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        if (user?.role !== 'unverified') {
+            await refreshUser();
+        }
+        setRefreshing(false);
     };
 
-    try {
-      await ApiClient.handleRequest(request);
-    } catch (error) {
-      console.error("Error during meetings fetch:", error);
+    if (user?.role === 'unverified') {
+        return (
+            <ScrollView
+                contentContainerStyle={{
+                    flexGrow: 1,
+                    padding: 16,
+                    backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+                }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            >
+                <Text>You are currently unverified. Please contact an administrator.</Text>
+            </ScrollView>
+        );
     }
-  };
 
-  /**
-   * Fetches attendance hours from the backend.
-   * @param token User's authentication token.
-   */
-  const fetchAttendanceHours = async (token: string) => {
-    const request: QueuedRequest = {
-      url: "/api/attendance/hours",
-      method: "get",
-      retryCount: 0,
-      successHandler: async (response) => {
-        setAttendanceHours(response.data.data.total_hours);
-
-        openToast({
-          title: "Attendance Updated",
-          description: "Your attendance hours have been successfully updated.",
-          type: "success",
-        });
-      },
-      errorHandler: async (error) => {
-        console.error("Failed to fetch attendance hours:", error);
-        openToast({
-          title: "Error",
-          description: "Unable to fetch attendance hours.",
-          type: "error",
-        });
-      },
-      offlineHandler: async () => {
-        openToast({
-          title: "Offline",
-          description: "You must be connected to the internet to update your hours!",
-          type: "info",
-        });
-      },
+    const calculateTotalHours = () => {
+        if (selectedYear === 'All Years' && selectedTerm === 'All Terms') {
+            return Object.values(userAttendanceHours).reduce((sum, h) => sum + h, 0);
+        } else if (selectedYear === 'All Years') {
+            return Object.entries(userAttendanceHours)
+                .filter(([key, _]) => key.endsWith(`_${selectedTerm}`))
+                .reduce((sum, [_, h]) => sum + h, 0);
+        } else if (selectedTerm === 'All Terms') {
+            return Object.entries(userAttendanceHours)
+                .filter(([key, _]) => key.startsWith(`${selectedYear}_`))
+                .reduce((sum, [_, h]) => sum + h, 0);
+        } else {
+            return userAttendanceHours[`${selectedYear}_${selectedTerm}`] || 0;
+        }
     };
 
-    try {
-      await ApiClient.handleRequest(request);
-    } catch (error) {
-      console.error("Error during attendance request:", error);
-    }
-  };
+    const totalHours = calculateTotalHours();
 
-  /**
-   * Handles pull-to-refresh action.
-   */
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    if (user?.role !== "unverified" && user?.token) {
-      await fetchAttendanceHours(user.token);
-      await fetchAndCacheMeetings(user.token);
-    }
-    setRefreshing(false);
-  };
-
-  /**
-   * Handles refresh action for unverified users.
-   */
-  const handleUnverifiedRefresh = async () => {
-    setRefreshing(true);
-    await refreshUser();
-    setRefreshing(false);
-  };
-
-  if (user?.role === "unverified") {
-    // Unverified User Screen
     return (
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleUnverifiedRefresh} />}
-      >
-        <VStack space="lg" className="items-center mt-8">
-          <Text className="text-red-600 text-center font-bold text-lg">
-            Unverified Account
-          </Text>
-          <Text className="text-center">
-            Please contact an administrator to verify your account.
-          </Text>
-          <Button
-            onPress={handleUnverifiedRefresh}
-            size="lg"
-            className="mt-4 py-2 rounded-md"
-          >
-            <ButtonText className="font-semibold">Refresh</ButtonText>
-          </Button>
-        </VStack>
-        <Fab
-          size="md"
-          placement="bottom right"
-          onPress={toggleColorMode}
+        <ScrollView
+            contentContainerStyle={{
+                flexGrow: 1,
+                padding: 16,
+                backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+            }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
-          <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
-        </Fab>
-      </ScrollView>
-    );
-  }
+            <VStack space="lg" className="items-center">
+                <Text className="font-bold text-lg">Attendance Hours</Text>
+                {isLoading ? (
+                    <Text>Loading attendance data...</Text>
+                ) : availableYears.length > 0 ? (
+                    <>
+                        <HStack className="w-full max-w-[600px] mb-4" space="md">
+                            {/* Year Select */}
+                            <VStack className="flex-1">
+                                <Text className="mb-2">Select Year:</Text>
+                                <Select
+                                    selectedValue={selectedYear}
+                                    onValueChange={setSelectedYear}
+                                >
+                                    <SelectTrigger variant="outline" size="md" className="rounded justify-between">
+                                        <SelectInput
+                                            placeholder="Select Year"
+                                            value={selectedYear}
+                                        />
+                                        <SelectIcon className="mr-3" as={ChevronDownIcon} />
+                                    </SelectTrigger>
+                                    <SelectPortal>
+                                        <SelectBackdrop />
+                                        <SelectContent>
+                                            <SelectItem label="All Years" value="All Years" />
+                                            {availableYears.map(year => (
+                                                <SelectItem key={year} label={year} value={year} />
+                                            ))}
+                                        </SelectContent>
+                                    </SelectPortal>
+                                </Select>
+                            </VStack>
+                            {/* Term Select: Conditionally Rendered */}
+                            {selectedYear !== 'All Years' && (
+                                <VStack className="flex-1">
+                                    <Text className="mb-2">Select Term:</Text>
+                                    <Select
+                                        selectedValue={selectedTerm}
+                                        onValueChange={setSelectedTerm}
+                                    >
+                                        <SelectTrigger variant="outline" size="md" className="rounded justify-between">
+                                            <SelectInput
+                                                placeholder="Select Term"
+                                                value={selectedTerm}
+                                            />
+                                            <SelectIcon className="mr-3" as={ChevronDownIcon} />
+                                        </SelectTrigger>
+                                        <SelectPortal>
+                                            <SelectBackdrop />
+                                            <SelectContent>
+                                                {termOptions.map(term => (
+                                                    <SelectItem
+                                                        key={term}
+                                                        label={term === 'All Terms' ? 'All Terms' : `Term ${term}`}
+                                                        value={term}
+                                                    />
+                                                ))}
+                                            </SelectContent>
+                                        </SelectPortal>
+                                    </Select>
+                                </VStack>
+                            )}
+                        </HStack>
 
-  // Verified User Screen
-  return (
-    <ScrollView
-      contentContainerStyle={{ flexGrow: 1, padding: 16, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      <VStack space="lg" className="items-center">
-        <Text className="font-bold text-lg">Attendance Hours</Text>
-        {attendanceHours !== null ? (
-          <>
-            <VStack space="md" className="w-full max-w-[600px]">
-              <Text className="text-center">
-                You have completed {attendanceHours} out of 36 hours of attendance.
-              </Text>
-              <HStack className="items-center justify-center">
-                <Progress value={(attendanceHours / 36) * 100} className="w-80 h-2">
-                  <ProgressFilledTrack className="bg-emerald-600" />
-                </Progress>
-              </HStack>
+                        {/* Attendance Display */}
+                        <VStack className="w-full max-w-[600px]">
+                            <VStack className="mb-4">
+                                <Text className="text-center font-semibold mb-2">
+                                    {selectedYear === 'All Years' ? 'All Years' : selectedYear} {selectedTerm !== 'All Terms' ? `Term ${selectedTerm}` : ''}
+                                </Text>
+                                <Text className="text-center mb-2">
+                                    You have completed {totalHours} out of 36 hours of attendance for this period.
+                                </Text>
+                                <HStack className="items-center justify-center">
+                                    <Progress value={(totalHours / 36) * 100} className="w-80 h-2">
+                                        <ProgressFilledTrack className="bg-emerald-600" />
+                                    </Progress>
+                                </HStack>
+                            </VStack>
+                        </VStack>
+                    </>
+                ) : (
+                    <Text className="text-center">No attendance periods available.</Text>
+                )}
+                <Button onPress={handleRefresh} size="lg" className="py-2 rounded-md">
+                    <ButtonText className="font-semibold">Refresh</ButtonText>
+                </Button>
             </VStack>
-          </>
-        ) : (
-          <Text>Loading attendance hours...</Text>
-        )}
-        <Button
-          onPress={handleRefresh}
-          size="lg"
-          className="mt-4 py-2 rounded-md"
-        >
-          <ButtonText className="font-semibold">Refresh</ButtonText>
-        </Button>
-      </VStack>
-      <Fab
-        size="md"
-        placement="bottom right"
-        onPress={toggleColorMode}
-      >
-        <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
-      </Fab>
-    </ScrollView>
-  );
-};
-
+            <Fab size="md" placement="bottom right" onPress={toggleColorMode}>
+                <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+            </Fab>
+        </ScrollView>
+    );
+}
 export default HomeScreen;
