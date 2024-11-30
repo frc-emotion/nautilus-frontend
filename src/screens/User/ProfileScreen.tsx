@@ -16,6 +16,7 @@ import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useModal } from "@/src/utils/UI/CustomModalProvider";
+import { useNotifications } from "@/src/utils/Context/NotificationContext";
 
 const icon = require("@/src/assets/icon.png");
 
@@ -27,6 +28,7 @@ const ProfileScreen: React.FC = () => {
   const [displayUser, setDisplayUser] = useState<UserObject | null>(user);
   const { colorMode } = useThemeContext();
   const { openModal } = useModal();
+  const { backendHasToken, checkBackendPushToken } = useNotifications();
 
   useEffect(() => {
     if (user) {
@@ -100,6 +102,9 @@ const ProfileScreen: React.FC = () => {
 
       handleLogout();
     }
+
+    await checkBackendPushToken();
+
     setRefreshing(false);
   };
 
@@ -194,6 +199,12 @@ const ProfileScreen: React.FC = () => {
             <Text>Role</Text>
             <Text className="font-semibold">{displayUser?.role}</Text>
           </HStack>
+
+          <HStack className="justify-between">
+            <Text>Push Notifications</Text>
+            <Text className="font-semibold">{backendHasToken}</Text>
+          </HStack>
+
         </VStack>
 
         {/* Logout Button */}
@@ -202,7 +213,7 @@ const ProfileScreen: React.FC = () => {
           size="lg"
           className="mt-4 py-2 rounded-md bg-red-600"
         >
-          <ButtonText className="text-white font-semibold">Logout</ButtonText>
+          <ButtonText className="font-semibold">Logout</ButtonText>
         </Button>
       </VStack>
     </ScrollView>

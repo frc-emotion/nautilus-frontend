@@ -4,11 +4,15 @@ import LoginScreen from "../screens/Auth/LoginScreen";
 import RegisterScreen from "../screens/Auth/RegisterScreen";
 import { LogIn, UserRoundPen } from "lucide-react-native";
 import { useThemeContext } from "../utils/UI/CustomThemeProvider";
+import { useRoute } from "@react-navigation/native";
+import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 
 const Tab = createBottomTabNavigator();
 
 const NotLoggedIn: React.FC = () => {
   const { colorMode } = useThemeContext();
+  const route = useRoute();
+  const { token, email }  = route.params as { token?: string, email?: string } || {};
 
   return (
     <Tab.Navigator>
@@ -24,6 +28,11 @@ const NotLoggedIn: React.FC = () => {
           <UserRoundPen color={colorMode === "light" ? "black" : "white"} />
         )
       }} name="Register" component={RegisterScreen} />
+      {token && <Tab.Screen options={{
+        tabBarIcon: ({ }) => (
+          <UserRoundPen color={colorMode === "light" ? "black" : "white"} />
+        )
+      }} name="ForgotPassword" component={ForgotPasswordScreen} initialParams={{ token, email }} />}
       {/* <Tab.Screen name="BLETest" component={BLETestScreen}/> */}
     </Tab.Navigator>
   )

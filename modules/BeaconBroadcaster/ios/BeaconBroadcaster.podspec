@@ -5,7 +5,7 @@ Pod::Spec.new do |spec|
     spec.homepage     = 'github.com/arshansgithub'
     spec.license      = 'MIT'
     spec.author       = { 'Arshan S' => 'arshan@arshan.dev' }
-    spec.platform     = :ios, '12.0'
+    spec.platform     = :ios, '13.0'
     spec.source       = { :path => '.' }
   
     spec.frameworks   = ['CoreBluetooth', 'CoreLocation']

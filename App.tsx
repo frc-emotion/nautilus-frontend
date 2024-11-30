@@ -21,6 +21,7 @@ import { AttendanceProvider } from "./src/utils/Context/AttendanceContext";
 import { UpdateProvider } from "./src/utils/Context/UpdateContext";
 import UpdateRibbon from "./src/components/UpdateRibbon";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
 
 const prefix = Linking.createURL('/');
 
@@ -46,61 +47,84 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 
 function AppContent() {
   const { colorMode } = useThemeContext();
+  const config = {
+    screens: {
+      NotLoggedInTabs: {
+        screens: {
+          ForgotPassword: {
+            path: 'forgot-password/:email?/:token?',
+            parse: {
+              email: (email: string) => `${email}`,
+              token: (token: string) => `${token}`
+            }
+          },
+        },
+      },
+    },
+  };
+
   const linking = {
     prefixes: [prefix],
+    config,
   };
 
   return (
     <GluestackUIProvider mode={colorMode}>
       <SafeAreaProvider>
-        
+
         <ToastProvider>
           <ModalProvider>
-          <UpdateProvider>
-          
+            <UpdateProvider>
 
-            <GlobalModal />
-            
-            <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
-            
-              <AuthProvider>
-                <UsersProvider>
-                  <MeetingsProvider>
-                    <AttendanceProvider>
-                      <BLEProvider>
-                        <LocationProvider>
-                          
-                          
-                          <Stack.Navigator screenOptions={{ headerShown: false }}>
-                            
-                            <Stack.Screen
-                              name="AppInitializer"
-                              component={AppInitializer}
-                              options={{ gestureEnabled: false }}
-                            />
-                            <Stack.Screen
-                              name="RoleBasedTabs"
-                              component={RoleBasedTabs}
-                              options={{ gestureEnabled: false }}
-                            />
-                            <Stack.Screen
-                              name="NotLoggedInTabs"
-                              component={NotLoggedIn}
-                              options={{ gestureEnabled: false }}
-                            />
-                          </Stack.Navigator>
-                        </LocationProvider>
-                      </BLEProvider>
-                    </AttendanceProvider>
-                  </MeetingsProvider>
-                </UsersProvider>
-              </AuthProvider>
-            </NavigationContainer>
+
+              <GlobalModal />
+
+
+              <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
+
+                <AuthProvider>
+                  <NotificationsProvider>
+                    <UsersProvider>
+                      <MeetingsProvider>
+                        <AttendanceProvider>
+                          <BLEProvider>
+                            <LocationProvider>
+
+
+                              <Stack.Navigator screenOptions={{ headerShown: false }}>
+
+                                <Stack.Screen
+                                  name="AppInitializer"
+                                  component={AppInitializer}
+                                  options={{ gestureEnabled: false }}
+                                />
+                                <Stack.Screen
+                                  name="RoleBasedTabs"
+                                  component={RoleBasedTabs}
+                                  options={{ gestureEnabled: false }}
+                                />
+                                <Stack.Screen
+                                  name="NotLoggedInTabs"
+                                  component={NotLoggedIn}
+                                  options={{ gestureEnabled: false }}
+                                />
+                              </Stack.Navigator>
+
+
+                            </LocationProvider>
+                          </BLEProvider>
+                        </AttendanceProvider>
+                      </MeetingsProvider>
+                    </UsersProvider>
+                  </NotificationsProvider>
+                </AuthProvider>
+              </NavigationContainer>
+
             </UpdateProvider>
 
           </ModalProvider>
         </ToastProvider>
-        </SafeAreaProvider>
+      </SafeAreaProvider>
     </GluestackUIProvider>
 
   );
@@ -109,9 +133,9 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-        <AppContent />
+      <AppContent />
     </ThemeProvider>
-    
+
   );
 }
 

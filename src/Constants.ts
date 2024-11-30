@@ -3,6 +3,7 @@ import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from 'expo-constants';
 import { Subscription } from "expo-modules-core";
+import * as Notifications from "expo-notifications";
 
 export const GRADES = ["9", "10", "11", "12"];
 export const ROLES = ["unverified", "member", "leadership", "executive", "advisor", "admin"];
@@ -10,6 +11,15 @@ export const SUBTEAMS = ["Build", "Software", "Marketing", "Electrical", "Design
 export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '00000000-0000-0000-0000-000000000000';
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
+
+export interface NotificationsContextProps {
+    hasPermission: boolean;
+    requestPermission: () => Promise<void>;
+    scheduleNotification: (title: string, body: string, schedulingOptions?: Notifications.NotificationContentInput & Notifications.NotificationTriggerInput) => Promise<void>;
+    sendBackendNotification: (title: string, body: string, data: any) => Promise<void>;
+    backendHasToken: boolean;
+    checkBackendPushToken: () => Promise<void>;
+}
 
 export interface UpdateInfo {
     version: string;
