@@ -10,6 +10,8 @@ import ApiClient from '../Networking/APIClient';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from './AuthContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
+import { handleErrorWithModalOrToast } from '../Helpers';
+import { useModal } from '../UI/CustomModalProvider';
 
 const UsersContext = createContext<UsersContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[UsersProvider]';
@@ -17,6 +19,7 @@ const DEBUG_PREFIX = '[UsersProvider]';
 export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
+  const { openModal } = useModal();
 
   // States
   const [users, setUsers] = useState<UserObject[]>([]);
@@ -62,11 +65,15 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} API error while fetching users:`, error.message);
-        openToast({
-          title: 'Error',
-          description: 'Failed to fetch users. Loading cached users if available.',
-          type: 'error',
-        });
+        handleErrorWithModalOrToast({
+          actionName: 'Fetch Users',
+          error,
+          showModal: false,
+          showToast: true,
+          openToast,
+          openModal,
+
+        })
         await loadCachedUsers();
       },
       offlineHandler: async () => {
@@ -136,11 +143,13 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} API error while editing user:`, error.message);
-        openToast({
-          title: 'Error',
-          description: 'Failed to edit user.',
-          type: 'error',
-        });
+        handleErrorWithModalOrToast({
+          actionName: 'Edit User',
+          error,
+          openToast,
+          openModal,
+        })
+
       },
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline detected. Cannot edit user.`);
@@ -198,11 +207,13 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} API error while deleting user:`, error.message);
-        openToast({
-          title: 'Error',
-          description: 'Failed to delete user.',
-          type: 'error',
-        });
+        handleErrorWithModalOrToast({
+          actionName: 'Delete User',
+          error,
+          openToast,
+          openModal,
+
+        })
       },
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline detected. Cannot delete user.`);

@@ -22,6 +22,8 @@ import CreateMeetingButton from "../components/CreateMeetingButton";
 import { TouchableOpacity, Text } from "react-native";
 import HomeScreen from "../screens/User/HomeScreen";
 import { roleHierarchy, Roles, TabNames, SingleScreenStackProps } from "../Constants";
+import AttendanceManagementScreen from "../screens/Admin/AttendanceManagementScreen";
+import AttendanceHistoryScreen from "../screens/User/AttendanceHistoryScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -64,9 +66,39 @@ const createSingleScreenStack = (
 };
 
 // Define all necessary stack navigators within the same file with unique screen names
-const HomeStackNavigator = createSingleScreenStack(TabNames.Home, HomeScreen, "Home");
 const ProfileStackNavigator = createSingleScreenStack(TabNames.Profile, ProfileScreen, "Profile");
 const AsyncStorageStackNavigator = createSingleScreenStack(TabNames.AsyncStorage, DebugAsyncStorageScreen, "Async Storage");
+
+const HomeStackNavigator: React.FC = () => {
+  const Stack = createNativeStackNavigator();
+  const { colorMode } = useThemeContext();
+
+  return (
+    <Stack.Navigator screenOptions={{}}>
+      <Stack.Screen
+        name="HomeMain" // Unique name
+        component={HomeScreen}
+        options={({ navigation }) => ({
+          headerTitleAlign: "center",
+          title: 'Home',
+          headerRight: () => (
+            <TouchableOpacity onPress={() => navigation.navigate('AttendanceHistoryScreen')}>
+              <Text style={{ marginRight: 10, color: colorMode === "light" ? "black" : "white" }}>Attendance History</Text>
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="AttendanceHistoryScreen" // Unique name
+        component={AttendanceHistoryScreen}
+        options={{
+          headerTitleAlign: "center",
+          title: 'Attendance History'
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
 
 // Attendance Stack Navigator with unique screen names
 const AttendanceStackNavigator: React.FC = () => {
@@ -132,6 +164,11 @@ const DirectoryStackNavigator: React.FC = () => {
               <Text style={{ marginRight: 10, color: colorMode === "light" ? "black" : "white"}}>Verifier</Text>
             </TouchableOpacity>
           ),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.navigate('Attendance')}>
+              <Text style={{ marginLeft: 10, color: colorMode === "light" ? "black" : "white"}}>Attendance</Text>
+            </TouchableOpacity>
+          )
         })}
       />
       <Stack.Screen
@@ -142,6 +179,15 @@ const DirectoryStackNavigator: React.FC = () => {
           title: 'Verifier',
         }}
       />
+      <Stack.Screen
+        name="Attendance" // Unique name
+        component={AttendanceManagementScreen}
+        options={{
+          headerTitleAlign: "center",
+          title: 'Attendance Management',
+        }}
+      />
+
     </Stack.Navigator>
   );
 };

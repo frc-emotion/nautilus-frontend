@@ -11,6 +11,63 @@ export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
 
+export interface AttendanceLog {
+    meeting_id: number;
+    lead_id: number;
+    time_received: number;
+    flag: boolean;
+    hours: number;
+    term: number;
+    year: string;
+}
+
+export interface AttendanceContextProps {
+    schoolYears: string[];
+    schoolTerms: SchoolYear;
+    currentYear: string;
+    currentTerm: number;
+    userAttendanceHours: AttendanceHours;
+    isLoading: boolean;
+    allUsersAttendanceData: {
+        [userId: string]: {
+            user: UserObject;
+            attendanceLogs: AttendanceLogWithMeeting[];
+            attendanceHours: AttendanceHours;
+        };
+    };
+    fetchAllUsersAttendanceLogs: () => Promise<void>;
+    addManualAttendanceLog: (userId: number, attendanceLog: AttendanceLog) => Promise<void>;
+    removeManualAttendanceLogs: (userId: number, hours: number, term: number, year: string) => Promise<void>;
+}
+
+export interface UserAttendanceLogs {
+    _id: string; // User ID
+    logs: AttendanceLog[];
+}
+
+export interface AttendanceLogWithMeeting extends AttendanceLog {
+    meetingTitle: string;
+    meetingDate: Date | null;
+}
+export type AllUsersAttendanceHours = {
+    [userId: string]: {
+        user: UserObject;
+        attendanceHours: AttendanceHours;
+    };
+};
+
+export type SchoolYear = {
+    [year: string]: {
+        [term: string]: {
+            start: number; // Unix timestamp in seconds
+            end: number;   // Unix timestamp in seconds
+        };
+    };
+};
+
+export type AttendanceHours = {
+    [yearTermKey: string]: number;
+};
 export interface Beacon {
     uuid: string;
     major: number;
@@ -182,7 +239,7 @@ export interface MeetingObject {
     description: string;
     hours: number;
     location: string;
-    members_logged?: number[];
+    members_logged: number[];
     time_end: number;
     time_start: number;
     title: string;
