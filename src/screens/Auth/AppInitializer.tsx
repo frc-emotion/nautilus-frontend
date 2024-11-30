@@ -8,11 +8,13 @@ import { Center } from "@/components/ui/center";
 import { VStack } from "@/components/ui/vstack";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 
 const AppInitializer: React.FC = () => {
   const { isLoggedIn, isLoading } = useAuth();
   const meetings = useMeetings();
   const users = useUsers();
+  const attendance = useAttendance();
   const navigation = useNavigation<StackNavigationProp<any>>();
 
   const [isInitializing, setIsInitializing] = useState(true);
@@ -29,6 +31,7 @@ const AppInitializer: React.FC = () => {
           await Promise.allSettled([
             initializeContext(meetings.init, "Meetings"),
             initializeContext(users.init, "Users"),
+            initializeContext(attendance.init, "Attendance"),
           ]);
 
           console.log("Contexts initialized successfully!");

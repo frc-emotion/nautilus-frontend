@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { MoonIcon, SunIcon, ChevronDownIcon } from 'lucide-react-native';
 import { Fab, FabIcon } from '@/components/ui/fab';
+import UpdateRibbon from '@/src/components/UpdateRibbon';
 
 const HomeScreen: React.FC = () => {
     const { colorMode, toggleColorMode } = useThemeContext();
@@ -116,11 +117,13 @@ const HomeScreen: React.FC = () => {
     const totalHours = calculateTotalHours();
 
     return (
-        <ScrollView
+        <VStack space="lg" className="flex-1">
+            <UpdateRibbon />
+            <ScrollView
             contentContainerStyle={{
                 flexGrow: 1,
                 padding: 16,
-                backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+                
             }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
@@ -216,6 +219,7 @@ const HomeScreen: React.FC = () => {
                 <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
             </Fab>
         </ScrollView>
+        </VStack>
     );
 }
 export default HomeScreen;

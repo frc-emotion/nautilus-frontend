@@ -192,7 +192,7 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const contextValue: LocationContextProps = {
     locationStatus,
-    checkLocationServices
+    checkLocationServices,
   };
 
   return <LocationContext.Provider value={contextValue}>{children}</LocationContext.Provider>;

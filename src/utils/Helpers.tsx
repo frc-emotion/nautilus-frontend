@@ -166,3 +166,27 @@ export const LocationStatusIndicator = ({ state }: { state: string }) => {
     </View>
   );
 }
+
+/**
+* Compares two semantic version strings.
+* Returns:
+* -1 if v1 < v2
+*  0 if v1 == v2
+*  1 if v1 > v2
+*/
+export const compareVersions = (v1: string, v2: string): number => {
+ const v1Parts = v1.split('.').map(Number);
+ const v2Parts = v2.split('.').map(Number);
+
+ const maxLength = Math.max(v1Parts.length, v2Parts.length);
+
+ for (let i = 0; i < maxLength; i++) {
+   const a = v1Parts[i] || 0;
+   const b = v2Parts[i] || 0;
+
+   if (a > b) return 1;
+   if (a < b) return -1;
+ }
+
+ return 0;
+};

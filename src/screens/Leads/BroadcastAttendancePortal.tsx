@@ -19,7 +19,7 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { useLocation } from '@/src/utils/BLE/LocationContext';
+import { useLocation } from '@/src/utils/Context/LocationContext';
 import { BluetoothStatusIndicator, LocationStatusIndicator } from '@/src/utils/Helpers';
 import { Card } from '@/components/ui/card';
 import { Input, InputField } from '@/components/ui/input';

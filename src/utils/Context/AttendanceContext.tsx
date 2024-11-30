@@ -41,13 +41,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    useEffect(() => {
+    async function init() {
         if (user) {
             initializeAttendanceData();
         } else {
             resetContext();
         }
-    }, [user]);
+    }
 
     const resetContext = () => {
         console.log(`${DEBUG_PREFIX} Resetting context state.`);
@@ -425,6 +425,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 fetchAllUsersAttendanceLogs,
                 addManualAttendanceLog,
                 removeManualAttendanceLogs,
+                init
             }}
         >
             {children}

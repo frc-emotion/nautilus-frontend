@@ -36,7 +36,7 @@ const GlobalModal: React.FC = () => {
       case "error":
         return { icon: CloseCircleIcon, color: "red" };
       case "warning":
-        return { icon: AlertCircleIcon, color: "yellow" };
+        return { icon: AlertCircleIcon, color: "red" };
       case "info":
         return { icon: InfoIcon, color: "blue" };
       default:

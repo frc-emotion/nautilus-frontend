@@ -24,7 +24,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Card } from '@/components/ui/card';
 import { useThemeContext } from '@/src/utils/UI/CustomThemeProvider';
 import { HStack } from '@/components/ui/hstack';
-import { useLocation } from '@/src/utils/BLE/LocationContext';
+import { useLocation } from '@/src/utils/Context/LocationContext';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 

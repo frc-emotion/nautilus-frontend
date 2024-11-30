@@ -11,6 +11,21 @@ export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
 
+export interface UpdateInfo {
+    version: string;
+    update_url: {
+      android: string;
+      ios: string;
+    };
+  }
+  
+export interface UpdateContextProps {
+    isOutOfDate: boolean;
+    latestVersion: string | null;
+    openUpdateURL: () => void;
+  }
+  
+
 export interface AttendanceLog {
     meeting_id: number;
     lead_id: number;
@@ -38,6 +53,7 @@ export interface AttendanceContextProps {
     fetchAllUsersAttendanceLogs: () => Promise<void>;
     addManualAttendanceLog: (userId: number, attendanceLog: AttendanceLog) => Promise<void>;
     removeManualAttendanceLogs: (userId: number, hours: number, term: number, year: string) => Promise<void>;
+    init: () => Promise<void>;
 }
 
 export interface UserAttendanceLogs {
@@ -135,11 +151,6 @@ export interface MeetingsContextProps {
 export interface LocationContextProps {
     locationStatus: 'enabled' | 'disabled' | 'unauthorized' | 'unknown';
     checkLocationServices: () => Promise<void>;
-}
-
-export interface AppStateContextType {
-    isAppReady: boolean;
-    setAppReady: () => void;
 }
 
 export interface UserObject {

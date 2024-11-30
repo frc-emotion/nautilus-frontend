@@ -15,10 +15,12 @@ import { MeetingsProvider } from './src/utils/Context/MeetingContext';
 import { UsersProvider } from './src/utils/Context/UsersContext';
 import * as Linking from 'expo-linking';
 import * as Sentry from '@sentry/react-native';
-import { LocationProvider } from './src/utils/BLE/LocationContext';
-import { AppStateProvider } from './src/utils/Context/AppStateContext';
+import { LocationProvider } from './src/utils/Context/LocationContext';
 import AppInitializer from './src/screens/Auth/AppInitializer';
 import { AttendanceProvider } from "./src/utils/Context/AttendanceContext";
+import { UpdateProvider } from "./src/utils/Context/UpdateContext";
+import UpdateRibbon from "./src/components/UpdateRibbon";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const prefix = Linking.createURL('/');
 
@@ -50,18 +52,27 @@ function AppContent() {
 
   return (
     <GluestackUIProvider mode={colorMode}>
-      <AppStateProvider>
+      <SafeAreaProvider>
+        
         <ToastProvider>
           <ModalProvider>
+          <UpdateProvider>
+          
+
             <GlobalModal />
+            
             <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
+            
               <AuthProvider>
                 <UsersProvider>
                   <MeetingsProvider>
                     <AttendanceProvider>
                       <BLEProvider>
                         <LocationProvider>
+                          
+                          
                           <Stack.Navigator screenOptions={{ headerShown: false }}>
+                            
                             <Stack.Screen
                               name="AppInitializer"
                               component={AppInitializer}
@@ -85,18 +96,22 @@ function AppContent() {
                 </UsersProvider>
               </AuthProvider>
             </NavigationContainer>
+            </UpdateProvider>
+
           </ModalProvider>
         </ToastProvider>
-      </AppStateProvider>
+        </SafeAreaProvider>
     </GluestackUIProvider>
+
   );
 }
 
 function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+        <AppContent />
     </ThemeProvider>
+    
   );
 }
 
