@@ -24,7 +24,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.team2658.nautilus",
+      "bundleIdentifier": "org.team2658.scouting",
       "infoPlist": {
         "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
         "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
@@ -37,7 +37,6 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
-
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -57,10 +56,15 @@
           "project": "nautilus-app",
           "url": "https://sentry.io/"
         }
-        
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff",
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": false
+        }
       ]
-  
     ]
-    
   }
 }

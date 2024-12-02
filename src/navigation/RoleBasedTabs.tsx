@@ -231,6 +231,7 @@ const allTabs: Array<{
     name: TabNames.Directory,
     component: DirectoryStackNavigator,
     roles: [
+      Roles.Member,
       Roles.Leadership,
       Roles.Executive,
       Roles.Advisor,

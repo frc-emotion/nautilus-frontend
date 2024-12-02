@@ -70,6 +70,9 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       time_start: Math.floor(data.time_start.getTime() / 1000),
       time_end: Math.floor(data.time_end.getTime() / 1000),
       hours: parseFloat(data.hours),
+      term: 1, // TODO: Remove hardcoded term
+      year: "2024-2025" // TODO: Remove hardcoded year
+
     };
 
     const request: QueuedRequest = {

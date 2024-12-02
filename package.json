@@ -53,6 +53,7 @@
     "axios": "^1.7.7",
     "babel-plugin-module-resolver": "^5.0.2",
     "buffer": "^6.0.3",
+    "eas-cli": "^13.4.2",
     "expo": "~51.0.39",
     "expo-constants": "~16.0.2",
     "expo-dev-client": "~4.0.29",
