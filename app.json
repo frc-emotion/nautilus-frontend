@@ -24,7 +24,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.team2658.scouting",
+      "bundleIdentifier": "com.team2658.nautilus",
       "infoPlist": {
         "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
         "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
@@ -55,14 +55,6 @@
           "organization": "frc-team-2658",
           "project": "nautilus-app",
           "url": "https://sentry.io/"
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "color": "#ffffff",
-          "defaultChannel": "default",
-          "enableBackgroundRemoteNotifications": false
         }
       ]
     ]

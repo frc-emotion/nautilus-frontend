@@ -28,7 +28,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>nautilus</string>
-				<string>org.team2658.scouting</string>
+				<string>com.team2658.nautilus</string>
 			</array>
 		</dict>
 		<dict>
