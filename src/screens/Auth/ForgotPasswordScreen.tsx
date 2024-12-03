@@ -51,8 +51,8 @@ const ForgotPasswordScreen: React.FC=()=>{//<ForgotPasswordScreenProps> = ({toke
     console.log("Payload for API:", payload);
 
     const request: QueuedRequest = {
-        url: "/api/auth/updatePassword",
-        method: "post",
+        url: "/api/auth/forgot-password",
+        method: "put",
         data: payload,
         retryCount: 0,
         successHandler: async (response: AxiosResponse) => {

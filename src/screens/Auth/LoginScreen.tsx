@@ -56,7 +56,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         console.log("Payload for API:", payload);
 
         const request: QueuedRequest = {
-            url:"/api/auth/forgotPassword",
+            url:"/api/auth/forgot-password",
             method:"post",
             data:payload,
             retryCount:0,
