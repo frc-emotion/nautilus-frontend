@@ -1429,7 +1429,7 @@ PODS:
     - React-utils (= 0.74.5)
   - RNCAsyncStorage (1.23.1):
     - React-Core
-  - RNDateTimePicker (8.2.0):
+  - RNDateTimePicker (8.0.1):
     - React-Core
   - RNDeviceInfo (14.0.1):
     - React-Core
@@ -1454,52 +1454,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated (3.16.3):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.01.01.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Codegen
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated (= 3.16.3)
-    - RNReanimated/worklets (= 3.16.3)
-    - Yoga
-  - RNReanimated/reanimated (3.16.3):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.01.01.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Codegen
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated/apple (= 3.16.3)
-    - Yoga
-  - RNReanimated/reanimated/apple (3.16.3):
+  - RNReanimated (3.10.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1520,28 +1475,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated/worklets (3.16.3):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.01.01.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Codegen
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
-  - RNScreens (3.35.0):
+  - RNScreens (3.31.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1563,32 +1497,14 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNSentry (6.3.0):
-    - DoubleConversion
-    - glog
+  - RNSentry (5.24.3):
     - hermes-engine
-    - RCT-Folly (= 2024.01.01.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Codegen
     - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
     - React-hermes
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Sentry/HybridSDK (= 8.41.0)
-    - Yoga
-  - RNSVG (15.9.0):
+    - Sentry/HybridSDK (= 8.36.0)
+  - RNSVG (15.2.0):
     - React-Core
-  - Sentry/HybridSDK (8.41.0)
+  - Sentry/HybridSDK (8.36.0)
   - SocketRocket (0.7.0)
   - Yoga (0.0.0)
 
@@ -1933,17 +1849,17 @@ SPEC CHECKSUMS:
   React-utils: f242eb7e7889419d979ca0e1c02ccc0ea6e43b29
   ReactCommon: f7da14a8827b72704169a48c929bcde802698361
   RNCAsyncStorage: 826b603ae9c0f88b5ac4e956801f755109fa4d5c
-  RNDateTimePicker: 40ffda97d071a98a10fdca4fa97e3977102ccd14
+  RNDateTimePicker: b6a9b35a785ecbe12b4e7d6de5439d0aa4614146
   RNDeviceInfo: 825f0d2f4381327317f12d1522720a8f76e6a19e
   RNGestureHandler: 2282cfbcf86c360d29f44ace393203afd5c6cff7
-  RNReanimated: e1c250aeb93d6738eaf51e3d93871873a0c41b81
-  RNScreens: 6b641f232990a9d505a6d139fd18c3c759c9d290
-  RNSentry: 5a41ff26568a57ae990904e01f755bb2d6d96c71
-  RNSVG: 3d2bdcaef51c8071880a9c0072fe324f4423a3ba
-  Sentry: 54d0fe6c0df448497c8ed4cce66ccf7027e1823e
+  RNReanimated: 35f9ac9c3ac42d0497ebd1cce5c39d7687a8493e
+  RNScreens: b32a9ff15bea7fcdbe5dff6477bc503f792b1208
+  RNSentry: e7e5d059d62d6c447d83e14800edc1812a594a5d
+  RNSVG: 43b64ed39c14ce830d840903774154ca0c1f27ec
+  Sentry: f8374b5415bc38dfb5645941b3ae31230fbeae57
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: 950bbfd7e6f04790fdb51149ed51df41f329fcc8
 
 PODFILE CHECKSUM: d5649447e67a8e5433887fca403ac805d096fc59
 
-COCOAPODS: 1.16.1
+COCOAPODS: 1.16.2

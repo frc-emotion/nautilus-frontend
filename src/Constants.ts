@@ -12,14 +12,14 @@ export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
 
-export interface NotificationsContextProps {
-    hasPermission: boolean;
-    requestPermission: () => Promise<void>;
-    scheduleNotification: (title: string, body: string, schedulingOptions?: Notifications.NotificationContentInput & Notifications.NotificationTriggerInput) => Promise<void>;
-    sendBackendNotification: (title: string, body: string, data: any) => Promise<void>;
-    backendHasToken: boolean;
-    checkBackendPushToken: () => Promise<void>;
-}
+// export interface NotificationsContextProps {
+//     hasPermission: boolean;
+//     requestPermission: () => Promise<void>;
+//     scheduleNotification: (title: string, body: string, schedulingOptions?: Notifications.NotificationContentInput & Notifications.NotificationTriggerInput) => Promise<void>;
+//     sendBackendNotification: (title: string, body: string, data: any) => Promise<void>;
+//     backendHasToken: boolean;
+//     checkBackendPushToken: () => Promise<void>;
+// }
 
 export interface UpdateInfo {
     version: string;
@@ -103,10 +103,13 @@ export interface Beacon {
 }
 
 export type AppStackParamList = {
-    AppInitializer: undefined;
+    AuthLoading: undefined;
     RoleBasedTabs: undefined;
-    NotLoggedInTabs: undefined;
-};
+    NotLoggedInTabs: {
+      screen?: "ForgotPassword";
+      token?: string;
+    };
+  };
 
 export type SingleScreenStackProps = {
     screenName: string;

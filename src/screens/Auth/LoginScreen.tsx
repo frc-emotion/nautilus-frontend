@@ -134,7 +134,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     console.log("Payload for API:", payload);
 
     const request: QueuedRequest = {
-      url: "/api/auth/forgotPassword",
+      url: "/api/auth/forgot-password",
       method: "post",
       data: payload,
       retryCount: 3,
@@ -335,6 +335,18 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   Forgot Password?
                 </ButtonText>
               </Button>)}
+              {/* Remember Password */}
+              {forgot && (
+                <Button
+                  onPress={()=>setForgot(false)}
+                  size="sm"
+                  className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"} disabled={false}
+                  >
+                    <ButtonText className={colorMode === 'light' ? "color-black" : "color-white"}>
+                      Remember Password?
+                    </ButtonText>
+                  </Button>
+              )}
           </VStack>
           <Fab
             size="md"

@@ -9,6 +9,8 @@ import { VStack } from "@/components/ui/vstack";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useAttendance } from "@/src/utils/Context/AttendanceContext";
+import { useRoute } from "@react-navigation/native";
+
 
 const AppInitializer: React.FC = () => {
   const { isLoggedIn, isLoading } = useAuth();
@@ -18,11 +20,14 @@ const AppInitializer: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<any>>();
 
   const [isInitializing, setIsInitializing] = useState(true);
+  const route = useRoute();
 
   useEffect(() => {
     const initializeApp = async () => {
       if (isLoading) return;
 
+      const { email, token } = route.params ?? {};
+      console.log("Deep link params:", email, token);
       if (isLoggedIn) {
         try {
           console.log("Initializing app contexts...");
@@ -63,7 +68,7 @@ const AppInitializer: React.FC = () => {
   const navigateToAppropriateScreen = () => {
     setIsInitializing(false);
     setTimeout(() => {
-      navigation.replace(isLoggedIn ? "RoleBasedTabs" : "NotLoggedInTabs");
+      navigation.replace(isLoggedIn ? "RoleBasedTabs" : "NotLoggedInTabs", route.params);
     } , 0);
     
   };

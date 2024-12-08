@@ -21,9 +21,8 @@ import { AttendanceProvider } from "./src/utils/Context/AttendanceContext";
 import { UpdateProvider } from "./src/utils/Context/UpdateContext";
 import UpdateRibbon from "./src/components/UpdateRibbon";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
 
-const prefix = Linking.createURL('/');
+//import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
 
 // Sentry.init({
 //   _experiments: {
@@ -45,24 +44,21 @@ const prefix = Linking.createURL('/');
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
+const prefix = Linking.createURL('/');
+
 function AppContent() {
   const { colorMode } = useThemeContext();
   const config = {
     screens: {
-      NotLoggedInTabs: {
-        screens: {
-          ForgotPassword: {
+      AppInitializer: {
             path: 'forgot-password/:email?/:token?',
-            parse: {
-              email: (email: string) => `${email}`,
-              token: (token: string) => `${token}`
+            parse:{
+              email: (email) => `${email}`,
+              token: (token) => `${token}`
             }
-          },
-        },
       },
     },
   };
-
   const linking = {
     prefixes: [prefix],
     config,
@@ -83,7 +79,7 @@ function AppContent() {
               <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
 
                 <AuthProvider>
-                  <NotificationsProvider>
+                  {/* <NotificationsProvider> */}
                     <UsersProvider>
                       <MeetingsProvider>
                         <AttendanceProvider>
@@ -91,7 +87,7 @@ function AppContent() {
                             <LocationProvider>
 
 
-                              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                               <Stack.Navigator screenOptions={{ headerShown: false }}>
 
                                 <Stack.Screen
                                   name="AppInitializer"
@@ -116,7 +112,7 @@ function AppContent() {
                         </AttendanceProvider>
                       </MeetingsProvider>
                     </UsersProvider>
-                  </NotificationsProvider>
+                  {/* </NotificationsProvider> */}
                 </AuthProvider>
               </NavigationContainer>
 
