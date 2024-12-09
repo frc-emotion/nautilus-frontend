@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { RefreshControl, ScrollView, View, ActivityIndicator } from "react-native";
+import { RefreshControl, ScrollView, ActivityIndicator } from "react-native";
+import { View } from "@/components/ui/view";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
@@ -11,24 +12,24 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosError, AxiosResponse } from "axios";
-import ApiClient from "../../utils/Networking/APIClient";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useModal } from "@/src/utils/UI/CustomModalProvider";
-import { useNotifications } from "@/src/utils/Context/NotificationContext";
+import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const icon = require("@/src/assets/icon.png");
 
 const ProfileScreen: React.FC = () => {
   const { user, logout, refreshUser, isLoading } = useAuth();
   const { openToast } = useGlobalToast();
+  const { openModal } = useModal();
+  const { colorMode } = useThemeContext();
+  // const { backendHasToken, checkBackendPushToken } = useNotifications();
+  const { handleRequest } = useNetworking(); // handleRequest from networking
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
   const [refreshing, setRefreshing] = useState(false);
   const [displayUser, setDisplayUser] = useState<UserObject | null>(user);
-  const { colorMode } = useThemeContext();
-  const { openModal } = useModal();
-  const { backendHasToken, checkBackendPushToken } = useNotifications();
 
   useEffect(() => {
     if (user) {
@@ -43,13 +44,11 @@ const ProfileScreen: React.FC = () => {
       method: "get",
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
-        console.log(response.data)
-        const user = response.data.data.user;
+        console.log(response.data);
+        const newUser = response.data.data.user;
 
-        // Save updated user to local storage
-        await AsyncStorage.setItem("userData", JSON.stringify(user));
-
-        setDisplayUser(user);
+        await AsyncStorage.setItem("userData", JSON.stringify(newUser));
+        setDisplayUser(newUser);
 
         openToast({
           title: "Validation Successful",
@@ -69,7 +68,6 @@ const ProfileScreen: React.FC = () => {
           openToast,
         });
 
-        // Optionally log out user if token validation fails
         handleLogout();
       },
       offlineHandler: async () => {
@@ -82,7 +80,7 @@ const ProfileScreen: React.FC = () => {
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error) {
       console.error("Error during token validation:", error);
     }
@@ -99,12 +97,10 @@ const ProfileScreen: React.FC = () => {
         description: "An error occurred while refreshing user data.",
         type: "error",
       });
-
       handleLogout();
     }
 
-    await checkBackendPushToken();
-
+    //await checkBackendPushToken();
     setRefreshing(false);
   };
 
@@ -116,7 +112,7 @@ const ProfileScreen: React.FC = () => {
         description: "You have been successfully logged out.",
         type: "success",
       });
-      navigation.navigate("NotLoggedInTabs");
+      navigation.replace("NotLoggedInTabs", {});
     } catch (error) {
       console.error("Error during logout:", error);
       openToast({
@@ -127,17 +123,15 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  // If the auth state is still loading, show a loading indicator
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  // If the user is not logged in, you might want to redirect or show a message
   if (!user) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>You are not logged in.</Text>
-        <Button onPress={() => navigation.navigate("NotLoggedInTabs")}>
+        <Button onPress={() => navigation.replace("NotLoggedInTabs", {})}>
           <ButtonText>Go to Login</ButtonText>
         </Button>
       </View>
@@ -154,7 +148,6 @@ const ProfileScreen: React.FC = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
       <VStack space="lg" className="items-center">
-        {/* Profile Picture */}
         <Image
           width={128}
           height={128}
@@ -163,7 +156,6 @@ const ProfileScreen: React.FC = () => {
           alt="Profile Picture"
         />
 
-        {/* User Info */}
         <VStack space="md" className="w-full max-w-[600px]">
           <HStack className="justify-between">
             <Text>Name</Text>
@@ -202,12 +194,11 @@ const ProfileScreen: React.FC = () => {
 
           <HStack className="justify-between">
             <Text>Push Notifications</Text>
-            <Text className="font-semibold">{backendHasToken}</Text>
+            {/* <Text className="font-semibold">{backendHasToken}</Text> */}
+            <Text className="font-semibold">Disabled</Text>
           </HStack>
-
         </VStack>
 
-        {/* Logout Button */}
         <Button
           onPress={handleLogout}
           size="lg"

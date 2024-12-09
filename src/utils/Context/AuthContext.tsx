@@ -1,63 +1,68 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import ApiClient from "../Networking/APIClient";
 import { AuthContextType, UserObject } from "../../Constants";
-import { ActivityIndicator, View } from "react-native";
+import { useNetworking } from "./NetworkingContext";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { validateToken } = useNetworking();
   const [user, setUser] = useState<UserObject | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const storedData = await AsyncStorage.getItem("userData");
-        if (storedData) {
-          const parsedUser: UserObject = JSON.parse(storedData);
-          const validatedUser = await ApiClient.validateToken(parsedUser.token);
-          if (validatedUser) {
-            setUser(validatedUser);
-          } else {
-            await clearAuthData();
-          }
-        }
-      } catch (error) {
-        console.error("AuthProvider: Initialization error:", error);
-        await clearAuthData();
-      } finally {
-        console.log("AuthProvider: Initialization complete.");
-        setIsLoading(false);
-      }
-    };
+  const hasInitializedAuth = useRef(false);
 
-    initializeAuth();
-  }, []);
-
-  const clearAuthData = async () => {
+  const clearAuthData = useCallback(async () => {
     try {
       await AsyncStorage.clear();
       setUser(null);
     } catch (error) {
       console.error("AuthProvider: Error clearing auth data:", error);
     }
-  };
+  }, []);
 
-  const login = async (authToken: string, authUser: UserObject) => {
+  const initializeAuth = useCallback(async () => {
+    if (hasInitializedAuth.current) return; // already ran
+
+    hasInitializedAuth.current = true;
+    try {
+      const storedData = await AsyncStorage.getItem("userData");
+      if (storedData) {
+        const parsedUser: UserObject = JSON.parse(storedData);
+        const validatedUser = await validateToken(parsedUser.token);
+        if (validatedUser) {
+          setUser(validatedUser);
+        } else {
+          await clearAuthData();
+        }
+      }
+    } catch (error) {
+      console.error("AuthProvider: Initialization error:", error);
+      await clearAuthData();
+    } finally {
+      console.log("AuthProvider: Initialization complete.");
+      setIsLoading(false);
+    }
+  }, [validateToken, clearAuthData]);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  const login = useCallback(async (authToken: string, authUser: UserObject) => {
     try {
       await AsyncStorage.setItem("userData", JSON.stringify(authUser));
       setUser(authUser);
     } catch (error) {
       console.error("AuthProvider: Login error:", error);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await clearAuthData();
-  };
+  }, [clearAuthData]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (!user?.token) {
       console.warn("AuthProvider: No token available for refreshing user.");
       await clearAuthData();
@@ -65,7 +70,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      const updatedUser = await ApiClient.validateToken(user.token);
+      const updatedUser = await validateToken(user.token);
       if (updatedUser) {
         setUser(updatedUser);
       } else {
@@ -75,23 +80,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error("AuthProvider: Error refreshing user:", error);
       await clearAuthData();
     }
-  };
+  }, [user, validateToken, clearAuthData]);
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
+  const value = useMemo(() => ({
+    user,
+    isLoggedIn: !!user?.token,
+    isLoading,
+    login,
+    logout,
+    refreshUser,
+  }), [user, isLoading, login, logout, refreshUser]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoggedIn: !!user?.token,
-        isLoading,
-        login,
-        logout,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -104,10 +105,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-// Loading Indicator Component
-const LoadingIndicator: React.FC = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <ActivityIndicator size="large" />
-  </View>
-);

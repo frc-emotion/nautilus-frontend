@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   QueuedRequest,
@@ -6,12 +6,12 @@ import {
   USERS_STORAGE_KEY,
   UsersContextProps,
 } from '../../Constants';
-import ApiClient from '../Networking/APIClient';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from './AuthContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
 import { useModal } from '../UI/CustomModalProvider';
+import { useNetworking } from './NetworkingContext';
 
 const UsersContext = createContext<UsersContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[UsersProvider]';
@@ -20,28 +20,58 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
+  const { handleRequest } = useNetworking();
 
-  // States
   const [users, setUsers] = useState<UserObject[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserObject[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSubteam, setSelectedSubteam] = useState<string>('');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
 
-  /**
-   * Initialize UsersProvider by loading cached users and fetching fresh data.
-   */
-  useEffect(() => {
-    init();
-  }, [user]);
+  const hasInitialized = useRef(false);
 
-  /**
-   * Fetch users from the API and update the local cache.
-   */
-  const fetchUsers = async () => {
+  const loadCachedUsers = useCallback(async () => {
+    try {
+      const cachedUsersStr = await AsyncStorage.getItem(USERS_STORAGE_KEY);
+      if (cachedUsersStr) {
+        const cachedUsers: UserObject[] = JSON.parse(cachedUsersStr);
+        setUsers(cachedUsers);
+        console.log(`${DEBUG_PREFIX} Cached users loaded. Count: ${cachedUsers.length}`);
+      } else {
+        console.warn(`${DEBUG_PREFIX} No cached users found.`);
+        openToast({
+          title: 'No Cached Data',
+          description: 'No cached users available.',
+          type: 'info',
+        });
+      }
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Error loading cached users:`, error);
+      openToast({
+        title: 'Error',
+        description: 'Failed to load cached users.',
+        type: 'error',
+      });
+    }
+  }, [openToast]);
+
+  const cacheUsers = useCallback(async (usersToCache: UserObject[]) => {
+    try {
+      await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersToCache));
+      console.log(`${DEBUG_PREFIX} Users cached successfully.`);
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Error caching users:`, error);
+      openToast({
+        title: 'Error',
+        description: 'Failed to cache users.',
+        type: 'error',
+      });
+    }
+  }, [openToast]);
+
+  const fetchUsers = useCallback(async () => {
     if (!user || user.role === 'unverified') {
       console.warn(`${DEBUG_PREFIX} Fetching skipped: User is unverified or undefined.`);
       return;
@@ -50,8 +80,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     console.log(`${DEBUG_PREFIX} Fetching users from API...`);
     setIsLoading(true);
 
-    const url =
-      user.role === 'admin' ? '/api/account/users' : '/api/account/users/directory';
+    const url = ['admin', 'executive'].includes(user.role) ? '/api/account/users' : '/api/account/users/directory';
 
     const request: QueuedRequest = {
       url,
@@ -72,8 +101,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           showToast: true,
           openToast,
           openModal,
-
-        })
+        });
         await loadCachedUsers();
       },
       offlineHandler: async () => {
@@ -88,7 +116,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Unexpected error during fetch:`, error);
       openToast({
@@ -99,14 +127,9 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, openToast, openModal, handleRequest, cacheUsers, loadCachedUsers]);
 
-  /**
-   * Edit a user by ID with provided updates.
-   * @param userId - The ID of the user to edit.
-   * @param updates - Partial updates to apply to the user.
-   */
-  const editUser = async (userId: number, updates: Partial<UserObject>) => {
+  const editUser = useCallback(async (userId: number, updates: Partial<UserObject>) => {
     if (!user || user.role !== 'admin') {
       console.warn(`${DEBUG_PREFIX} Edit action skipped: Insufficient permissions.`);
       openToast({
@@ -127,14 +150,20 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
         console.log(`${DEBUG_PREFIX} User edited successfully.`);
-        console.log(`${DEBUG_PREFIX} Updated user data:`, response.data.data);
         const updatedUser: UserObject = response.data.data.user;
         setUsers((prevUsers) =>
-          prevUsers.map((u) => (u._id === updatedUser._id ? updatedUser : u))
+          prevUsers.map((u) =>
+            u._id === updatedUser._id
+              ? { ...u, ...updatedUser } // merge instead of replace
+              : u
+          )
         );
-        await cacheUsers(
-          users.map((u) => (u._id === updatedUser._id ? updatedUser : u))
-        );
+        
+        await cacheUsers(users.map((u) =>
+          u._id === updatedUser._id
+            ? { ...u, ...updatedUser } // do the same here when caching
+            : u
+        ));
         openToast({
           title: 'Success',
           description: 'User updated successfully.',
@@ -149,7 +178,6 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           openToast,
           openModal,
         })
-
       },
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline detected. Cannot edit user.`);
@@ -162,7 +190,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Unexpected error during edit:`, error);
       openToast({
@@ -171,13 +199,9 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         type: 'error',
       });
     }
-  };
+  }, [user, openToast, openModal, handleRequest, cacheUsers, users]);
 
-  /**
-   * Delete a user by ID.
-   * @param userId - The ID of the user to delete.
-   */
-  const deleteUser = async (userId: number) => {
+  const deleteUser = useCallback(async (userId: number) => {
     if (!user || user.role !== 'admin') {
       console.warn(`${DEBUG_PREFIX} Delete action skipped: Insufficient permissions.`);
       openToast({
@@ -226,7 +250,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Unexpected error during delete:`, error);
       openToast({
@@ -235,64 +259,65 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         type: 'error',
       });
     }
-  };
+  }, [user, openToast, openModal, handleRequest, cacheUsers, users]);
 
-  /**
-   * Cache users locally for offline access.
-   * @param usersToCache - The list of users to cache.
-   */
-  const cacheUsers = async (usersToCache: UserObject[]) => {
-    try {
-      await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(usersToCache));
-      console.log(`${DEBUG_PREFIX} Users cached successfully.`);
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Error caching users:`, error);
-      openToast({
-        title: 'Error',
-        description: 'Failed to cache users.',
-        type: 'error',
-      });
+  const applyFilters = useCallback(() => {
+    console.log(`${DEBUG_PREFIX} Applying filters...`);
+    let filtered = [...users];
+
+    if (selectedSubteam) {
+      filtered = filtered.filter((usr) =>
+        usr.subteam.some((subteam) =>
+          subteam.toLowerCase().includes(selectedSubteam.toLowerCase())
+        )
+      );
     }
-  };
 
-  /**
-   * Load users from the local cache.
-   */
-  const loadCachedUsers = async () => {
-    try {
-      const cachedUsersStr = await AsyncStorage.getItem(USERS_STORAGE_KEY);
-      if (cachedUsersStr) {
-        const cachedUsers: UserObject[] = JSON.parse(cachedUsersStr);
-        setUsers(cachedUsers);
-        console.log(`${DEBUG_PREFIX} Cached users loaded. Count: ${cachedUsers.length}`);
-      } else {
-        console.warn(`${DEBUG_PREFIX} No cached users found.`);
-        openToast({
-          title: 'No Cached Data',
-          description: 'No cached users available.',
-          type: 'info',
-        });
-      }
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Error loading cached users:`, error);
-      openToast({
-        title: 'Error',
-        description: 'Failed to load cached users.',
-        type: 'error',
-      });
+    if (selectedGrade) {
+      filtered = filtered.filter((usr) => usr.grade === selectedGrade);
     }
-  };
 
-  /**
-   * Initialize the UsersProvider.
-   */
-  const init = async () => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (usr) =>
+          usr.email.toLowerCase().includes(query) ||
+          usr.first_name.toLowerCase().includes(query) ||
+          usr.last_name.toLowerCase().includes(query) ||
+          usr.role.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredUsers(filtered);
+    console.log(`${DEBUG_PREFIX} Filters applied. Filtered users count: ${filtered.length}`);
+  }, [users, searchQuery, selectedSubteam, selectedGrade]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [users, searchQuery, selectedSubteam, selectedGrade, applyFilters]);
+
+  const setFilters = useCallback((newFilters: Partial<{
+    searchQuery: string;
+    selectedSubteam: string;
+    selectedGrade: string;
+  }>) => {
+    if (newFilters.searchQuery !== undefined) setSearchQuery(newFilters.searchQuery);
+    if (newFilters.selectedSubteam !== undefined) setSelectedSubteam(newFilters.selectedSubteam);
+    if (newFilters.selectedGrade !== undefined) setSelectedGrade(newFilters.selectedGrade);
+  }, []);
+
+  const init = useCallback(async () => {
+    if (hasInitialized.current) {
+      return; // Already initialized once
+    }
+
     console.log(`${DEBUG_PREFIX} Initializing...`);
     if (!user || user.role === 'unverified') {
       console.warn(`${DEBUG_PREFIX} Initialization skipped: User is unverified or undefined.`);
       return;
     }
 
+    hasInitialized.current = true;
     try {
       await loadCachedUsers();
       await fetchUsers();
@@ -304,82 +329,27 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         type: 'error',
       });
     }
-  };
+  }, [user, loadCachedUsers, fetchUsers, openToast]);
 
-  /**
-   * Apply filters to the users list based on the current filter settings.
-   */
-  const applyFilters = () => {
-    console.log(`${DEBUG_PREFIX} Applying filters...`);
-    let filtered = [...users];
-
-    if (selectedSubteam) {
-      filtered = filtered.filter((user) =>
-        user.subteam.some((subteam) =>
-          subteam.toLowerCase().includes(selectedSubteam.toLowerCase())
-        )
-      );
-    }
-
-    if (selectedGrade) {
-      filtered = filtered.filter((user) => user.grade === selectedGrade);
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (user) =>
-          user.email.toLowerCase().includes(query) ||
-          user.first_name.toLowerCase().includes(query) ||
-          user.last_name.toLowerCase().includes(query) ||
-          user.role.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredUsers(filtered);
-    console.log(`${DEBUG_PREFIX} Filters applied. Filtered users count: ${filtered.length}`);
-  };
-
-  /**
-   * Re-apply filters whenever users or filter states change.
-   */
-  useEffect(() => {
-    applyFilters();
-  }, [users, searchQuery, selectedSubteam, selectedGrade]);
-
-  /**
-   * Update filters dynamically.
-   * @param newFilters - Partial updates to the filter states.
-   */
-  const setFilters = (newFilters: Partial<{
-    searchQuery: string;
-    selectedSubteam: string;
-    selectedGrade: string;
-  }>) => {
-    if (newFilters.searchQuery !== undefined) setSearchQuery(newFilters.searchQuery);
-    if (newFilters.selectedSubteam !== undefined) setSelectedSubteam(newFilters.selectedSubteam);
-    if (newFilters.selectedGrade !== undefined) setSelectedGrade(newFilters.selectedGrade);
-  };
+  const value = useMemo(() => ({
+    users,
+    filteredUsers,
+    isLoading,
+    fetchUsers,
+    editUser,
+    deleteUser,
+    searchQuery,
+    setSearchQuery,
+    selectedSubteam,
+    setSelectedSubteam,
+    selectedGrade,
+    setSelectedGrade,
+    applyFilters,
+    init,
+  }), [users, filteredUsers, isLoading, fetchUsers, editUser, deleteUser, searchQuery, selectedSubteam, selectedGrade, applyFilters, init]);
 
   return (
-    <UsersContext.Provider
-      value={{
-        users,
-        filteredUsers,
-        isLoading,
-        fetchUsers,
-        editUser,
-        deleteUser,
-        searchQuery,
-        setSearchQuery,
-        selectedSubteam,
-        setSelectedSubteam,
-        selectedGrade,
-        setSelectedGrade,
-        applyFilters,
-        init,
-      }}
-    >
+    <UsersContext.Provider value={value}>
       {children}
     </UsersContext.Provider>
   );

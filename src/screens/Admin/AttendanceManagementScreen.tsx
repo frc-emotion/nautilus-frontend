@@ -51,6 +51,7 @@ interface EditHoursFormData {
 const AttendanceManagementScreen: React.FC = () => {
     const { colorMode } = useThemeContext();
     const { user } = useAuth();
+    if (!user) return null; // Add null check for user
     const { openToast } = useGlobalToast();
 
     const {
@@ -335,13 +336,14 @@ const AttendanceManagementScreen: React.FC = () => {
                                     <Text>Term {log.term}, {log.year}</Text>
                                 </VStack>
                             ))}
+                            {["admin", "advisor"].includes(user.role) && 
                             <Button
                                 onPress={() => handleEditHours(user)}
                                 size="sm"
                                 className="mt-4 self-end"
                             >
                                 <ButtonText>Edit Hours</ButtonText>
-                            </Button>
+                            </Button>}
                         </>
                     ) : (
                         <Text className="text-sm text-gray-500">No attendance logs available.</Text>

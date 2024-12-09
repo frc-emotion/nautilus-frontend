@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text } from 'react-native';
 import { useUpdate } from '../utils/Context/UpdateContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable } from '@/components/ui/pressable';
+import { View } from '@/components/ui/view';
+import { Text } from '@/components/ui/text';
 
 const UpdateRibbon: React.FC = () => {
   const { openUpdateURL, isOutOfDate } = useUpdate();

@@ -3,7 +3,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    View,
     TouchableOpacity,
     RefreshControl,
 } from "react-native";
@@ -13,7 +12,6 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { useModal } from "../../utils/UI/CustomModalProvider";
-import ApiClient from "../../utils/Networking/APIClient";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
@@ -36,12 +34,15 @@ import { CheckIcon } from "@/components/ui/icon";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
+import { useNetworking } from "@/src/utils/Context/NetworkingContext";
+import { View } from "@/components/ui/view";
 
 const VerifyScreen: React.FC = () => {
     const { user } = useAuth();
     const { openToast } = useGlobalToast();
     const { openModal } = useModal();
     const { colorMode } = useThemeContext();
+    const { handleRequest } = useNetworking();
 
     const [users, setUsers] = useState<UserObject[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
@@ -63,8 +64,8 @@ const VerifyScreen: React.FC = () => {
 
     useEffect(() => {
         log("useEffect [user]", user);
-        if (user?.role !== "admin") {
-            log("User is not admin, opening access denied modal");
+        if (user?.role !== "admin" && user?.role !== "executive") {
+            log("User is not admin/exec, opening access denied modal");
             openModal({
                 title: "Access Denied",
                 message: "You do not have access to this page.",
@@ -72,7 +73,7 @@ const VerifyScreen: React.FC = () => {
             });
             navigation.goBack();
         } else {
-            log("User is admin, fetching unverified users");
+            log("User is admin/exec, fetching unverified users");
             fetchUnverifiedUsers();
         }
     }, [user]);
@@ -135,7 +136,7 @@ const VerifyScreen: React.FC = () => {
             },
         };
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request); // Use handleRequest from networking context
             log("fetchUnverifiedUsers request sent");
         } catch (error) {
             log("fetchUnverifiedUsers exception", error);
@@ -248,7 +249,7 @@ const VerifyScreen: React.FC = () => {
         };
 
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request); // Use handleRequest from networking context
             log("handleVerifyUsers request sent");
         } catch (error) {
             log("handleVerifyUsers exception", error);
@@ -270,23 +271,6 @@ const VerifyScreen: React.FC = () => {
             }}
         >
             <Box className="p-4 flex-1">
-                {/* Search Bar */}
-                {/* <View className="mb-4">
-                    <Input variant="outline" size="md">
-                        <InputField
-                            value={searchQuery}
-                            onChangeText={(text) => {
-                                log('Search query changed', text);
-                                setSearchQuery(text);
-                            }}
-                            placeholder="Search by name or email"
-                            placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
-                        />
-                    </Input>
-                </View> */}
-               
-
-                {/* Users List */}
                 <Box className="rounded-lg overflow-hidden flex-1">
                     <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
                         {/* Table Header */}

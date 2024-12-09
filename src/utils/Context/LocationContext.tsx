@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import * as Location from 'expo-location';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { LocationContextProps } from '@/src/Constants';
@@ -7,6 +7,7 @@ import { AppLifecycle } from 'react-native-applifecycle';
 import { Platform } from 'react-native';
 
 const LocationContext = createContext<LocationContextProps | undefined>(undefined);
+const DEBUG_PREFIX = '[GlobalLocationManager]';
 
 export const useLocation = (): LocationContextProps => {
   const context = useContext(LocationContext);
@@ -16,9 +17,7 @@ export const useLocation = (): LocationContextProps => {
   return context;
 };
 
-const DEBUG_PREFIX = '[GlobalLocationManager]';
-
-export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [locationStatus, setLocationStatus] = useState<'enabled' | 'disabled' | 'unauthorized' | 'unknown'>('unknown');
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
@@ -27,7 +26,9 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStatusRef = useRef<'enabled' | 'disabled' | 'unauthorized' | 'unknown' | null>(null);
 
-  const updateLocationStatus = (newStatus: 'enabled' | 'disabled' | 'unauthorized' | 'unknown') => {
+  const hasStarted = useRef(false); // To ensure we only start once
+
+  const updateLocationStatus = useCallback((newStatus: 'enabled' | 'disabled' | 'unauthorized' | 'unknown') => {
     if (lastStatusRef.current !== newStatus) {
       setLocationStatus(newStatus);
       lastStatusRef.current = newStatus;
@@ -62,9 +63,9 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
       }
     }
-  };
+  }, [openToast, openModal]);
 
-  const checkLocationServices = async () => {
+  const checkLocationServices = useCallback(async () => {
     console.log(`${DEBUG_PREFIX} Checking location services.`);
     try {
       const currentPermissions = await Location.getForegroundPermissionsAsync();
@@ -73,16 +74,19 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (!isEnabled) {
         console.log(`${DEBUG_PREFIX} Location services are disabled.`);
         updateLocationStatus('disabled');
+        return;
       }
 
       if (currentPermissions.status === 'denied') {
         console.log(`${DEBUG_PREFIX} Location permissions denied.`);
         updateLocationStatus('unauthorized');
+        return;
       }
 
       if (currentPermissions.status === 'granted') {
         console.log(`${DEBUG_PREFIX} Location permissions granted.`);
         updateLocationStatus('enabled');
+        return;
       }
 
       if (currentPermissions.status === 'undetermined') {
@@ -94,52 +98,44 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.error(`${DEBUG_PREFIX} Error checking location services:`, error);
       updateLocationStatus('unknown');
     }
-  }
+  }, [updateLocationStatus]);
 
-
-  const requestLocationServices = async () => {
-    console.log(`${DEBUG_PREFIX} Checking location services status.`);
+  const requestLocationServices = useCallback(async () => {
+    console.log(`${DEBUG_PREFIX} Requesting location permissions.`);
     try {
-      console.log(`${DEBUG_PREFIX} Requesting location permissions.`);
       const { status } = await Location.requestForegroundPermissionsAsync();
-      console.log(`${DEBUG_PREFIX} Location permissions status:`, status);
       const isEnabled = await Location.hasServicesEnabledAsync();
-      console.log(`${DEBUG_PREFIX} Location services status:`, status, isEnabled);
+      console.log(`${DEBUG_PREFIX} Location permissions status: ${status}, services enabled: ${isEnabled}`);
 
       if (status === 'granted' && isEnabled) {
-        console.log(`${DEBUG_PREFIX} Location services are enabled.`);
         updateLocationStatus('enabled');
       } else if (status !== 'granted') {
-        console.log(`${DEBUG_PREFIX} Location permissions not granted.`);
         updateLocationStatus('unauthorized');
       } else {
-        console.log(`${DEBUG_PREFIX} Location services are disabled.`);
         updateLocationStatus('disabled');
       }
     } catch (error) {
-      console.error(`${DEBUG_PREFIX} Error checking location services:`, error);
+      console.error(`${DEBUG_PREFIX} Error requesting location permissions:`, error);
       updateLocationStatus('unknown');
     }
-  };
+  }, [updateLocationStatus]);
 
-  const startPolling = () => {
-    if (!pollingIntervalRef.current) {
-      console.log(`${DEBUG_PREFIX} Starting location polling.`);
-      pollingIntervalRef.current = setInterval(async () => {
-        await requestLocationServices();
-      }, 10000); // Check every 10 seconds
-    }
-  };
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) return; // Already polling
+    console.log(`${DEBUG_PREFIX} Starting location polling.`);
+    pollingIntervalRef.current = setInterval(async () => {
+      await requestLocationServices();
+    }, 10000); // Check every 10 seconds
+  }, [requestLocationServices]);
 
-  const stopPolling = () => {
-    if (pollingIntervalRef.current) {
-      console.log(`${DEBUG_PREFIX} Stopping location polling.`);
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-  };
+  const stopPolling = useCallback(() => {
+    if (!pollingIntervalRef.current) return; // Not polling
+    console.log(`${DEBUG_PREFIX} Stopping location polling.`);
+    clearInterval(pollingIntervalRef.current);
+    pollingIntervalRef.current = null;
+  }, []);
 
-  const monitorLocationServices = async () => {
+  const monitorLocationServices = useCallback(async () => {
     if (locationSubscriptionRef.current) {
       console.log(`${DEBUG_PREFIX} Subscription already active.`);
       return;
@@ -161,21 +157,25 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error starting location subscription:`, error);
     }
-  };
+  }, [updateLocationStatus]);
 
   useEffect(() => {
-    // Perform an initial check and start monitoring
-    requestLocationServices();
-    if (Platform.OS === 'ios') {
-      monitorLocationServices();
-      startPolling();
-    }
+    if (hasStarted.current) return; 
+    hasStarted.current = true;
+
+    (async () => {
+      await requestLocationServices();
+      if (Platform.OS === 'ios') {
+        await monitorLocationServices();
+        startPolling();
+      }
+    })();
 
     const appStateListener = AppLifecycle.addEventListener('change', (state) => {
       console.log(`${DEBUG_PREFIX} App state changed:`, state);
       if (state === 'active') {
         console.log(`${DEBUG_PREFIX} App is active. Rechecking location services.`);
-        checkLocationServices();
+        checkLocationServices().catch(console.error);
       }
     });
 
@@ -188,12 +188,12 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
       stopPolling();
     };
-  }, []);
+  }, [checkLocationServices, monitorLocationServices, requestLocationServices, startPolling, stopPolling]);
 
-  const contextValue: LocationContextProps = {
+  const contextValue = useMemo(() => ({
     locationStatus,
     checkLocationServices,
-  };
+  }), [locationStatus, checkLocationServices]);
 
   return <LocationContext.Provider value={contextValue}>{children}</LocationContext.Provider>;
 };

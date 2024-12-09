@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
-  Pressable,
-  View,
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +22,8 @@ import { BluetoothStatusIndicator, LocationStatusIndicator } from '@/src/utils/H
 import { Card } from '@/components/ui/card';
 import { Input, InputField } from '@/components/ui/input';
 import { Box } from '@/components/ui/box';
+import { Pressable } from '@/components/ui/pressable';
+import { View } from '@/components/ui/view';
 
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 

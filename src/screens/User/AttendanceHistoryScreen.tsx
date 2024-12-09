@@ -4,7 +4,6 @@ import {
   Platform,
   FlatList,
   RefreshControl,
-  ActivityIndicator,
 } from "react-native";
 import { Button, ButtonText } from "@/components/ui/button";
 import {
@@ -20,13 +19,10 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
-import { Icon, EyeIcon } from "@/components/ui/icon"; // Assuming EyeIcon is available
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { useForm, Controller } from "react-hook-form";
-import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useModal } from "@/src/utils/UI/CustomModalProvider";
 import { Card } from "@/components/ui/card";
-import { View } from "@/components/ui/view";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { useMeetings } from "@/src/utils/Context/MeetingContext";
@@ -34,14 +30,12 @@ import { useUsers } from "@/src/utils/Context/UsersContext";
 import { Spinner } from "@/components/ui/spinner";
 import { MeetingObject } from "@/src/Constants";
 
-interface FormData {
+export interface FormData {
   searchQuery: string;
 }
 
 const AttendanceHistoryScreen: React.FC = () => {
   const { user } = useAuth();
-  const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
   const { colorMode } = useThemeContext();
 
   const { meetings, isLoadingMeetings, fetchMeetings, init } = useMeetings();

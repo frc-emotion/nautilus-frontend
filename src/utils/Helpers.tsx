@@ -120,7 +120,7 @@ export const BluetoothStatusIndicator = ({ state }: { state: string }) => {
   }
 
   return (
-    <View className="flex-row items-center" >
+    <View className="flex-row items-center pb-2" >
       <Icon as={IconComponent} size="xl" color={color} />
       <Text className={`ml-2`} size="md" >
         Bluetooth: {statusText}

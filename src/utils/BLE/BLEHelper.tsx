@@ -1,4 +1,4 @@
-import { NativeModules, Platform, PermissionsAndroid, Alert } from 'react-native';
+import { NativeModules, Platform, PermissionsAndroid, Alert, Permission } from 'react-native';
 import { BLEHelperType, Beacon } from '@/src/Constants';
 import { requireNativeModule } from 'expo-modules-core';
 import { EventEmitter, Subscription } from "expo-modules-core";
@@ -17,8 +17,9 @@ const checkAndRequestPermissions = async (): Promise<boolean> => {
   }
 
   try {
-    const permissions: string[] = [];
-
+    
+    const permissions: Permission[] = [];
+    
     if (Platform.Version >= 31) { // Android 12 and above
       permissions.push(
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
@@ -35,9 +36,9 @@ const checkAndRequestPermissions = async (): Promise<boolean> => {
       );
       permissions.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
     }
-
-    const granted = await PermissionsAndroid.requestMultiple(permissions);
-
+    
+    const granted: { [key: string]: string } = await PermissionsAndroid.requestMultiple(permissions);
+    
     let allGranted = true;
     for (const permission of permissions) {
       if (granted[permission] !== PermissionsAndroid.RESULTS.GRANTED) {

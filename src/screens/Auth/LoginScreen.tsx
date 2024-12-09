@@ -12,29 +12,30 @@ import { Text } from "@/components/ui/text";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Button, ButtonText } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon, MoonIcon, SunIcon } from "lucide-react-native";
-import ApiClient from "../../utils/Networking/APIClient";
 import { useModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
-import { Image } from "@/components/ui/image"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { QueuedRequest } from "../../Constants";
 import { Fab, FabIcon } from "@/components/ui/fab";
 import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
-const icon = require("@/src/assets/icon.png")
+import { Image } from "@/components/ui/image";
+import { useNetworking } from "@/src/utils/Context/NetworkingContext";
+
+const icon = require("@/src/assets/icon.png");
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colorMode, toggleColorMode } = useThemeContext();
-
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const { login } = useAuth();
+  const { handleRequest } = useNetworking();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hidePassword, setHidePassword] = useState(true);
-  const [forgot, setForgot] = useState(false)
+  const [forgot, setForgot] = useState(false);
 
   const {
     control,
@@ -79,7 +80,6 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         const user = response.data.data.user;
 
         await login(user.token, user);
-
         await AsyncStorage.setItem("userData", JSON.stringify(user));
 
         console.log("User data saved to AsyncStorage:", user);
@@ -112,7 +112,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error: any) {
       console.error("Error during login:", error);
       openToast({
@@ -134,11 +134,10 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     console.log("Payload for API:", payload);
 
     const request: QueuedRequest = {
-      url: "/api/auth/forgotPassword",
+      url: "/api/auth/forgot-password",
       method: "post",
       data: payload,
       retryCount: 3,
-
       successHandler: async (response: AxiosResponse) => {
         openModal({
           title: "Success",
@@ -161,7 +160,6 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           openModal,
           openToast,
         });
-
       },
       offlineHandler: async () => {
         openToast({
@@ -179,7 +177,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error: any) {
       console.error("Error during email send:", error);
       openToast({
@@ -226,10 +224,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               alt="App Icon"
             />
 
-            {/* Email Input */}
-            <Text className="text-sm md:text-base font-medium mb-2">
-              Email
-            </Text>
+            <Text className="text-sm md:text-base font-medium mb-2">Email</Text>
             <Controller
               control={control}
               name="email"
@@ -257,57 +252,51 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               )}
             />
 
-            {/* Password Input */}
             {!forgot && (
               <>
-            <Text className="text-sm md:text-base font-medium mb-2">
-              Password
-            </Text>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, value } }) => (
-                <Input size="md" className="rounded w-9/12 mb-4 max-w-md">
-                  <InputSlot className="pl-3">
-                    <InputIcon as={LockIcon} />
-                  </InputSlot>
-                  <InputField
-                    placeholder="Enter Password"
-                    secureTextEntry={hidePassword}
-                    value={value}
-                    onChangeText={onChange}
-                    autoCorrect={false}
-                  />
-                  <InputSlot
-                    className="pr-3"
-                    onPress={() => setHidePassword(!hidePassword)}
-                  >
-                    <InputIcon as={hidePassword ? EyeOffIcon : EyeIcon} />
-                  </InputSlot>
-                </Input>
-              )}
-            />
-            </>
-          )}
+                <Text className="text-sm md:text-base font-medium mb-2">
+                  Password
+                </Text>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, value } }) => (
+                    <Input size="md" className="rounded w-9/12 mb-4 max-w-md">
+                      <InputSlot className="pl-3">
+                        <InputIcon as={LockIcon} />
+                      </InputSlot>
+                      <InputField
+                        placeholder="Enter Password"
+                        secureTextEntry={hidePassword}
+                        value={value}
+                        onChangeText={onChange}
+                        autoCorrect={false}
+                      />
+                      <InputSlot
+                        className="pr-3"
+                        onPress={() => setHidePassword(!hidePassword)}
+                      >
+                        <InputIcon as={hidePassword ? EyeOffIcon : EyeIcon} />
+                      </InputSlot>
+                    </Input>
+                  )}
+                />
 
-            {/* Login Button */}
-            {!forgot && (
-            <Button
-              onPress={handleSubmit(handleLogin, onError)}
-              size="lg"
-              className="mt-4 py-2 rounded-md w-1/2 max-w-md"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" />
-              ) : (
-                <ButtonText className="font-semibold text-lg">
-                  Login
-                </ButtonText>
-              )}
-            </Button>)}
+                <Button
+                  onPress={handleSubmit(handleLogin, onError)}
+                  size="lg"
+                  className="mt-4 py-2 rounded-md w-1/2 max-w-md"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" />
+                  ) : (
+                    <ButtonText className="font-semibold text-lg">Login</ButtonText>
+                  )}
+                </Button>
+              </>
+            )}
 
-            {/* Send Email Button */}
             {forgot && (
               <Button
                 onPress={handleSubmit(handleForgotPassword, onError)}
@@ -318,23 +307,34 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 {isSubmitting ? (
                   <ActivityIndicator size="small" />
                 ) : (
-                  <ButtonText className="font-semibold">
-                    Send Email
-                  </ButtonText>
+                  <ButtonText className="font-semibold">Send Email</ButtonText>
                 )}
-              </Button>)}
+              </Button>
+            )}
 
-            {/* Forgot Password */}
             {!forgot && (
               <Button
                 onPress={() => setForgot(true)}
                 size="sm"
-                className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"} disabled={false}
+                className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white" : "mt-4 py-2 rounded-md bg-grey"} disabled={false}
               >
                 <ButtonText className={colorMode === 'light' ? "color-black" : "color-white"}>
                   Forgot Password?
                 </ButtonText>
-              </Button>)}
+              </Button>
+            )}
+            {/* Remember Password */}
+            {forgot && (
+                <Button
+                  onPress={()=>setForgot(false)}
+                  size="sm"
+                  className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"} disabled={false}
+                  >
+                    <ButtonText className={colorMode === 'light' ? "color-black" : "color-white"}>
+                      Remember Password?
+                    </ButtonText>
+                  </Button>
+              )}
           </VStack>
           <Fab
             size="md"

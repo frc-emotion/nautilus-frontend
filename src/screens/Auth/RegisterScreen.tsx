@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { ScrollView, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
+import {
+  ScrollView,
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback
+} from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
@@ -15,7 +22,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import ApiClient from "../../utils/Networking/APIClient";
 import { EyeIcon, EyeOffIcon, ChevronDownIcon } from "lucide-react-native";
 import { useModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
@@ -24,10 +30,12 @@ import { AxiosError, AxiosResponse } from "axios";
 import { GRADES, QueuedRequest, SUBTEAMS } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { cleanPhoneNumber, formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
+import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
+  const { handleRequest } = useNetworking(); // handleRequest from networking
   const [hidePassword, setHidePassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { colorMode } = useThemeContext();
@@ -100,7 +108,6 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           openModal,
           openToast,
         });
-
       },
       offlineHandler: async () => {
         openToast({
@@ -115,12 +122,12 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           type: "info",
         });
 
-        reset(); // Clear the form even if the request is queued offline
+        reset();
       },
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error: any) {
       console.error("Error during registration:", error);
       openToast({
@@ -159,16 +166,15 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          <VStack 
-          space="md" 
-          className="w-full max-w-[600px] mx-auto p-4 rounded-md shadow-lg flex-1 justify-center"
-          style={{
-            minHeight: '100%',
-            paddingHorizontal: 16,
-            paddingVertical: Platform.OS === "ios" ? 24 : 16,
-          }}
+          <VStack
+            space="md"
+            className="w-full max-w-[600px] mx-auto p-4 rounded-md shadow-lg flex-1 justify-center"
+            style={{
+              minHeight: '100%',
+              paddingHorizontal: 16,
+              paddingVertical: Platform.OS === "ios" ? 24 : 16,
+            }}
           >
-
             {/* First and Last Name */}
             <HStack space="sm">
               <VStack space="xs" className="flex-1">

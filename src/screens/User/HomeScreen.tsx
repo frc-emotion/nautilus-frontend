@@ -1,7 +1,5 @@
-// HomeScreen.tsx
-
 import React, { useState, useEffect } from 'react';
-import { ScrollView, RefreshControl } from 'react-native';
+import { ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../utils/Context/AuthContext';
 import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { useAttendance } from '../../utils/Context/AttendanceContext';
@@ -27,7 +25,7 @@ import UpdateRibbon from '@/src/components/UpdateRibbon';
 const HomeScreen: React.FC = () => {
     const { colorMode, toggleColorMode } = useThemeContext();
     const { user, refreshUser } = useAuth();
-    const { userAttendanceHours, isLoading, schoolYears, schoolTerms } = useAttendance();
+    const { userAttendanceHours, isLoading, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
 
     const [refreshing, setRefreshing] = useState(false);
     const [selectedYear, setSelectedYear] = useState<string>('All Years');
@@ -77,8 +75,22 @@ const HomeScreen: React.FC = () => {
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        if (user?.role !== 'unverified') {
-            await refreshUser();
+        if (user?.role === 'unverified') {
+            // If user is unverified, refresh user data
+            try {
+                await refreshUser();
+            } catch (error) {
+                console.error("Error refreshing user data:", error);
+                // Optionally, show a toast or modal here
+            }
+        } else {
+            // If user is verified, refresh attendance data
+            try {
+                await refreshAttendanceData();
+            } catch (error) {
+                console.error("Error refreshing attendance data:", error);
+                // Optionally, show a toast or modal here
+            }
         }
         setRefreshing(false);
     };
@@ -93,7 +105,16 @@ const HomeScreen: React.FC = () => {
                 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             >
-                <Text>You are currently unverified. Please contact an administrator.</Text>
+                <VStack space="lg" className="flex-1 justify-center items-center p-16">
+                    <Text className="text-center">You are currently unverified. Please contact an administrator.</Text>
+                    <Button onPress={handleRefresh} size="lg" className="mt-4 py-2 rounded-md" disabled={refreshing}>
+                        {refreshing ? (
+                            <ActivityIndicator size="small" />
+                        ) : (
+                            <ButtonText className="font-semibold">Refresh</ButtonText>
+                        )}
+                    </Button>
+                </VStack>
             </ScrollView>
         );
     }
@@ -120,106 +141,108 @@ const HomeScreen: React.FC = () => {
         <VStack space="lg" className="flex-1">
             <UpdateRibbon />
             <ScrollView
-            contentContainerStyle={{
-                flexGrow: 1,
-                padding: 16,
-                
-            }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        >
-            <VStack space="lg" className="items-center">
-                <Text className="font-bold text-lg">Attendance Hours</Text>
-                {isLoading ? (
-                    <Text>Loading attendance data...</Text>
-                ) : availableYears.length > 0 ? (
-                    <>
-                        <HStack className="w-full max-w-[600px] mb-4" space="md">
-                            {/* Year Select */}
-                            <VStack className="flex-1">
-                                <Text className="mb-2">Select Year:</Text>
-                                <Select
-                                    selectedValue={selectedYear}
-                                    onValueChange={setSelectedYear}
-                                >
-                                    <SelectTrigger variant="outline" size="md" className="rounded justify-between">
-                                        <SelectInput
-                                            placeholder="Select Year"
-                                            value={selectedYear}
-                                        />
-                                        <SelectIcon className="mr-3" as={ChevronDownIcon} />
-                                    </SelectTrigger>
-                                    <SelectPortal>
-                                        <SelectBackdrop />
-                                        <SelectContent>
-                                            <SelectItem label="All Years" value="All Years" />
-                                            {availableYears.map(year => (
-                                                <SelectItem key={year} label={year} value={year} />
-                                            ))}
-                                        </SelectContent>
-                                    </SelectPortal>
-                                </Select>
-                            </VStack>
-                            {/* Term Select: Conditionally Rendered */}
-                            {selectedYear !== 'All Years' && (
+                contentContainerStyle={{
+                    flexGrow: 1,
+                    padding: 16,
+                }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            >
+                <VStack space="lg" className="items-center">
+                    <Text className="font-bold text-lg">Attendance Hours</Text>
+                    {availableYears.length > 0 ? (
+                        <>
+                            <HStack className="w-full max-w-[600px] mb-4" space="md">
+                                {/* Year Select */}
                                 <VStack className="flex-1">
-                                    <Text className="mb-2">Select Term:</Text>
+                                    <Text className="mb-2">Select Year:</Text>
                                     <Select
-                                        selectedValue={selectedTerm}
-                                        onValueChange={setSelectedTerm}
+                                        selectedValue={selectedYear}
+                                        onValueChange={setSelectedYear}
                                     >
                                         <SelectTrigger variant="outline" size="md" className="rounded justify-between">
                                             <SelectInput
-                                                placeholder="Select Term"
-                                                value={selectedTerm}
+                                                placeholder="Select Year"
+                                                value={selectedYear}
                                             />
                                             <SelectIcon className="mr-3" as={ChevronDownIcon} />
                                         </SelectTrigger>
                                         <SelectPortal>
                                             <SelectBackdrop />
                                             <SelectContent>
-                                                {termOptions.map(term => (
-                                                    <SelectItem
-                                                        key={term}
-                                                        label={term === 'All Terms' ? 'All Terms' : `Term ${term}`}
-                                                        value={term}
-                                                    />
+                                                <SelectItem label="All Years" value="All Years" />
+                                                {availableYears.map(year => (
+                                                    <SelectItem key={year} label={year} value={year} />
                                                 ))}
                                             </SelectContent>
                                         </SelectPortal>
                                     </Select>
                                 </VStack>
-                            )}
-                        </HStack>
+                                {/* Term Select: Conditionally Rendered */}
+                                {selectedYear !== 'All Years' && (
+                                    <VStack className="flex-1">
+                                        <Text className="mb-2">Select Term:</Text>
+                                        <Select
+                                            selectedValue={selectedTerm}
+                                            onValueChange={setSelectedTerm}
+                                        >
+                                            <SelectTrigger variant="outline" size="md" className="rounded justify-between">
+                                                <SelectInput
+                                                    placeholder="Select Term"
+                                                    value={selectedTerm}
+                                                />
+                                                <SelectIcon className="mr-3" as={ChevronDownIcon} />
+                                            </SelectTrigger>
+                                            <SelectPortal>
+                                                <SelectBackdrop />
+                                                <SelectContent>
+                                                    {termOptions.map(term => (
+                                                        <SelectItem
+                                                            key={term}
+                                                            label={term === 'All Terms' ? 'All Terms' : `Term ${term}`}
+                                                            value={term}
+                                                        />
+                                                    ))}
+                                                </SelectContent>
+                                            </SelectPortal>
+                                        </Select>
+                                    </VStack>
+                                )}
+                            </HStack>
 
-                        {/* Attendance Display */}
-                        <VStack className="w-full max-w-[600px]">
-                            <VStack className="mb-4">
-                                <Text className="text-center font-semibold mb-2">
-                                    {selectedYear === 'All Years' ? 'All Years' : selectedYear} {selectedTerm !== 'All Terms' ? `Term ${selectedTerm}` : ''}
-                                </Text>
-                                <Text className="text-center mb-2">
-                                    You have completed {totalHours} out of 36 hours of attendance for this period.
-                                </Text>
-                                <HStack className="items-center justify-center">
-                                    <Progress value={(totalHours / 36) * 100} className="w-80 h-2">
-                                        <ProgressFilledTrack className="bg-emerald-600" />
-                                    </Progress>
-                                </HStack>
+                            {/* Attendance Display */}
+                            <VStack className="w-full max-w-[600px]">
+                                <VStack className="mb-4">
+                                    <Text className="text-center font-semibold mb-2">
+                                        {selectedYear === 'All Years' ? 'All Years' : selectedYear} {selectedTerm !== 'All Terms' ? `Term ${selectedTerm}` : ''}
+                                    </Text>
+                                    <Text className="text-center mb-2">
+                                        You have completed {totalHours} out of 36 hours of attendance for this period.
+                                    </Text>
+                                    <HStack className="items-center justify-center">
+                                        <Progress value={(totalHours / 36) * 100} className="w-80 h-2">
+                                            <ProgressFilledTrack className="bg-emerald-600" />
+                                        </Progress>
+                                    </HStack>
+                                </VStack>
                             </VStack>
-                        </VStack>
-                    </>
-                ) : (
-                    <Text className="text-center">No attendance periods available.</Text>
-                )}
-                <Button onPress={handleRefresh} size="lg" className="py-2 rounded-md">
-                    <ButtonText className="font-semibold">Refresh</ButtonText>
-                </Button>
-            </VStack>
-            <Fab size="md" placement="bottom right" onPress={toggleColorMode}>
-                <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
-            </Fab>
-        </ScrollView>
+                        </>
+                    ) : (
+                        <Text className="text-center">No attendance periods available.</Text>
+                    )}
+                    <Button onPress={handleRefresh} size="lg" className="py-2 rounded-md" disabled={refreshing}>
+                        {refreshing ? (
+                            <ActivityIndicator size="small" />
+                        ) : (
+                            <ButtonText className="font-semibold">Refresh</ButtonText>
+                        )}
+                    </Button>
+                </VStack>
+                <Fab size="md" placement="bottom right" onPress={toggleColorMode}>
+                    <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+                </Fab>
+            </ScrollView>
         </VStack>
     );
 }
+
 export default HomeScreen;

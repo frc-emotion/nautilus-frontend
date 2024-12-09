@@ -1,9 +1,4 @@
-// Credit: Aaran
-// Merging a pull request would be very annoying so I'm just going to copy and paste the code here
-// Apologies for the missing credit
-// Needed to refactor the code to make it work with the current codebase anyways
-
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Text } from "@/components/ui/text";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -12,45 +7,54 @@ import { useModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
-import ApiClient from "../../utils/Networking/APIClient";
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback } from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { EyeIcon, EyeOffIcon, LockIcon } from "lucide-react-native";
 import { Button, ButtonText } from "@/components/ui/button";
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
+import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const ForgotPasswordScreen: React.FC = () => {
     const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
     const route = useRoute()
-    const { token, email } = route.params as { token: string; email: string };
+    const { token } = route.params as { token: string; email: string };
     const { openToast } = useGlobalToast();
     const { openModal } = useModal();
+    const { handleRequest } = useNetworking();
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [hidePassword, setHidePassword] = useState(true);
+    const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
+
     const {
         control,
         handleSubmit,
+        watch,
         formState: { errors },
     } = useForm({
         defaultValues: {
             password: "",
+            confirmPassword: "",
         },
     });
+
+    // Watch the password field to validate confirm password
+    const passwordValue = watch("password");
+
     const handleResetPassword = async (data: any) => {
         console.log("Reset password submitted with data:", data);
         setIsSubmitting(true);
         const payload = {
             password: data.password,
-            email: email,
             token: token,
         };
 
         console.log("Payload for API:", payload);
 
         const request: QueuedRequest = {
-            url: "/api/auth/updatePassword",
-            method: "post",
+            url: "/api/auth/forgot-password",
+            method: "put",
             data: payload,
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
@@ -60,14 +64,7 @@ const ForgotPasswordScreen: React.FC = () => {
                     type: "success",
                 });
 
-                openModal({
-                    title: "Reset Successful",
-                    message: "Your password has been reset successfully.",
-                    type: "success",
-                });
-
-
-                navigation.replace("NotLoggedInTabs");
+                navigation.replace("NotLoggedInTabs", {});
             },
             errorHandler: async (error: AxiosError) => {
                 console.error("Token validation failed:", error);
@@ -97,7 +94,7 @@ const ForgotPasswordScreen: React.FC = () => {
         };
 
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request);
         } catch (error: any) {
             console.error("Error during reset:", error);
             openToast({
@@ -105,7 +102,6 @@ const ForgotPasswordScreen: React.FC = () => {
                 description: "An error occurred while resetting your password. Please report this.",
                 type: "error",
             });
-
         } finally {
             setIsSubmitting(false);
         }
@@ -128,22 +124,16 @@ const ForgotPasswordScreen: React.FC = () => {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={120}
             style={{ flex: 1 }}
-
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView
                     contentContainerStyle={{ flexGrow: 1 }}
                     automaticallyAdjustKeyboardInsets={true} showsVerticalScrollIndicator
-
                 >
                     <VStack
                         className="flex-1 justify-center items-center p-16"
                         space="sm"
-
                     >
-
-                        {/* Password */}
-
                         <Text className="mb-1 mt-4">New Password</Text>
                         <Controller
                             control={control}
@@ -151,7 +141,7 @@ const ForgotPasswordScreen: React.FC = () => {
                             rules={{
                                 required: "Password is required",
                                 pattern: {
-                                    value: /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/, // regex for password
+                                    value: /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/,
                                     message: "Password must be at least 8 characters long, with at least one uppercase letter, one number, and one special character.",
                                 },
                             }}
@@ -166,7 +156,7 @@ const ForgotPasswordScreen: React.FC = () => {
                                         value={value}
                                         onChangeText={onChange}
                                         autoCorrect={false}
-
+                                        textContentType="password"
                                     />
                                     <InputSlot
                                         className="pr-3"
@@ -177,7 +167,48 @@ const ForgotPasswordScreen: React.FC = () => {
                                 </Input>
                             )}
                         />
+                        {errors.password && (
+                            <Text className="text-red-500 mt-1">
+                                {errors.password.message}
+                            </Text>
+                        )}
 
+                        <Text className="mb-1 mt-4">Confirm Password</Text>
+                        <Controller
+                            control={control}
+                            name="confirmPassword"
+                            rules={{
+                                required: "Please confirm your password",
+                                validate: value =>
+                                    value === passwordValue || "Passwords do not match",
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputSlot className="pl-3">
+                                        <InputIcon as={LockIcon} />
+                                    </InputSlot>
+                                    <InputField
+                                        placeholder="Confirm Password"
+                                        secureTextEntry={hideConfirmPassword}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        autoCorrect={false}
+                                        textContentType="password"
+                                    />
+                                    <InputSlot
+                                        className="pr-3"
+                                        onPress={() => setHideConfirmPassword(!hideConfirmPassword)}
+                                    >
+                                        <InputIcon as={hideConfirmPassword ? EyeOffIcon : EyeIcon} />
+                                    </InputSlot>
+                                </Input>
+                            )}
+                        />
+                        {errors.confirmPassword && (
+                            <Text className="text-red-500 mt-1">
+                                {errors.confirmPassword.message}
+                            </Text>
+                        )}
 
                         <Button
                             onPress={handleSubmit(handleResetPassword, onError)}
@@ -194,7 +225,6 @@ const ForgotPasswordScreen: React.FC = () => {
                             )}
                         </Button>
                     </VStack>
-
                 </ScrollView>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>

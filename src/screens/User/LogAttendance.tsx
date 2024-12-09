@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Linking, RefreshControl } from 'react-native';
+import { ScrollView, Linking, RefreshControl } from 'react-native';
+import { View } from '@/components/ui/view';
 import {
   AlertDialog,
   AlertDialogBackdrop,
@@ -9,7 +10,6 @@ import {
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
-import ApiClient from '@/src/utils/Networking/APIClient';
 import { QueuedRequest, Beacon, MeetingObject } from '@/src/Constants';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from '@/src/utils/Context/AuthContext';
@@ -25,6 +25,7 @@ import { Card } from '@/components/ui/card';
 import { useThemeContext } from '@/src/utils/UI/CustomThemeProvider';
 import { HStack } from '@/components/ui/hstack';
 import { useLocation } from '@/src/utils/Context/LocationContext';
+import { useNetworking } from '@/src/utils/Context/NetworkingContext';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
@@ -39,7 +40,7 @@ const LogAttendance: React.FC = () => {
   } = useBLE();
 
   const { locationStatus, checkLocationServices } = useLocation();
-
+  const { handleRequest, isConnected } = useNetworking(); // handleRequest & isConnected from networking
   const { meetings, fetchMeetings, isLoadingMeetings } = useMeetings();
   const { users, isLoading: isUsersLoading } = useUsers();
   const { openToast } = useGlobalToast();
@@ -52,14 +53,10 @@ const LogAttendance: React.FC = () => {
   const [loggingBeacons, setLoggingBeacons] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
-  // Logging function
   const log = (...args: any[]) => {
     console.log(`[${new Date().toISOString()}] ${DEBUG_PREFIX}`, ...args);
   };
 
-  /**
-   * Handle Location Permissions
-   */
   const handleLocationPermissions = async (): Promise<boolean> => {
     if (locationStatus !== 'enabled') {
       openToast({
@@ -76,9 +73,6 @@ const LogAttendance: React.FC = () => {
     return true;
   };
 
-  /**
-   * Handle Bluetooth Permissions
-   */
   const handleBluetoothPermissions = async (): Promise<boolean> => {
     if (bluetoothState === 'unauthorized') {
       openToast({
@@ -95,9 +89,6 @@ const LogAttendance: React.FC = () => {
     return true;
   };
 
-  /**
-   * Toggle Listening State
-   */
   const toggleListening = async () => {
     const hasLocation = await handleLocationPermissions();
     const hasBluetooth = await handleBluetoothPermissions();
@@ -128,9 +119,6 @@ const LogAttendance: React.FC = () => {
     }
   };
 
-  /**
-   * Handles logging attendance for a beacon with enhanced caching, offline support, and user confirmation.
-   */
   const initiateLogAttendance = async (beacon: Beacon) => {
     if (!user?.token) {
       openToast({
@@ -145,16 +133,12 @@ const LogAttendance: React.FC = () => {
     setLoggingBeacons(prev => [...prev, beaconId]);
 
     try {
-      // Attempt to find the meeting in cache
       const meetingId = beacon.major;
       let cachedMeeting = meetings.find(m => m._id === meetingId);
 
       // If not in cache and online, fetch meeting details
-      if (!cachedMeeting) {
-        const isConnected = await ApiClient.connected();
-        if (isConnected) {
-          cachedMeeting = await fetchMeetingDetails(meetingId);
-        }
+      if (!cachedMeeting && isConnected) {
+        cachedMeeting = await fetchMeetingDetails(meetingId);
       }
 
       setSelectedBeacon(beacon);
@@ -171,9 +155,6 @@ const LogAttendance: React.FC = () => {
     }
   };
 
-  /**
-   * Confirm and perform the attendance logging.
-   */
   const confirmLogAttendance = async () => {
     if (!selectedBeacon) return;
 
@@ -230,7 +211,7 @@ const LogAttendance: React.FC = () => {
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error) {
       console.error('Error during attendance logging:', error);
       openToast({
@@ -244,9 +225,6 @@ const LogAttendance: React.FC = () => {
     }
   };
 
-  /**
-   * Fetches meeting details from the backend.
-   */
   const fetchMeetingDetails = async (meetingId: number): Promise<MeetingObject | undefined> => {
     let fetchedMeeting: MeetingObject | undefined = undefined;
 
@@ -255,8 +233,8 @@ const LogAttendance: React.FC = () => {
       method: 'get',
       retryCount: 0,
       successHandler: async (response: AxiosResponse) => {
-        fetchedMeeting = response.data.data.meeting as MeetingObject; // Capture the fetched meeting
-        await fetchMeetings(); // Update context cache
+        fetchedMeeting = response.data.data.meeting as MeetingObject;
+        await fetchMeetings();
       },
       errorHandler: async (error: AxiosError): Promise<void> => {
         handleErrorWithModalOrToast({
@@ -264,7 +242,7 @@ const LogAttendance: React.FC = () => {
           error,
           showModal: false,
           showToast: true,
-          openModal: () => {}, // No-op since we're using AlertDialog
+          openModal: () => {},
           openToast,
         });
       },
@@ -278,30 +256,24 @@ const LogAttendance: React.FC = () => {
     };
 
     try {
-      await ApiClient.handleRequest(request); // The request is handled, and handlers update `fetchedMeeting`
+      await handleRequest(request);
     } catch (error) {
       console.error('Error fetching meeting details:', error);
     }
 
-    return fetchedMeeting; // Return the captured meeting or undefined
+    return fetchedMeeting;
   };
 
-  // Helper functions to map IDs to names
   const getMeetingTitle = (meetingId: number): string => {
     const meeting = meetings.find(m => m._id === meetingId);
     return meeting ? meeting.title : `Meeting ID: ${meetingId}`;
   };
 
   const getUserName = (userId: number): string => {
-    const user = users.find(u => u._id === userId);
-    return user ? `${user.first_name} ${user.last_name}` : `Lead ID: ${userId}`;
+    const u = users.find(u => u._id === userId);
+    return u ? `${u.first_name} ${u.last_name}` : `Lead ID: ${userId}`;
   };
 
-  /**
-   * Format UNIX timestamp to readable string.
-   * @param timestamp - UNIX timestamp in seconds.
-   * @returns Formatted date-time string.
-   */
   const formatDateTime = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString(undefined, {
@@ -314,30 +286,17 @@ const LogAttendance: React.FC = () => {
     });
   };
 
-  /**
-   * Handle pull-to-refresh action.
-   */
   const onRefresh = async () => {
     setRefreshing(true);
-    //await fetchMeetings();
-
-    console.log('Refreshing...');
     await checkLocationServices();
-    console.log('Location status checked.');
     await fetchInitialBluetoothState();
-    console.log(  'Bluetooth state checked.');
-
     setRefreshing(false);
   };
 
-  /**
-   * Effect to fetch meetings on component mount.
-   */
   useEffect(() => {
     fetchMeetings();
   }, []);
 
-  // Handle loading states
   if (isLoadingMeetings || isUsersLoading) {
     return (
       <VStack space="lg" className="p-6 flex-1 justify-center items-center">
@@ -357,7 +316,6 @@ const LogAttendance: React.FC = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <VStack space="lg" className="items-center">
-        {/* Bluetooth and Location Status Indicators */}
         <View className="flex items-center justify-center">
           <BluetoothStatusIndicator state={bluetoothState} />
           <View className="ml-4">
@@ -365,7 +323,6 @@ const LogAttendance: React.FC = () => {
           </View>
         </View>
 
-        {/* Button to take user to settings if bluetooth or location status unknown */}
         {(bluetoothState === 'unknown' || locationStatus === 'unknown' || bluetoothState === 'unauthorized' || locationStatus === 'unauthorized') && (
           <Button
             onPress={() => Linking.openSettings()}
@@ -375,12 +332,10 @@ const LogAttendance: React.FC = () => {
           </Button>
         )}
 
-        {/* Listening Status */}
         <Text size="2xl" bold className="text-center mt-4 mb-4">
           {isListening ? 'Listening for Attendance' : 'Not Listening'}
         </Text>
 
-        {/* Start/Stop Listening Button */}
         <Button
           onPress={toggleListening}
           className="px-6 rounded-lg"
@@ -395,7 +350,6 @@ const LogAttendance: React.FC = () => {
           )}
         </Button>
 
-        {/* Detected Beacons List */}
         <VStack space="md" className="w-full mt-6">
           {detectedBeacons.length > 0 ? (
             detectedBeacons.map(beacon => {
@@ -449,7 +403,6 @@ const LogAttendance: React.FC = () => {
           )}
         </VStack>
 
-        {/* Confirmation AlertDialog */}
         {selectedBeacon && (
           <AlertDialog isOpen={!!selectedBeacon} onClose={() => { setSelectedBeacon(null); setSelectedMeeting(null); }} size="md">
             <AlertDialogBackdrop />
@@ -467,7 +420,7 @@ const LogAttendance: React.FC = () => {
                     <Text size="sm"><Text className="font-bold">Location:</Text> {selectedMeeting.location}</Text>
                     <Text size="sm"><Text className="font-bold">Time Start:</Text> {formatDateTime(selectedMeeting.time_start)}</Text>
                     <Text size="sm"><Text className="font-bold">Time End:</Text> {formatDateTime(selectedMeeting.time_end)}</Text>
-                    <Text size="sm"><Text className="font-bold">Created by:</Text> {getUserName(selectedMeeting.created_by)}</Text>
+                    <Text size="sm"><Text className="font-bold">Created by:</Text> {users.find(u => u._id === selectedMeeting.created_by)?.first_name || `User ID ${selectedMeeting.created_by}`}</Text>
                   </>
                 ) : (
                   <Text size="sm">

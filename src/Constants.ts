@@ -1,6 +1,6 @@
 import { Theme } from "@react-navigation/native";
 import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
-import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+import { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from 'expo-constants';
 import { Subscription } from "expo-modules-core";
 import * as Notifications from "expo-notifications";
@@ -11,6 +11,13 @@ export const SUBTEAMS = ["Build", "Software", "Marketing", "Electrical", "Design
 export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '00000000-0000-0000-0000-000000000000';
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
+
+export interface NetworkingContextProps {
+    handleRequest: (request: QueuedRequest) => Promise<void>;
+    validateToken: (token: string) => Promise<UserObject | null>;
+    isConnected: boolean;
+    client: AxiosInstance;
+  }
 
 export interface NotificationsContextProps {
     hasPermission: boolean;
@@ -64,6 +71,7 @@ export interface AttendanceContextProps {
     addManualAttendanceLog: (userId: number, attendanceLog: AttendanceLog) => Promise<void>;
     removeManualAttendanceLogs: (userId: number, hours: number, term: number, year: string) => Promise<void>;
     init: () => Promise<void>;
+    refreshAttendanceData: () => Promise<void>;
 }
 
 export interface UserAttendanceLogs {
@@ -105,8 +113,11 @@ export interface Beacon {
 export type AppStackParamList = {
     AppInitializer: undefined;
     RoleBasedTabs: undefined;
-    NotLoggedInTabs: undefined;
-};
+    NotLoggedInTabs: {
+      screen?: "ForgotPassword";
+      token?: string;
+    };
+  };
 
 export type SingleScreenStackProps = {
     screenName: string;

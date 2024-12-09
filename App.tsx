@@ -19,58 +19,53 @@ import { LocationProvider } from './src/utils/Context/LocationContext';
 import AppInitializer from './src/screens/Auth/AppInitializer';
 import { AttendanceProvider } from "./src/utils/Context/AttendanceContext";
 import { UpdateProvider } from "./src/utils/Context/UpdateContext";
-import UpdateRibbon from "./src/components/UpdateRibbon";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+// import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
+import { NetworkingProvider } from "./src/utils/Context/NetworkingContext";
 
 const prefix = Linking.createURL('/');
 
-// Sentry.init({
-//   _experiments: {
-//     replaysSessionSampleRate: 1.0,
-//     replaysOnErrorSampleRate: 1.0,
-//   },
-//   integrations: [
-//     Sentry.mobileReplayIntegration({
-//       maskAllText: false,
-//       maskAllImages: false,
-//       maskAllVectors: false,
-//     }),
-//     Sentry.reactNativeTracingIntegration()
-//   ],
-//   tracesSampleRate: 1.0,
-//   dsn: 'https://7936f94eafb814c3209eb90c93eac658@o4508361827745792.ingest.us.sentry.io/4508361836527616',
-//   debug: true, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
-// });
+Sentry.init({
+  _experiments: {
+    replaysSessionSampleRate: 1.0,
+    replaysOnErrorSampleRate: 1.0,
+  },
+  integrations: [
+    Sentry.mobileReplayIntegration({
+      maskAllText: false,
+      maskAllImages: false,
+      maskAllVectors: false,
+    }),
+    Sentry.reactNativeTracingIntegration()
+  ],
+  tracesSampleRate: 1.0,
+  dsn: 'https://7936f94eafb814c3209eb90c93eac658@o4508361827745792.ingest.us.sentry.io/4508361836527616',
+  debug: true, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
+});
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 function AppContent() {
   const { colorMode } = useThemeContext();
-  const config = {
-    screens: {
-      NotLoggedInTabs: {
-        screens: {
-          ForgotPassword: {
-            path: 'forgot-password/:email?/:token?',
-            parse: {
-              email: (email: string) => `${email}`,
-              token: (token: string) => `${token}`
-            }
-          },
+
+  const linking = {
+    prefixes: [prefix],
+    config: {
+      screens: {
+        AppInitializer: {
+          path: 'forgot-password/:token?',
+          parse: {
+            token: (token: string) => `${token}`
+          }
         },
       },
     },
   };
 
-  const linking = {
-    prefixes: [prefix],
-    config,
-  };
-
   return (
     <GluestackUIProvider mode={colorMode}>
       <SafeAreaProvider>
+        <NetworkingProvider>
 
         <ToastProvider>
           <ModalProvider>
@@ -79,11 +74,11 @@ function AppContent() {
 
               <GlobalModal />
 
-
+              <AuthProvider>
               <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
 
-                <AuthProvider>
-                  <NotificationsProvider>
+                
+                  {/* <NotificationsProvider> */}
                     <UsersProvider>
                       <MeetingsProvider>
                         <AttendanceProvider>
@@ -116,15 +111,17 @@ function AppContent() {
                         </AttendanceProvider>
                       </MeetingsProvider>
                     </UsersProvider>
-                  </NotificationsProvider>
-                </AuthProvider>
+                  {/* </NotificationsProvider> */}
+                
               </NavigationContainer>
-
+              </AuthProvider>
             </UpdateProvider>
 
           </ModalProvider>
         </ToastProvider>
+        </NetworkingProvider>
       </SafeAreaProvider>
+      
     </GluestackUIProvider>
 
   );

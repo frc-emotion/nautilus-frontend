@@ -17,15 +17,13 @@ import { Text } from "@/components/ui/text";
 import { useForm, Controller } from "react-hook-form";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { AxiosError, AxiosResponse } from "axios";
-import { QueuedRequest } from "../Constants";
-import { useAuth } from "../utils/Context/AuthContext";
+import { QueuedRequest, FormData } from "../Constants";
 import { useThemeContext } from "../utils/UI/CustomThemeProvider";
 import { useGlobalToast } from "../utils/UI/CustomToastProvider";
-import ApiClient from "../utils/Networking/APIClient";
-import { FormData } from "../Constants";
-import { handleErrorWithModalOrToast } from "../utils/Helpers";
 import { useModal } from "../utils/UI/CustomModalProvider";
-import { Input, InputField } from "@/components/ui/input"; // Import subcomponents
+import { handleErrorWithModalOrToast } from "../utils/Helpers";
+import { Input, InputField } from "@/components/ui/input";
+import { useNetworking } from "../utils/Context/NetworkingContext";
 
 const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
   onMeetingCreated,
@@ -33,6 +31,8 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const { colorMode } = useThemeContext();
+  const { handleRequest } = useNetworking();
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -72,7 +72,6 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       hours: parseFloat(data.hours),
       term: 1, // TODO: Remove hardcoded term
       year: "2024-2025" // TODO: Remove hardcoded year
-
     };
 
     const request: QueuedRequest = {
@@ -95,7 +94,6 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       },
       errorHandler: async (error: AxiosError) => {
         log("handleCreateMeeting errorHandler", error);
-
         handleErrorWithModalOrToast({
           actionName: "Creating meeting",
           error,
@@ -116,24 +114,13 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request); // Use handleRequest from networking context
       log("handleCreateMeeting request sent");
     } catch (error) {
       log("handleCreateMeeting exception", error);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Helper function to format date and time
-  const formatDateTime = (date: Date) => {
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-    });
   };
 
   return (
@@ -240,28 +227,25 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
 
                 {/* Start Time Picker */}
                 <Text className="font-medium">Start Time</Text>
-                  <Controller
-                    control={control}
-                    name="time_start"
-                    rules={{
-                      required: "Start time is required",
-                      }}
-                      
-                    render={({ field: { onChange, value } }) => (
-                      <DateTimePicker
-                        value={value}
-                        mode="datetime"
-                        display={
-                          "default"
+                <Controller
+                  control={control}
+                  name="time_start"
+                  rules={{
+                    required: "Start time is required",
+                  }}
+                  render={({ field: { onChange, value } }) => (
+                    <DateTimePicker
+                      value={value}
+                      mode="datetime"
+                      display={"default"}
+                      onChange={(event, selectedDate) => {
+                        if (selectedDate) {
+                          onChange(selectedDate);
                         }
-                        onChange={(event, selectedDate) => {
-                          if (selectedDate) {
-                            onChange(selectedDate);
-                          }
-                        }}
-                      />
-                    )}
-                  />
+                      }}
+                    />
+                  )}
+                />
                 {errors.time_start && (
                   <Text className="text-red-500">
                     {errors.time_start.message}
@@ -270,34 +254,32 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
 
                 {/* End Time Picker */}
                 <Text className="font-medium">End Time</Text>
-                  <Controller
-                    control={control}
-                    name="time_end"
-                    rules={{
-                      required: "End time is required",
-                      validate: (value) => {
-                        const { time_start } = getValues();
-                        return (
-                          value > time_start ||
-                          "End time must be after start time"
-                        );
-                      },
-                    }}
-                    render={({ field: { onChange, value } }) => (
-                      <DateTimePicker
-                        value={value}
-                        mode="datetime"
-                        display={
-                          "default"
+                <Controller
+                  control={control}
+                  name="time_end"
+                  rules={{
+                    required: "End time is required",
+                    validate: (value) => {
+                      const { time_start } = getValues();
+                      return (
+                        value > time_start ||
+                        "End time must be after start time"
+                      );
+                    },
+                  }}
+                  render={({ field: { onChange, value } }) => (
+                    <DateTimePicker
+                      value={value}
+                      mode="datetime"
+                      display={"default"}
+                      onChange={(event, selectedDate) => {
+                        if (selectedDate) {
+                          onChange(selectedDate);
                         }
-                        onChange={(event, selectedDate) => {
-                          if (selectedDate) {
-                            onChange(selectedDate);
-                          }
-                        }}
-                      />
-                    )}
-                  />
+                      }}
+                    />
+                  )}
+                />
                 {errors.time_end && (
                   <Text className="text-red-500">
                     {errors.time_end.message}
@@ -351,7 +333,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small"/>
                 ) : (
                   <ButtonText>Create</ButtonText>
                 )}

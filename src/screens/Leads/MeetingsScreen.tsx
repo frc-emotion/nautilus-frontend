@@ -1,5 +1,3 @@
-// MeetingsScreen.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -24,7 +22,7 @@ import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
-import { Icon, ThreeDotsIcon, EyeIcon } from "@/components/ui/icon"; // Import EyeIcon
+import { Icon, ThreeDotsIcon, EyeIcon } from "@/components/ui/icon";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useForm, Controller } from "react-hook-form";
@@ -36,29 +34,18 @@ import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { useMeetings } from "@/src/utils/Context/MeetingContext";
 import { MeetingObject, FormData, QueuedRequest, UserObject } from "@/src/Constants";
-import ApiClient from "@/src/utils/Networking/APIClient";
-import { useUsers } from "@/src/utils/Context/UsersContext";
 import { Spinner } from "@/components/ui/spinner";
+import { useUsers } from "@/src/utils/Context/UsersContext";
+import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const MeetingsScreen: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
   const { colorMode } = useThemeContext();
-
   const { users } = useUsers();
-
-  const {
-    meetings,
-    isLoadingMeetings,
-    fetchMeetings,
-    init,
-  } = useMeetings();
-
-  // Logging function
-  const log = (...args: any[]) => {
-    console.log(`[${new Date().toISOString()}] [MeetingsScreen]`, ...args);
-  };
+  const { meetings, isLoadingMeetings, fetchMeetings, init } = useMeetings();
+  const { handleRequest } = useNetworking(); // handleRequest from networking
 
   const [refreshing, setRefreshing] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -67,7 +54,6 @@ const MeetingsScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
 
-  // State for viewing meeting details
   const [viewingUsers, setViewingUsers] = useState<UserObject[]>([]);
   const [showViewUsersDialog, setShowViewUsersDialog] = useState<boolean>(false);
 
@@ -89,16 +75,16 @@ const MeetingsScreen: React.FC = () => {
     },
   });
 
+  const log = (...args: any[]) => {
+    console.log(`[${new Date().toISOString()}] [MeetingsScreen]`, ...args);
+  };
+
   useEffect(() => {
     log("useEffect [user]", user);
-    if (!user) {
-      return;
-    }
-
+    if (!user) return;
     init();
   }, [user]);
 
-  // Filter meetings based on search query
   useEffect(() => {
     log('useEffect [searchQuery]', searchQuery);
     if (!searchQuery) {
@@ -116,7 +102,6 @@ const MeetingsScreen: React.FC = () => {
 
     setFilteredMeetings(filtered);
   }, [searchQuery, meetings]);
-
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -165,7 +150,7 @@ const MeetingsScreen: React.FC = () => {
       },
     };
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
       log("handleDeleteMeeting request sent");
     } catch (error) {
       log("handleDeleteMeeting exception", error);
@@ -174,7 +159,7 @@ const MeetingsScreen: React.FC = () => {
 
   const handleEditMeeting = (meeting: MeetingObject) => {
     log("handleEditMeeting called", meeting);
-    setEditMeeting({ ...meeting }); // Create a copy to avoid mutating original
+    setEditMeeting({ ...meeting });
     setValue("title", meeting.title);
     setValue("description", meeting.description);
     setValue("location", meeting.location);
@@ -256,7 +241,7 @@ const MeetingsScreen: React.FC = () => {
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
       log("saveEditChanges request sent");
     } catch (error) {
       log("saveEditChanges exception", error);
@@ -265,17 +250,14 @@ const MeetingsScreen: React.FC = () => {
     }
   };
 
-  // Function to handle viewing meeting details (existing functionality)
   const handleViewMeeting = (meeting: MeetingObject) => {
     log("handleViewMeeting called", meeting);
-    // Existing functionality to view meeting details
-    // You can enhance this as needed
+    // Existing functionality: just log or show details if needed
   };
 
-  // Function to handle viewing logged users
   const handleViewUsers = (meeting: MeetingObject) => {
     log("handleViewUsers called", meeting);
-    
+
     if (!meeting.members_logged || meeting.members_logged.length === 0) {
       openToast({
         title: "No Users Logged",
@@ -284,15 +266,12 @@ const MeetingsScreen: React.FC = () => {
       });
       return;
     }
-    
-    // Map user IDs to UserObject
+
     const loggedUsers: UserObject[] = users.filter(u => meeting.members_logged?.includes(u._id));
-    
     setViewingUsers(loggedUsers);
     setShowViewUsersDialog(true);
   };
 
-  // Helper function to format date and time
   const formatDateTime = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString(undefined, {
@@ -305,11 +284,6 @@ const MeetingsScreen: React.FC = () => {
     });
   };
 
-  const getUserName = (userId: number): string => {
-    const user = users.find(u => u._id === userId);
-    return user ? `${user.first_name} ${user.last_name}` : `Lead ID: ${userId}`;
-  };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -319,21 +293,18 @@ const MeetingsScreen: React.FC = () => {
       }}
     >
       <Box className="p-4 flex-1">
-      
-          <Input variant="outline" size="md" className="mb-4">
-            <InputField
-              value={searchQuery}
-              onChangeText={(text) => {
-                log('Search query changed', text);
-                setSearchQuery(text);
-              }}
-              placeholder="Search by name, description, location..."
-              placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
-            />
-          </Input>
-        
+        <Input variant="outline" size="md" className="mb-4">
+          <InputField
+            value={searchQuery}
+            onChangeText={(text) => {
+              log('Search query changed', text);
+              setSearchQuery(text);
+            }}
+            placeholder="Search by name, description, location..."
+            placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+          />
+        </Input>
 
-        {/* Meetings List */}
         <Box className="rounded-lg overflow-hidden flex-1">
           <ScrollView
             refreshControl={
@@ -373,15 +344,13 @@ const MeetingsScreen: React.FC = () => {
                     <View className="flex flex-row items-center">
                       {(user?.role === "admin" || user?.role === "executive" || user?.role === "advisor" || user?.role === "leadership") && (
                         <>
-                          {/* Eye Icon for Viewing Logged Users */}
                           <Pressable
                             onPress={() => handleViewUsers(meeting)}
                             className="mr-2"
                           >
                             <Icon as={EyeIcon} />
                           </Pressable>
-                          
-                          {/* Existing Menu for Edit/Delete */}
+
                           <Menu
                             trigger={({ ...triggerProps }) => (
                               <Pressable {...triggerProps}>
@@ -416,7 +385,6 @@ const MeetingsScreen: React.FC = () => {
           </ScrollView>
         </Box>
 
-        {/* Edit Meeting Dialog */}
         {editMeeting && showEditDialog && (
           <AlertDialog
             isOpen={showEditDialog}
@@ -432,22 +400,17 @@ const MeetingsScreen: React.FC = () => {
               </AlertDialogHeader>
               <AlertDialogBody>
                 <VStack space="sm">
-                  {/* Title Field */}
                   <Text className="font-medium">Title</Text>
                   <Controller
                     control={control}
                     name="title"
                     rules={{ required: "Title is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <Input
-                        variant="outline"
-                        size="md"
-                      >
+                      <Input variant="outline" size="md">
                         <InputField
                           value={value}
                           onChangeText={onChange}
                           placeholder="Title"
-                          className="bg-inputBackground"
                           placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
                         />
                       </Input>
@@ -457,22 +420,17 @@ const MeetingsScreen: React.FC = () => {
                     <Text className="text-red-500">{errors.title.message}</Text>
                   )}
 
-                  {/* Description Field */}
                   <Text className="font-medium">Description</Text>
                   <Controller
                     control={control}
                     name="description"
                     rules={{ required: "Description is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <Input
-                        variant="outline"
-                        size="md"
-                      >
+                      <Input variant="outline" size="md">
                         <InputField
                           value={value}
                           onChangeText={onChange}
                           placeholder="Description"
-                          className="bg-inputBackground"
                           placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
                         />
                       </Input>
@@ -484,22 +442,17 @@ const MeetingsScreen: React.FC = () => {
                     </Text>
                   )}
 
-                  {/* Location Field */}
                   <Text className="font-medium">Location</Text>
                   <Controller
                     control={control}
                     name="location"
                     rules={{ required: "Location is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <Input
-                        variant="outline"
-                        size="md"
-                      >
+                      <Input variant="outline" size="md">
                         <InputField
                           value={value}
                           onChangeText={onChange}
                           placeholder="Location"
-                          className="bg-inputBackground"
                           placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
                         />
                       </Input>
@@ -511,7 +464,6 @@ const MeetingsScreen: React.FC = () => {
                     </Text>
                   )}
 
-                  {/* Start Time Picker */}
                   <Text className="font-medium">Start Time</Text>
                   <Controller
                     control={control}
@@ -535,7 +487,6 @@ const MeetingsScreen: React.FC = () => {
                     </Text>
                   )}
 
-                  {/* End Time Picker */}
                   <Text className="font-medium">End Time</Text>
                   <Controller
                     control={control}
@@ -569,7 +520,6 @@ const MeetingsScreen: React.FC = () => {
                     </Text>
                   )}
 
-                  {/* Hours Field */}
                   <Text className="font-medium">Hours</Text>
                   <Controller
                     control={control}
@@ -582,16 +532,12 @@ const MeetingsScreen: React.FC = () => {
                       },
                     }}
                     render={({ field: { onChange, value } }) => (
-                      <Input
-                        variant="outline"
-                        size="md"
-                      >
+                      <Input variant="outline" size="md">
                         <InputField
                           value={value}
                           onChangeText={onChange}
                           placeholder="Hours"
                           keyboardType="numeric"
-                          className="bg-inputBackground"
                           placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
                         />
                       </Input>
@@ -618,7 +564,7 @@ const MeetingsScreen: React.FC = () => {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small"/>
                   ) : (
                     <ButtonText>Save</ButtonText>
                   )}
@@ -628,7 +574,6 @@ const MeetingsScreen: React.FC = () => {
           </AlertDialog>
         )}
 
-        {/* View Logged Users Dialog */}
         {showViewUsersDialog && (
           <AlertDialog
             isOpen={showViewUsersDialog}

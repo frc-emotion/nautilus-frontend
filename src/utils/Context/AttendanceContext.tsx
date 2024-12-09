@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import ApiClient from '../Networking/APIClient';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { AxiosResponse, AxiosError } from 'axios';
 import { useAuth } from './AuthContext';
 import { useUsers } from './UsersContext';
@@ -16,6 +15,7 @@ import {
 import { useMeetings } from './MeetingContext';
 import { useModal } from '../UI/CustomModalProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
+import { useNetworking } from './NetworkingContext';
 
 const AttendanceContext = createContext<AttendanceContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[AttendanceProvider]';
@@ -26,6 +26,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const { meetings } = useMeetings();
     const { openToast } = useGlobalToast();
     const { openModal } = useModal();
+    const { handleRequest } = useNetworking();
 
     const [schoolYears, setSchoolYears] = useState<string[]>([]);
     const [schoolTerms, setSchoolTerms] = useState<SchoolYear>({});
@@ -41,15 +42,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    async function init() {
-        if (user) {
-            initializeAttendanceData();
-        } else {
-            resetContext();
-        }
-    }
+    const hasInitialized = useRef(false);
 
-    const resetContext = () => {
+    const resetContext = useCallback(() => {
         console.log(`${DEBUG_PREFIX} Resetting context state.`);
         setSchoolYears([]);
         setSchoolTerms({});
@@ -57,79 +52,23 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setCurrentTerm(1);
         setUserAttendanceHours({});
         setAllUsersAttendanceData({});
-    };
+    }, []);
 
-    const initializeAttendanceData = async () => {
-        console.log(`${DEBUG_PREFIX} Initializing attendance data.`);
-        setIsLoading(true);
-        try {
-            if (users.length === 0 && !usersLoading) {
-                console.log(`${DEBUG_PREFIX} Fetching users.`);
-                await fetchUsers();
-                console.log(`${DEBUG_PREFIX} Users fetched.`);
+    const computeAttendanceHours = useCallback((logs: AttendanceLog[]): AttendanceHours => {
+        const attendanceHours: AttendanceHours = {};
+        logs.forEach((log) => {
+            const { term, year, hours } = log;
+            if (year && term) {
+                const key = `${year}_${term}`;
+                attendanceHours[key] = (attendanceHours[key] || 0) + hours;
+            } else {
+                console.warn(`${DEBUG_PREFIX} Invalid attendance log:`, log);
             }
-            await fetchYearsAndTerms();
-            determineCurrentYearAndTerm();
-            await fetchUserAttendanceLogs();
+        });
+        return attendanceHours;
+    }, []);
 
-            if (['admin', 'advisor', 'executive'].includes(user.role)) {
-                await fetchAllUsersAttendanceLogs();
-            }
-        } catch (error) {
-            console.error(`${DEBUG_PREFIX} Initialization error:`, error);
-            openToast({
-                title: 'Initialization Error',
-                description: 'An error occurred while initializing attendance data.',
-                type: 'error',
-            });
-        } finally {
-            setIsLoading(false);
-            console.log(`${DEBUG_PREFIX} Attendance data initialization complete.`);
-        }
-    };
-
-    const fetchYearsAndTerms = async () => {
-        console.log(`${DEBUG_PREFIX} Fetching school years and terms.`);
-        const request: QueuedRequest = {
-            url: '/api/attendance/years',
-            method: 'get',
-            retryCount: 0,
-            successHandler: async (response: AxiosResponse) => {
-                const data = response.data;
-                console.log(`${DEBUG_PREFIX} Received years and terms:`, data);
-                const years = Object.keys(data);
-                setSchoolYears(years || []);
-                setSchoolTerms(data || {});
-            },
-            errorHandler: async (error: AxiosError) => {
-                console.error(`${DEBUG_PREFIX} Error fetching years and terms:`, error);
-                handleErrorWithModalOrToast({
-                    actionName: 'Fetch Years and Terms',
-                    error,
-                    showModal: false,
-                    showToast: true,
-                    openModal,
-                    openToast,
-                })
-            },
-            offlineHandler: async () => {
-                console.warn(`${DEBUG_PREFIX} Offline while fetching years and terms.`);
-                openToast({
-                    title: 'Offline',
-                    description: 'Cannot fetch school years and terms while offline.',
-                    type: 'warning',
-                });
-            },
-        };
-
-        try {
-            await ApiClient.handleRequest(request);
-        } catch (error) {
-            console.error(`${DEBUG_PREFIX} Unexpected error during fetchYearsAndTerms:`, error);
-        }
-    };
-
-    const determineCurrentYearAndTerm = () => {
+    const determineCurrentYearAndTerm = useCallback(() => {
         console.log(`${DEBUG_PREFIX} Determining current year and term based on timestamp.`);
         const currentTimestamp = Math.floor(Date.now() / 1000);
         let found = false;
@@ -166,9 +105,50 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 console.error(`${DEBUG_PREFIX} No terms available for the latest year: ${latestYear}`);
             }
         }
-    };
+    }, [schoolYears, schoolTerms]);
 
-    const fetchUserAttendanceLogs = async () => {
+    const fetchYearsAndTerms = useCallback(async () => {
+        console.log(`${DEBUG_PREFIX} Fetching school years and terms.`);
+        const request: QueuedRequest = {
+            url: '/api/attendance/years',
+            method: 'get',
+            retryCount: 0,
+            successHandler: async (response: AxiosResponse) => {
+                const data = response.data;
+                console.log(`${DEBUG_PREFIX} Received years and terms:`, data);
+                const years = Object.keys(data);
+                setSchoolYears(years || []);
+                setSchoolTerms(data || {});
+            },
+            errorHandler: async (error: AxiosError) => {
+                console.error(`${DEBUG_PREFIX} Error fetching years and terms:`, error);
+                handleErrorWithModalOrToast({
+                    actionName: 'Fetch Years and Terms',
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
+                })
+            },
+            offlineHandler: async () => {
+                console.warn(`${DEBUG_PREFIX} Offline while fetching years and terms.`);
+                openToast({
+                    title: 'Offline',
+                    description: 'Cannot fetch school years and terms while offline.',
+                    type: 'warning',
+                });
+            },
+        };
+
+        try {
+            await handleRequest(request);
+        } catch (error) {
+            console.error(`${DEBUG_PREFIX} Unexpected error during fetchYearsAndTerms:`, error);
+        }
+    }, [handleRequest, openModal, openToast]);
+
+    const fetchUserAttendanceLogs = useCallback(async () => {
         if (!user) return;
         console.log(`${DEBUG_PREFIX} Fetching attendance logs for user: ${user._id}`);
         const request: QueuedRequest = {
@@ -209,13 +189,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
 
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request);
         } catch (error) {
             console.error(`${DEBUG_PREFIX} Unexpected error during fetchUserAttendanceLogs:`, error);
         }
-    };
+    }, [user, computeAttendanceHours, handleRequest, openModal, openToast]);
 
-    const fetchAllUsersAttendanceLogs = async () => {
+    const fetchAllUsersAttendanceLogs = useCallback(async () => {
         if (!user || !['admin', 'advisor', 'executive'].includes(user.role)) return;
         console.log(`${DEBUG_PREFIX} Fetching attendance logs for all users.`);
         const request: QueuedRequest = {
@@ -224,7 +204,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
                 const data = response.data.data;
-                const attendanceData = data.attendance; // Array of { _id: userId, logs: AttendanceLog[] }
+                const attendanceData = data.attendance;
 
                 if (attendanceData && Array.isArray(attendanceData)) {
                     const userAttendanceData: {
@@ -287,27 +267,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
 
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request);
         } catch (error) {
             console.error(`${DEBUG_PREFIX} Unexpected error during fetchAllUsersAttendanceLogs:`, error);
         }
-    };
+    }, [user, users, meetings, computeAttendanceHours, handleRequest, openModal, openToast]);
 
-    const computeAttendanceHours = (logs: AttendanceLog[]): AttendanceHours => {
-        const attendanceHours: AttendanceHours = {};
-        logs.forEach((log) => {
-            const { term, year, hours } = log;
-            if (year && term) {
-                const key = `${year}_${term}`;
-                attendanceHours[key] = (attendanceHours[key] || 0) + hours;
-            } else {
-                console.warn(`${DEBUG_PREFIX} Invalid attendance log:`, log);
-            }
-        });
-        return attendanceHours;
-    };
-
-    const addManualAttendanceLog = async (userId: number, attendanceLog: AttendanceLog) => {
+    const addManualAttendanceLog = useCallback(async (userId: number, attendanceLog: AttendanceLog) => {
         if (!user || !['admin', 'advisor', 'executive'].includes(user.role)) return;
         console.log(`${DEBUG_PREFIX} Adding manual attendance log for user ${userId}.`);
 
@@ -349,14 +315,14 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
 
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request);
             await fetchAllUsersAttendanceLogs();
         } catch (error) {
             console.error(`${DEBUG_PREFIX} Unexpected error during addManualAttendanceLog:`, error);
         }
-    };
+    }, [user, openToast, openModal, handleRequest, fetchAllUsersAttendanceLogs]);
 
-    const removeManualAttendanceLogs = async (
+    const removeManualAttendanceLogs = useCallback(async (
         userId: number,
         hours: number,
         term: number,
@@ -405,29 +371,85 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
 
         try {
-            await ApiClient.handleRequest(request);
+            await handleRequest(request);
             await fetchAllUsersAttendanceLogs();
         } catch (error) {
             console.error(`${DEBUG_PREFIX} Unexpected error during removeManualAttendanceLogs:`, error);
         }
-    };
+    }, [user, openToast, openModal, handleRequest, fetchAllUsersAttendanceLogs]);
+
+    const initializeAttendanceData = useCallback(async () => {
+        console.log(`${DEBUG_PREFIX} Initializing attendance data.`);
+        
+        if (!user || user.role === 'unverified') {
+            console.warn(`${DEBUG_PREFIX} Initialization skipped: User is unverified or undefined.`);
+            return;
+          }
+
+        setIsLoading(true);
+        try {
+            if (users.length === 0 && !usersLoading) {
+                console.log(`${DEBUG_PREFIX} Fetching users.`);
+                await fetchUsers();
+                console.log(`${DEBUG_PREFIX} Users fetched.`);
+            }
+            await fetchYearsAndTerms();
+            determineCurrentYearAndTerm();
+            await fetchUserAttendanceLogs();
+
+            if (user && ['admin', 'advisor', 'executive'].includes(user.role)) {
+                await fetchAllUsersAttendanceLogs();
+            }
+        } catch (error) {
+            console.error(`${DEBUG_PREFIX} Initialization error:`, error);
+            openToast({
+                title: 'Initialization Error',
+                description: 'An error occurred while initializing attendance data.',
+                type: 'error',
+            });
+        } finally {
+            setIsLoading(false);
+            console.log(`${DEBUG_PREFIX} Attendance data initialization complete.`);
+        }
+    }, [user, users, usersLoading, fetchUsers, fetchYearsAndTerms, determineCurrentYearAndTerm, fetchUserAttendanceLogs, fetchAllUsersAttendanceLogs, openToast]);
+
+    const init = useCallback(async () => {
+        if (hasInitialized.current) {
+          return; // Already initialized once
+        }
+
+        if (!user) {
+            resetContext();
+            return;
+        }
+
+        hasInitialized.current = true;
+        await initializeAttendanceData();
+    }, [user, initializeAttendanceData, resetContext]);
+
+    const refreshAttendanceData = useCallback(async () => {
+        console.log(`${DEBUG_PREFIX} Refreshing attendance data.`);
+        resetContext();
+        await initializeAttendanceData();
+    }, [resetContext, initializeAttendanceData]);
+
+    const value = useMemo(() => ({
+        schoolYears,
+        schoolTerms,
+        currentYear,
+        currentTerm,
+        userAttendanceHours,
+        isLoading,
+        allUsersAttendanceData,
+        fetchAllUsersAttendanceLogs,
+        addManualAttendanceLog,
+        removeManualAttendanceLogs,
+        init,
+        refreshAttendanceData
+    }), [schoolYears, schoolTerms, currentYear, currentTerm, userAttendanceHours, isLoading, allUsersAttendanceData, fetchAllUsersAttendanceLogs, addManualAttendanceLog, removeManualAttendanceLogs, init, refreshAttendanceData]);
 
     return (
-        <AttendanceContext.Provider
-            value={{
-                schoolYears,
-                schoolTerms,
-                currentYear,
-                currentTerm,
-                userAttendanceHours,
-                isLoading,
-                allUsersAttendanceData,
-                fetchAllUsersAttendanceLogs,
-                addManualAttendanceLog,
-                removeManualAttendanceLogs,
-                init
-            }}
-        >
+        <AttendanceContext.Provider value={value}>
             {children}
         </AttendanceContext.Provider>
     );

@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useGlobalToast } from '../UI/CustomToastProvider';
 import { useModal } from '../UI/CustomModalProvider';
-import ApiClient from '../Networking/APIClient';
 import { AxiosResponse, AxiosError } from 'axios';
 import { QueuedRequest, UpdateContextProps, UpdateInfo } from '@/src/Constants';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
 import { Linking } from 'react-native';
+import { useNetworking } from './NetworkingContext';
 
 const UpdateContext = createContext<UpdateContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[UpdateProvider]';
@@ -14,27 +14,47 @@ const DEBUG_PREFIX = '[UpdateProvider]';
 export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
+  const { handleRequest } = useNetworking();
+
   const [isOutOfDate, setIsOutOfDate] = useState<boolean>(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [updateURL, setUpdateURL] = useState<string | null>(null);
 
-  const checkAppVersion = async () => {
+  const hasCheckedVersion = useRef(false);
+
+  const isVersionOutdated = useCallback((currentVersion: string, latestVersion: string): boolean => {
+    const currParts = currentVersion.split('.').map(Number);
+    const latestParts = latestVersion.split('.').map(Number);
+
+    for (let i = 0; i < latestParts.length; i++) {
+      if ((currParts[i] || 0) < latestParts[i]) {
+        return true;
+      } else if ((currParts[i] || 0) > latestParts[i]) {
+        return false;
+      }
+    }
+    return false;
+  }, []);
+
+  const checkAppVersion = useCallback(async () => {
+    if (hasCheckedVersion.current) {
+      return; // Already checked, avoid repeated checks
+    }
+
     console.log(`${DEBUG_PREFIX} Starting version check.`);
+    hasCheckedVersion.current = true;
     
-    // Check network connectivity
     const state = await NetInfo.fetch();
     if (!state.isConnected) {
       console.log(`${DEBUG_PREFIX} No internet connection. Skipping version check.`);
       return;
     }
 
-    // Get current app version
-    const currentVersion = DeviceInfo.getVersion(); // e.g., "1.0.0"
+    const currentVersion = DeviceInfo.getVersion();
     console.log(`${DEBUG_PREFIX} Current app version: ${currentVersion}`);
 
-    // Define the API endpoint to fetch the latest version
     const request: QueuedRequest = {
-      url: '/version', // Ensure this endpoint returns the version info as per your backend
+      url: '/version',
       method: 'get',
       retryCount: 0,
       successHandler: async (response: AxiosResponse<UpdateInfo>) => {
@@ -63,56 +83,34 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} Error fetching version info:`, error);
-        // Ignore version check on error
       },
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline during version check. Skipping.`);
-        // Do not set isOutOfDate
       },
     };
 
     try {
-      await ApiClient.handleRequest(request);
+      await handleRequest(request);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Unexpected error during version check:`, error);
-      // Ignore version check on unexpected errors
     }
-  };
+  }, [handleRequest, isVersionOutdated, openModal, openToast]);
 
-  const openUpdateURL = () => {
+  const openUpdateURL = useCallback(() => {
     if (updateURL) {
       Linking.openURL(updateURL);
     }
-  }
-
-  /**
-   * Compares two semantic version strings.
-   * Returns true if currentVersion is less than latestVersion.
-   */
-  const isVersionOutdated = (currentVersion: string, latestVersion: string): boolean => {
-    const currParts = currentVersion.split('.').map(Number);
-    const latestParts = latestVersion.split('.').map(Number);
-
-    for (let i = 0; i < latestParts.length; i++) {
-      if ((currParts[i] || 0) < latestParts[i]) {
-        return true;
-      } else if ((currParts[i] || 0) > latestParts[i]) {
-        return false;
-      }
-    }
-    return false;
-  };
+  }, [updateURL]);
 
   useEffect(() => {
     checkAppVersion();
-  }, []);
+  }, [checkAppVersion]);
 
-  const contextValue: UpdateContextProps = {
+  const contextValue = useMemo(() => ({
     isOutOfDate,
     latestVersion,
     openUpdateURL,
-
-  };
+  }), [isOutOfDate, latestVersion, openUpdateURL]);
 
   return (
     <UpdateContext.Provider value={contextValue}>
