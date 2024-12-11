@@ -12,6 +12,22 @@ export const APP_UUID = Constants.expoConfig?.extra?.APP_UUID.toUpperCase() || '
 export const USERS_STORAGE_KEY = 'cached_users';
 export const MEETINGS_STORAGE_KEY = 'cached_meetings';
 
+export const rolePriority: Record<string, number> = ROLES.reduce((acc, role, index) => {
+    acc[role] = index;
+    return acc;
+  }, {} as Record<string, number>);
+  
+export interface EditUserFormData {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    student_id: string;
+    grade: string;
+    role: string;
+    subteam: string[];
+  }
+
 export interface NetworkingContextProps {
     handleRequest: (request: QueuedRequest) => Promise<void>;
     validateToken: (token: string) => Promise<UserObject | null>;
@@ -253,6 +269,7 @@ export interface FormData {
     time_start: Date;
     time_end: Date;
     hours: string;
+    created_by: number;
 };
 
 export interface CleanUserObject {

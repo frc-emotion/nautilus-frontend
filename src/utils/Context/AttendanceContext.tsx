@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { AxiosResponse, AxiosError } from 'axios';
 import { useAuth } from './AuthContext';
 import { useUsers } from './UsersContext';
@@ -73,21 +73,33 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const currentTimestamp = Math.floor(Date.now() / 1000);
         let found = false;
 
+        console.log(`${DEBUG_PREFIX} School Years:`, schoolYears);
+        console.log(`${DEBUG_PREFIX} School Terms:`, schoolTerms);
+
         for (const year of schoolYears) {
+            console.log(`${DEBUG_PREFIX} Checking year: ${year}`);
             const terms = schoolTerms[year];
             if (terms) {
+                console.log(`${DEBUG_PREFIX} Terms found for year:`, terms);
                 for (const termNumber in terms) {
+                    console.log(`${DEBUG_PREFIX} Checking term: ${termNumber}`);
                     const term = terms[termNumber];
                     if (term?.start && term?.end) {
+                        console.log(`${DEBUG_PREFIX} Term start and end:`, term.start, term.end);
                         if (currentTimestamp >= term.start && currentTimestamp <= term.end) {
+                            console.log(`${DEBUG_PREFIX} Current timestamp is within term.`);
                             setCurrentYear(year);
                             setCurrentTerm(parseInt(termNumber));
                             found = true;
                             console.log(`${DEBUG_PREFIX} Current year and term set to: ${year}, Term ${termNumber}`);
                             break;
                         }
+                    } else {
+                        console.warn(`${DEBUG_PREFIX} Term ${termNumber} for year ${year} lacks start or end timestamp.`);
                     }
                 }
+            } else {
+                console.warn(`${DEBUG_PREFIX} No terms found for year: ${year}`);
             }
             if (found) break;
         }
@@ -96,7 +108,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             const latestYear = schoolYears[schoolYears.length - 1];
             const terms = schoolTerms[latestYear];
             if (terms) {
-                const latestTermKey = Object.keys(terms).sort((a, b) => parseInt(b) - parseInt(a))[0];
+                const sortedTermKeys = Object.keys(terms).sort((a, b) => parseInt(b) - parseInt(a));
+                const latestTermKey = sortedTermKeys[0];
                 const latestTerm = parseInt(latestTermKey);
                 setCurrentYear(latestYear);
                 setCurrentTerm(latestTerm);
@@ -129,7 +142,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     showToast: true,
                     openModal,
                     openToast,
-                })
+                });
             },
             offlineHandler: async () => {
                 console.warn(`${DEBUG_PREFIX} Offline while fetching years and terms.`);
@@ -176,7 +189,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     showToast: true,
                     openModal,
                     openToast,
-                })
+                });
             },
             offlineHandler: async () => {
                 console.warn(`${DEBUG_PREFIX} Offline while fetching user attendance logs.`);
@@ -254,7 +267,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     showToast: true,
                     openModal,
                     openToast,
-                })
+                });
             },
             offlineHandler: async () => {
                 console.warn(`${DEBUG_PREFIX} Offline while fetching all users attendance logs.`);
@@ -302,7 +315,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     showToast: true,
                     openModal,
                     openToast,
-                })
+                });
             },
             offlineHandler: async () => {
                 console.warn(`${DEBUG_PREFIX} Offline while adding manual attendance log.`);
@@ -358,7 +371,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     showToast: true,
                     openModal,
                     openToast,
-                })
+                });
             },
             offlineHandler: async () => {
                 console.warn(`${DEBUG_PREFIX} Offline while removing manual attendance logs.`);
@@ -384,7 +397,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (!user || user.role === 'unverified') {
             console.warn(`${DEBUG_PREFIX} Initialization skipped: User is unverified or undefined.`);
             return;
-          }
+        }
 
         setIsLoading(true);
         try {
@@ -394,7 +407,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 console.log(`${DEBUG_PREFIX} Users fetched.`);
             }
             await fetchYearsAndTerms();
-            determineCurrentYearAndTerm();
             await fetchUserAttendanceLogs();
 
             if (user && ['admin', 'advisor', 'executive'].includes(user.role)) {
@@ -411,11 +423,18 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             setIsLoading(false);
             console.log(`${DEBUG_PREFIX} Attendance data initialization complete.`);
         }
-    }, [user, users, usersLoading, fetchUsers, fetchYearsAndTerms, determineCurrentYearAndTerm, fetchUserAttendanceLogs, fetchAllUsersAttendanceLogs, openToast]);
+    }, [user, users, usersLoading, fetchUsers, fetchYearsAndTerms, fetchUserAttendanceLogs, fetchAllUsersAttendanceLogs, openToast]);
+
+    // Added useEffect to determine current year and term after schoolYears or schoolTerms change
+    useEffect(() => {
+        if (schoolYears.length > 0 && Object.keys(schoolTerms).length > 0) {
+            determineCurrentYearAndTerm();
+        }
+    }, [schoolYears, schoolTerms, determineCurrentYearAndTerm]);
 
     const init = useCallback(async () => {
         if (hasInitialized.current) {
-          return; // Already initialized once
+            return; // Already initialized once
         }
 
         if (!user) {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View } from '@/components/ui/view';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, TouchableOpacity } from 'react-native';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,7 +22,8 @@ import { Text } from '@/components/ui/text';
 import { useAuth } from '../../utils/Context/AuthContext';
 import { GRADES, ROLES, UserObject } from '../../Constants';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
-import { CheckIcon, ChevronDownIcon, Icon, ThreeDotsIcon } from '@/components/ui/icon';
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, EllipsisVertical } from 'lucide-react-native';
+import { Icon } from '@/components/ui/icon';
 import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { Divider } from '@/components/ui/divider';
 import {
@@ -49,6 +50,7 @@ import { useUsers } from '@/src/utils/Context/UsersContext';
 import { Input, InputField } from '@/components/ui/input';
 import { useForm, Controller, FieldErrors } from 'react-hook-form';
 import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
 
 const SUBTEAMS = ["build", "software", "marketing", "electrical", "design"];
 
@@ -61,6 +63,13 @@ interface EditUserFormData {
   grade: string;
   role: string;
   subteam: string[];
+}
+
+type SortCriteria = 'firstName' | 'lastName' | 'grade' | 'role';
+
+interface SortConfig {
+  criteria: SortCriteria;
+  order: 'asc' | 'desc' | 'none';
 }
 
 const UserDirectoryScreen: React.FC = () => {
@@ -104,6 +113,52 @@ const UserDirectoryScreen: React.FC = () => {
       subteam: [],
     },
   });
+
+  // **Sorting States**
+  const [sortConfig, setSortConfig] = useState<SortConfig[]>([
+    { criteria: 'firstName', order: 'asc' },
+    { criteria: 'role', order: 'asc' },
+  ]); // Default sort by First Name and Role
+
+  // **Role Hierarchy Mapping**
+  const getRoleRank = (role: string): number => {
+    const index = ROLES.indexOf(role);
+    return index !== -1 ? index : ROLES.length; // Unrecognized roles are ranked last
+  };
+
+  // **Memoized Sorted Users**
+  const sortedUsers = useMemo(() => {
+    if (sortConfig.length === 0) return filteredUsers;
+
+    const sorted = [...filteredUsers].sort((a, b) => {
+      for (const sort of sortConfig) {
+        let comparison = 0;
+        const { criteria, order } = sort;
+
+        if (criteria === 'firstName') {
+          comparison = a.first_name.localeCompare(b.first_name);
+        } else if (criteria === 'lastName') {
+          comparison = a.last_name.localeCompare(b.last_name);
+        } else if (criteria === 'grade') {
+          comparison = a.grade.localeCompare(b.grade);
+        } else if (criteria === 'role') {
+          comparison = getRoleRank(a.role) - getRoleRank(b.role);
+        }
+
+        if (comparison !== 0) {
+          return order === 'asc' ? comparison : -comparison;
+        }
+      }
+      return 0;
+    });
+    return sorted;
+  }, [filteredUsers, sortConfig]);
+
+  useEffect(() => {
+    if (user && ['admin', 'advisor', 'executive'].includes(user.role)) {
+      fetchUsers();
+    }
+  }, [user, fetchUsers]);
 
   const handleViewUser = (user: UserObject) => {
     log('handleViewUser called', user);
@@ -179,8 +234,18 @@ const UserDirectoryScreen: React.FC = () => {
 
     try {
       await editUser(editUserId, updates);
+      openToast({
+        title: 'Success',
+        description: 'User details updated successfully.',
+        type: 'success',
+      });
     } catch (error) {
       log('saveEditChanges exception', error);
+      openToast({
+        title: 'Error',
+        description: 'Failed to update user details.',
+        type: 'error',
+      });
     }
 
     setShowEditDialog(false);
@@ -207,16 +272,70 @@ const UserDirectoryScreen: React.FC = () => {
       });
     } catch (error) {
       log('handleRefresh exception', error);
+      openToast({
+        title: 'Error',
+        description: 'Failed to fetch users.',
+        type: 'error',
+      });
     }
+  };
+
+  // **Function to Update Sort Config**
+  const updateSortConfig = (criteria: SortCriteria) => {
+    setSortConfig((prevConfig) => {
+      const existingIndex = prevConfig.findIndex(
+        (sort) => sort.criteria === criteria
+      );
+      let newConfig = [...prevConfig];
+
+      if (existingIndex !== -1) {
+        // Cycle through 'asc' → 'desc' → 'none'
+        const currentOrder = newConfig[existingIndex].order;
+        let newOrder: 'asc' | 'desc' | 'none';
+
+        if (currentOrder === 'asc') {
+          newOrder = 'desc';
+        } else if (currentOrder === 'desc') {
+          newOrder = 'none';
+        } else {
+          newOrder = 'asc';
+        }
+
+        if (newOrder === 'none') {
+          // Remove the sort criteria if order is 'none'
+          newConfig.splice(existingIndex, 1);
+        } else {
+          newConfig[existingIndex].order = newOrder;
+        }
+      } else {
+        // Add new sort criteria with ascending order
+        newConfig.push({ criteria, order: 'asc' });
+      }
+
+      return newConfig;
+    });
+  };
+
+  // **Function to Render Sort Indicator without Priority Numbers**
+  const renderSortIndicator = (criteria: SortCriteria) => {
+    const sort = sortConfig.find((sort) => sort.criteria === criteria);
+    if (!sort || sort.order === 'none') return null;
+
+    return (
+      <HStack className="items-center ml-1">
+        {sort.order === 'asc' ? (
+          <ChevronUpIcon size={16} />
+        ) : (
+          <ChevronDownIcon size={16} />
+        )}
+      </HStack>
+    );
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{
-        flex: 1,
-        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
-      }}
+      className={`flex-1 ${colorMode === 'light' ? 'bg-white' : 'bg-gray-800'}`}
     >
       <Box className="p-4 flex-1">
         {/* Search Bar */}
@@ -229,7 +348,7 @@ const UserDirectoryScreen: React.FC = () => {
                 setSearchQuery(text);
               }}
               placeholder="Search by name, email, or role"
-              placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+              className={`placeholder-gray-400`}
             />
           </Input>
         )}
@@ -238,14 +357,14 @@ const UserDirectoryScreen: React.FC = () => {
         <View className="mb-4">
           <View className="flex flex-row flex-wrap justify-between">
             {/* Subteam Filter */}
-            <View style={{ flex: 1, minWidth: '45%', marginBottom: 10 }} className="mr-2">
+            <View className="flex-1 min-w-[45%] mb-2 mr-2">
               <Select
                 selectedValue={selectedSubteam}
                 onValueChange={(itemValue) => setSelectedSubteam(itemValue)}
               >
                 <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
                   <SelectInput placeholder="Subteam" />
-                  <SelectIcon className="mr-2" as={ChevronDownIcon} />
+                  <SelectIcon className='mr-2' as={ChevronDownIcon} />
                 </SelectTrigger>
                 <SelectPortal>
                   <SelectBackdrop />
@@ -263,14 +382,14 @@ const UserDirectoryScreen: React.FC = () => {
             </View>
 
             {/* Grade Filter */}
-            <View style={{ flex: 1, minWidth: '45%', marginBottom: 10 }}>
+            <View className="flex-1 min-w-[45%] mb-2">
               <Select
                 selectedValue={selectedGrade}
                 onValueChange={(itemValue) => setSelectedGrade(itemValue)}
               >
                 <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
                   <SelectInput placeholder="Grade" />
-                  <SelectIcon className="mr-2" as={ChevronDownIcon} />
+                  <SelectIcon as={ChevronDownIcon} />
                 </SelectTrigger>
                 <SelectPortal>
                   <SelectBackdrop />
@@ -297,70 +416,103 @@ const UserDirectoryScreen: React.FC = () => {
             }
           >
             {/* Table Header */}
-            <View className="flex flex-row bg-headerBackground">
-              <Text className="p-2 font-medium" style={{ flex: 1.2 }}>
-                First Name
-              </Text>
-              <Text className="p-2 font-medium" style={{ flex: 1.2 }}>
-                Last Name
-              </Text>
-              <Text className="p-2 font-medium" style={{ flex: 0.8 }}>
-                Grade
-              </Text>
+            <View
+              className={`flex flex-row`}
+            >
+              {/* First Name Header */}
+              <TouchableOpacity
+                className="p-2 font-medium flex-row items-center justify-center flex-1"
+                onPress={() => updateSortConfig('firstName')}
+              >
+                <Text className="text-center">First Name</Text>
+                {renderSortIndicator('firstName')}
+              </TouchableOpacity>
+
+              {/* Last Name Header */}
+              <TouchableOpacity
+                className="p-2 font-medium flex-row items-center justify-center flex-1"
+                onPress={() => updateSortConfig('lastName')}
+              >
+                <Text className="text-center">Last Name</Text>
+                {renderSortIndicator('lastName')}
+              </TouchableOpacity>
+
+              {/* Grade Header */}
+              <TouchableOpacity
+                className="p-2 font-medium flex-row items-center justify-center flex-1" // Changed from flex-0.75 to flex-1
+                onPress={() => updateSortConfig('grade')}
+              >
+                <Text className="text-center">Grade</Text>
+                {renderSortIndicator('grade')}
+              </TouchableOpacity>
+
+              {/* Role Header */}
               {user?.role === 'admin' && (
                 <>
-                  <Text className="p-2 font-medium" style={{ flex: 1 }}>
-                    Role
-                  </Text>
-                  <Text
-                    className="p-2 font-medium text-center"
-                    style={{ width: 40 }}
+                  <TouchableOpacity
+                    className="p-2 font-medium flex-row items-center justify-center flex-1"
+                    onPress={() => updateSortConfig('role')}
                   >
-                    ⚙️
-                  </Text>
+                    <Text className="text-center">Role</Text>
+                    {renderSortIndicator('role')}
+                  </TouchableOpacity>
+                  {/* Removed the settings emoji */}
                 </>
               )}
             </View>
 
-            <Divider className="my-1 bg-outline-300" />
+            <Divider className="my-1" />
 
             {isLoading ? (
               <View className="p-3">
                 <Text className="text-center">Loading users...</Text>
               </View>
-            ) : filteredUsers.length === 0 ? (
+            ) : sortedUsers.length === 0 ? (
               <View className="p-3">
                 <Text className="text-center">No users found.</Text>
               </View>
             ) : (
-              filteredUsers.map((userItem) => (
+              sortedUsers.map((userItem) => (
                 <Pressable
                   key={userItem._id}
                   onPress={() => handleViewUser(userItem)}
                 >
-                  <View className="flex flex-row items-center border-b border-outline">
-                    <Text className="p-2" style={{ flex: 1.2 }}>
+                  <View className="flex flex-row items-center border-b border-gray-300 dark:border-gray-600">
+                    <Text
+                      className="p-2 flex-1 text-center"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {userItem.first_name}
                     </Text>
-                    <Text className="p-2" style={{ flex: 1.2 }}>
+                    <Text
+                      className="p-2 flex-1 text-center"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {userItem.last_name}
                     </Text>
-                    <Text className="p-2" style={{ flex: 0.8 }}>
+                    <Text
+                      className="p-2 flex-1 text-center" // Changed from flex-0.75 to flex-1
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {userItem.grade}
                     </Text>
                     {user?.role === 'admin' && (
                       <>
-                        <Text className="p-2" style={{ flex: 1 }}>
-                          {userItem.role}
-                        </Text>
-                        <View
-                          className="p-2 items-center justify-center"
-                          style={{ width: 40 }}
+                        <Text
+                          className="p-2 flex-1 text-center"
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
                         >
+                          {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
+                        </Text>
+                        <View className="p-2 items-center justify-center w-10">
                           <Menu
                             trigger={({ ...triggerProps }) => (
                               <Pressable {...triggerProps}>
-                                <Icon as={ThreeDotsIcon} />
+                                <Icon as={EllipsisVertical} />
                               </Pressable>
                             )}
                           >
@@ -401,7 +553,7 @@ const UserDirectoryScreen: React.FC = () => {
             }}
           >
             <AlertDialogBackdrop />
-            <AlertDialogContent style={{ width: '90%', maxWidth: 600 }}>
+            <AlertDialogContent className="w-11/12 max-w-2xl">
               <AlertDialogHeader className="pb-4">
                 <Text className="text-lg font-semibold">User Details</Text>
               </AlertDialogHeader>
@@ -409,31 +561,31 @@ const UserDirectoryScreen: React.FC = () => {
                 <VStack space="sm">
 
                   {/* Row 1: First Name, Last Name */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <View style={{ flex: 0.48 }}>
+                  <View className="flex flex-row justify-between mb-2">
+                    <View className="flex-1 mr-1">
                       <Text className="font-medium">First Name:</Text>
                       <Text>{viewUser.first_name}</Text>
                     </View>
-                    <View style={{ flex: 0.48 }}>
+                    <View className="flex-1 ml-1">
                       <Text className="font-medium">Last Name:</Text>
                       <Text>{viewUser.last_name}</Text>
                     </View>
                   </View>
 
                   {/* Row 2: Grade, Role */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <View style={{ flex: 0.48 }}>
+                  <View className="flex flex-row justify-between mb-2">
+                    <View className="flex-1 mr-1">
                       <Text className="font-medium">Grade:</Text>
                       <Text>{viewUser.grade}</Text>
                     </View>
-                    <View style={{ flex: 0.48 }}>
+                    <View className="flex-1 ml-1">
                       <Text className="font-medium">Role:</Text>
-                      <Text>{viewUser.role}</Text>
+                      <Text>{viewUser.role.charAt(0).toUpperCase() + viewUser.role.slice(1)}</Text>
                     </View>
                   </View>
 
                   {/* Row 3: Subteams */}
-                  <View style={{ marginBottom: 10 }}>
+                  <View className="mb-2">
                     <Text className="font-medium">Subteam(s):</Text>
                     <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
                   </View>
@@ -442,19 +594,19 @@ const UserDirectoryScreen: React.FC = () => {
                   {['admin', 'executive'].includes(user?.role ?? '') && (
                     <>
                       {/* Row 4: Email, Phone */}
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <View style={{ flex: 0.48 }}>
+                      <View className="flex flex-row justify-between mb-2">
+                        <View className="flex-1 mr-1">
                           <Text className="font-medium">Email:</Text>
                           <Text>{viewUser.email}</Text>
                         </View>
-                        <View style={{ flex: 0.48 }}>
+                        <View className="flex-1 ml-1">
                           <Text className="font-medium">Phone:</Text>
                           <Text>{formatPhoneNumber(viewUser.phone)}</Text>
                         </View>
                       </View>
 
                       {/* Row 5: Student ID */}
-                      <View style={{ marginBottom: 10 }}>
+                      <View className="mb-2">
                         <Text className="font-medium">Student ID:</Text>
                         <Text>{viewUser.student_id}</Text>
                       </View>
@@ -487,7 +639,7 @@ const UserDirectoryScreen: React.FC = () => {
             }}
           >
             <AlertDialogBackdrop />
-            <AlertDialogContent style={{ width: '90%', maxWidth: 800 }}>
+            <AlertDialogContent className="w-11/12 max-w-3xl">
               <AlertDialogHeader className="pb-4">
                 <Text className="text-lg font-semibold">Edit User</Text>
               </AlertDialogHeader>
@@ -495,8 +647,8 @@ const UserDirectoryScreen: React.FC = () => {
                 <ScrollView>
                   <VStack space="sm">
                     {/* Row 1: First Name and Last Name */}
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                      <View style={{ flex: 0.48 }}>
+                    <View className="flex flex-row flex-wrap justify-between">
+                      <View className="flex-1 mr-1">
                         <Text className="font-medium">First Name</Text>
                         <Controller
                           control={control}
@@ -504,22 +656,20 @@ const UserDirectoryScreen: React.FC = () => {
                           rules={{ required: 'First Name is required' }}
                           render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
-                              <Input variant="outline" size="md">
+                              <Input variant="outline" size="md" className="mt-1">
                                 <InputField
                                   value={value}
                                   onChangeText={onChange}
                                   placeholder="First Name"
-                                  placeholderTextColor={
-                                    colorMode === 'light' ? '#A0AEC0' : '#4A5568'
-                                  }
+                                  className={`placeholder-gray-400`}
                                 />
                               </Input>
-                              {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                              {error && <Text className="text-red-500">{error.message}</Text>}
                             </>
                           )}
                         />
                       </View>
-                      <View style={{ flex: 0.48 }}>
+                      <View className="flex-1 ml-1">
                         <Text className="font-medium">Last Name</Text>
                         <Controller
                           control={control}
@@ -527,17 +677,15 @@ const UserDirectoryScreen: React.FC = () => {
                           rules={{ required: 'Last Name is required' }}
                           render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
-                              <Input variant="outline" size="md">
+                              <Input variant="outline" size="md" className="mt-1">
                                 <InputField
                                   value={value}
                                   onChangeText={onChange}
                                   placeholder="Last Name"
-                                  placeholderTextColor={
-                                    colorMode === 'light' ? '#A0AEC0' : '#4A5568'
-                                  }
+                                  className={`placeholder-gray-400`}
                                 />
                               </Input>
-                              {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                              {error && <Text className="text-red-500">{error.message}</Text>}
                             </>
                           )}
                         />
@@ -545,8 +693,8 @@ const UserDirectoryScreen: React.FC = () => {
                     </View>
 
                     {/* Row 2: Email and Phone */}
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 }}>
-                      <View style={{ flex: 0.48 }}>
+                    <View className="flex flex-row flex-wrap justify-between mt-4">
+                      <View className="flex-1 mr-1">
                         <Text className="font-medium">Email</Text>
                         <Controller
                           control={control}
@@ -560,23 +708,21 @@ const UserDirectoryScreen: React.FC = () => {
                           }}
                           render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
-                              <Input variant="outline" size="md">
+                              <Input variant="outline" size="md" className="mt-1">
                                 <InputField
                                   value={value}
                                   onChangeText={onChange}
                                   placeholder="Email"
                                   keyboardType="email-address"
-                                  placeholderTextColor={
-                                    colorMode === 'light' ? '#A0AEC0' : '#4A5568'
-                                  }
+                                  className={`placeholder-gray-400`}
                                 />
                               </Input>
-                              {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                              {error && <Text className="text-red-500">{error.message}</Text>}
                             </>
                           )}
                         />
                       </View>
-                      <View style={{ flex: 0.48 }}>
+                      <View className="flex-1 ml-1">
                         <Text className="font-medium">Phone</Text>
                         <Controller
                           control={control}
@@ -590,7 +736,7 @@ const UserDirectoryScreen: React.FC = () => {
                           }}
                           render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
-                              <Input variant="outline" size="md">
+                              <Input variant="outline" size="md" className="mt-1">
                                 <InputField
                                   value={value}
                                   onChangeText={(text) => {
@@ -599,12 +745,11 @@ const UserDirectoryScreen: React.FC = () => {
                                   }}
                                   placeholder="Phone"
                                   keyboardType="phone-pad"
-                                  placeholderTextColor={
-                                    colorMode === 'light' ? '#A0AEC0' : '#4A5568'
-                                  }
+                                  maxLength={14} // e.g., (123) 456-7890
+                                  className={`placeholder-gray-400`}
                                 />
                               </Input>
-                              {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                              {error && <Text className="text-red-500">{error.message}</Text>}
                             </>
                           )}
                         />
@@ -612,8 +757,8 @@ const UserDirectoryScreen: React.FC = () => {
                     </View>
 
                     {/* Row 3: Student ID and Grade */}
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 }}>
-                      <View style={{ flex: 0.48 }}>
+                    <View className="flex flex-row flex-wrap justify-between mt-4">
+                      <View className="flex-1 mr-1">
                         <Text className="font-medium">Student ID</Text>
                         <Controller
                           control={control}
@@ -627,24 +772,22 @@ const UserDirectoryScreen: React.FC = () => {
                           }}
                           render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
-                              <Input variant="outline" size="md">
+                              <Input variant="outline" size="md" className="mt-1">
                                 <InputField
                                   value={value}
                                   onChangeText={onChange}
                                   placeholder="Student ID"
                                   keyboardType="numeric"
                                   maxLength={7}
-                                  placeholderTextColor={
-                                    colorMode === 'light' ? '#A0AEC0' : '#4A5568'
-                                  }
+                                  className={`placeholder-gray-400`}
                                 />
                               </Input>
-                              {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                              {error && <Text className="text-red-500">{error.message}</Text>}
                             </>
                           )}
                         />
                       </View>
-                      <View style={{ flex: 0.48 }}>
+                      <View className="flex-1 ml-1">
                         <Text className="font-medium">Grade</Text>
                         <Controller
                           control={control}
@@ -659,21 +802,24 @@ const UserDirectoryScreen: React.FC = () => {
                                 <SelectTrigger
                                   variant="outline"
                                   size="md"
-                                  className="rounded justify-between"
+                                  className="mt-1 rounded justify-between"
                                 >
                                   <SelectInput placeholder="Select Grade" />
-                                  <SelectIcon as={ChevronDownIcon} className="mr-2" />
+                                  <SelectIcon as={ChevronDownIcon} />
                                 </SelectTrigger>
                                 <SelectPortal>
                                   <SelectBackdrop />
                                   <SelectContent>
+                                    <SelectDragIndicatorWrapper>
+                                      <SelectDragIndicator />
+                                    </SelectDragIndicatorWrapper>
                                     {GRADES.map((grade) => (
                                       <SelectItem key={grade} label={grade} value={grade} />
                                     ))}
                                   </SelectContent>
                                 </SelectPortal>
                               </Select>
-                              {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                              {error && <Text className="text-red-500">{error.message}</Text>}
                             </>
                           )}
                         />
@@ -681,7 +827,7 @@ const UserDirectoryScreen: React.FC = () => {
                     </View>
 
                     {/* Row 4: Role */}
-                    <View style={{ marginTop: 10 }}>
+                    <View className="mt-4">
                       <Text className="font-medium">Role</Text>
                       <Controller
                         control={control}
@@ -696,28 +842,31 @@ const UserDirectoryScreen: React.FC = () => {
                               <SelectTrigger
                                 variant="outline"
                                 size="md"
-                                className="rounded justify-between"
+                                className="mt-1 rounded justify-between"
                               >
                                 <SelectInput placeholder="Select Role" />
-                                <SelectIcon as={ChevronDownIcon} className="mr-2" />
+                                <SelectIcon as={ChevronDownIcon} />
                               </SelectTrigger>
                               <SelectPortal>
                                 <SelectBackdrop />
                                 <SelectContent>
+                                  <SelectDragIndicatorWrapper>
+                                    <SelectDragIndicator />
+                                  </SelectDragIndicatorWrapper>
                                   {ROLES.map((role) => (
-                                    <SelectItem key={role} label={role} value={role} />
+                                    <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
                                   ))}
                                 </SelectContent>
                               </SelectPortal>
                             </Select>
-                            {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                            {error && <Text className="text-red-500">{error.message}</Text>}
                           </>
                         )}
                       />
                     </View>
 
                     {/* Row 5: Subteams (Checkboxes) */}
-                    <View style={{ marginTop: 10 }}>
+                    <View className="mt-4">
                       <Text className="font-medium">Subteams</Text>
                       <Controller
                         control={control}
@@ -729,20 +878,22 @@ const UserDirectoryScreen: React.FC = () => {
                               value={value || []}
                               onChange={onChange}
                             >
-                              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                              <View className="flex flex-row flex-wrap">
                                 {SUBTEAMS.map((team) => (
-                                  <View key={team} style={{ width: '45%', marginBottom: 10, marginRight: 10 }}>
-                                    <Checkbox value={team}>
-                                      <CheckboxIndicator>
+                                  <View key={team} className="w-1/2 mb-2 mr-2">
+                                    <Checkbox value={team} className="flex-row items-center">
+                                      <CheckboxIndicator className="mr-2">
                                         <CheckboxIcon as={CheckIcon} />
                                       </CheckboxIndicator>
-                                      <CheckboxLabel>{team.charAt(0).toUpperCase() + team.slice(1)}</CheckboxLabel>
+                                      <CheckboxLabel>
+                                        {team.charAt(0).toUpperCase() + team.slice(1)}
+                                      </CheckboxLabel>
                                     </Checkbox>
                                   </View>
                                 ))}
                               </View>
                             </CheckboxGroup>
-                            {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
+                            {error && <Text className="text-red-500">{error.message}</Text>}
                           </>
                         )}
                       />

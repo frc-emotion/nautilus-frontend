@@ -144,6 +144,7 @@ const HomeScreen: React.FC = () => {
                 contentContainerStyle={{
                     flexGrow: 1,
                     padding: 16,
+                    backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
                 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             >

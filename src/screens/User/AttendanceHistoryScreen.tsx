@@ -131,12 +131,12 @@ const AttendanceHistoryScreen: React.FC = () => {
     <Card
       key={item._id}
       variant="outline"
-      className="bg-white p-4 mb-3 rounded-lg"
+      className="p-4 mb-3 rounded-lg"
     >
       <Pressable onPress={() => handleViewMeeting(item)}>
         <Text className="text-lg font-semibold">{item.title}</Text>
-        <Text className="text-gray-600">{item.location}</Text>
-        <Text className="text-gray-600">
+        <Text>{item.location}</Text>
+        <Text>
           {formatDateTime(item.time_start)} - {formatDateTime(item.time_end)}
         </Text>
       </Pressable>

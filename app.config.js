@@ -6,8 +6,8 @@ export default ({ config }) => ({
     extra: {
       APP_UUID: "35a2ba12-25ba-4c79-9d0b-a88fc8d4255f",
       environment: "development",
-      // API_URL: "https://staging.team2658.org",
-      API_URL: "http://192.168.0.129:7001",
+      API_URL: "https://staging.team2658.org",
+      // API_URL: "http://192.168.0.129:7001",
 
       MAX_RETRIES: 3,
       eas: {
