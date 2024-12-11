@@ -1,3 +1,6 @@
+# iOS Build Files
+*.ipa
+
 # Logs
 logs
 *.log
