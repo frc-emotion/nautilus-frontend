@@ -1,13 +1,25 @@
 {
     "build": {
+      "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
       "development": {
         "developmentClient": true,
-        "distribution": "internal"
+        "distribution": "internal",
+        "android": {
+        "buildType": "apk"
+      }
       },
       "preview": {
         "developmentClient": true,
-        "distribution": "internal"
-      },
-      "production": {}
+        "distribution": "internal",
+        "android": {
+        "buildType": "apk"
+      }
+      }
     }
   }

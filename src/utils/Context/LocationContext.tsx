@@ -5,6 +5,7 @@ import { LocationContextProps } from '@/src/Constants';
 import { useModal } from '../UI/CustomModalProvider';
 import { AppLifecycle } from 'react-native-applifecycle';
 import { Platform } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 
 const LocationContext = createContext<LocationContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[GlobalLocationManager]';
@@ -26,7 +27,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStatusRef = useRef<'enabled' | 'disabled' | 'unauthorized' | 'unknown' | null>(null);
 
-  const hasStarted = useRef(false); // To ensure we only start once
+  const hasStarted = useRef(false);
 
   const updateLocationStatus = useCallback((newStatus: 'enabled' | 'disabled' | 'unauthorized' | 'unknown') => {
     if (lastStatusRef.current !== newStatus) {
@@ -95,6 +96,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error checking location services:`, error);
       updateLocationStatus('unknown');
     }
@@ -115,21 +117,22 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateLocationStatus('disabled');
       }
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error requesting location permissions:`, error);
       updateLocationStatus('unknown');
     }
   }, [updateLocationStatus]);
 
   const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) return; // Already polling
+    if (pollingIntervalRef.current) return; 
     console.log(`${DEBUG_PREFIX} Starting location polling.`);
     pollingIntervalRef.current = setInterval(async () => {
       await requestLocationServices();
-    }, 10000); // Check every 10 seconds
+    }, 10000);
   }, [requestLocationServices]);
 
   const stopPolling = useCallback(() => {
-    if (!pollingIntervalRef.current) return; // Not polling
+    if (!pollingIntervalRef.current) return;
     console.log(`${DEBUG_PREFIX} Stopping location polling.`);
     clearInterval(pollingIntervalRef.current);
     pollingIntervalRef.current = null;
@@ -155,6 +158,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       );
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error starting location subscription:`, error);
     }
   }, [updateLocationStatus]);

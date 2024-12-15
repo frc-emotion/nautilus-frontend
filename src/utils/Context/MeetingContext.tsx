@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { QueuedRequest, MeetingObject, MeetingsContextProps, MEETINGS_STORAGE_KEY } from '../../Constants';
 import { AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +7,7 @@ import { useGlobalToast } from '../UI/CustomToastProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
 import { useModal } from '../UI/CustomModalProvider';
 import { useNetworking } from './NetworkingContext';
+import * as Sentry from '@sentry/react-native';
 
 const MeetingsContext = createContext<MeetingsContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[MeetingsProvider]';
@@ -28,6 +29,7 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       await AsyncStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(meetingsToCache));
       console.log(`${DEBUG_PREFIX} Meetings cached successfully.`);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error caching meetings:`, error);
     }
   }, []);
@@ -48,6 +50,7 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
       }
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error loading cached meetings:`, error);
     }
   }, [openToast]);
@@ -77,6 +80,7 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await cacheMeetings(fetchedMeetings);
       },
       errorHandler: async (error: AxiosError) => {
+        Sentry.captureException(error);
         console.error(`${DEBUG_PREFIX} API error while fetching meetings:`, error.message);
         handleErrorWithModalOrToast({
           actionName: 'Fetch Meetings',
@@ -102,6 +106,7 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Unexpected error during fetch:`, error);
       await loadCachedMeetings();
     } finally {
@@ -110,7 +115,7 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user, openToast, openModal, handleRequest, cacheMeetings, loadCachedMeetings]);
 
   const init = useCallback(async () => {
-    if (hasInitialized.current) return; // Already initialized
+    if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     console.log(`${DEBUG_PREFIX} Initializing...`);
@@ -123,6 +128,7 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       await fetchMeetings();
       console.log('Meetings context initialized successfully.');
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Initialization error:`, error);
       openToast({
         title: 'Initialization Error',

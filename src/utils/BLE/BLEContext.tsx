@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import BLEHelper from '@/src/utils/BLE/BLEHelper';
 import { Beacon, BLEContextProps } from '@/src/Constants';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { useModal } from '@/src/utils/UI/CustomModalProvider';
 import Constants from 'expo-constants';
 import { Subscription } from "expo-modules-core";
+import * as Sentry from '@sentry/react-native';
 
 const BLEContext = createContext<BLEContextProps | undefined>(undefined);
 
@@ -32,29 +33,21 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { openToast } = useGlobalToast();
   const { openModal } = useModal();
 
-  // Subscribe to Bluetooth state changes and Beacon detected events
   useEffect(() => {
     console.log(`${DEBUG_PREFIX} Subscribing to Bluetooth state changes and Beacon detected events.`);
 
-    // Add Bluetooth state listener
     bluetoothStateSubscription.current = BLEHelper.addBluetoothStateListener(handleBluetoothStateChange);
-
-    // Add Beacon detected listener
     beaconDetectedSubscription.current = BLEHelper.addBeaconDetectedListener(handleBeaconDetected);
 
-    // Fetch the initial Bluetooth state
     fetchInitialBluetoothState();
 
     return () => {
-      // Remove Bluetooth state listener
       if (bluetoothStateSubscription.current) {
         BLEHelper.removeBluetoothStateListener(bluetoothStateSubscription.current);
       }
-      // Remove Beacon detected listener
       if (beaconDetectedSubscription.current) {
         BLEHelper.removeBeaconDetectedListener(beaconDetectedSubscription.current);
       }
-      // Stop listening and broadcasting if active
       if (isListening) {
         stopListening();
       }
@@ -70,12 +63,12 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log(`${DEBUG_PREFIX} Initial Bluetooth state: ${state}`);
       setBluetoothState(state);
     } catch (error: any) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error fetching initial Bluetooth state:`, error);
       setBluetoothState('unknown');
     }
   };
 
-  // Handle Bluetooth state changes
   const handleBluetoothStateChange = (event: { state: string }) => {
     console.log(`${DEBUG_PREFIX} Bluetooth state changed: ${event.state}`);
     setBluetoothState(event.state);
@@ -93,20 +86,12 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       case 'unauthorized':
         handleBluetoothUnauthorized();
         break;
-      case 'unknown':
-      case 'turningOff':
-        //handleBluetoothPoweredOff();
-        break;
-      case 'turningOn':
-        //handleBluetoothPoweredOn();
-        break;
       default:
         handleBluetoothUnknown();
         break;
     }
   };
 
-  // Handle Beacon detected
   const handleBeaconDetected = (beacon: Beacon) => {
     setDetectedBeacons((prevBeacons) => {
       console.log(`${DEBUG_PREFIX} Previous beacons:`, prevBeacons);
@@ -126,10 +111,8 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     });
 
-    // Log the beacon outside of state update to avoid unnecessary re-renders
     logMessage(`Beacon detected: ${beacon.uuid}, Major: ${beacon.major}, Minor: ${beacon.minor}`);
   };
-
 
   const handleBluetoothPoweredOff = () => {
     if (isListening) {
@@ -163,13 +146,13 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isListening && !isBroadcasting) {
       openToast({
         title: 'Bluetooth Disabled',
-        description: 'Please enable Bluetooth in order to receive attendence.',
+        description: 'Please enable Bluetooth in order to receive attendance.',
         type: 'error',
       });
 
       openModal({
         title: 'Bluetooth Disabled',
-        message: 'Please enable Bluetooth in order to receive attendence.',
+        message: 'Please enable Bluetooth in order to receive attendance.',
         type: 'error',
       });
     }
@@ -186,6 +169,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnsupported = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth unsupported on this device.`);
+    Sentry.captureMessage('Bluetooth unsupported on this device.');
     openToast({
       title: 'Bluetooth Unsupported',
       description: 'Bluetooth is unsupported on this device.',
@@ -200,6 +184,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnauthorized = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth unauthorized.`);
+    Sentry.captureMessage('Bluetooth unauthorized on this device.');
     openToast({
       title: 'Bluetooth Unauthorized',
       description: 'Bluetooth is unauthorized on this device.',
@@ -214,6 +199,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnknown = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth state unknown or transitioning.`);
+    Sentry.captureMessage('Bluetooth state unknown or transitioning.');
     openToast({
       title: 'Bluetooth State Unknown',
       description: 'Bluetooth state is unknown or transitioning.',
@@ -226,7 +212,6 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  // Start Listening
   const startListening = async () => {
     if (bluetoothState !== 'poweredOn') {
       openToast({
@@ -252,13 +237,13 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         type: 'success',
       });
     } catch (error: any) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error starting listening:`, error);
       logMessage(`StartListening Error: ${error.message}`);
       openToast({ title: 'Error', description: 'Failed to start listening.', type: 'error' });
     }
   };
 
-  // Stop Listening
   const stopListening = async () => {
     try {
       await BLEHelper.stopListening();
@@ -270,13 +255,13 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         type: 'info',
       });
     } catch (error: any) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error stopping listening:`, error);
       logMessage(`StopListening Error: ${error.message}`);
       openToast({ title: 'Error', description: 'Failed to stop listening.', type: 'error' });
     }
   };
 
-  // Start Broadcasting
   const startBroadcasting = async (uuid: string, major: number, minor: number, title: string) => {
     if (bluetoothState !== 'poweredOn') {
       openToast({
@@ -297,13 +282,13 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         type: 'success',
       });
     } catch (error: any) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error starting broadcasting:`, error);
       logMessage(`StartBroadcasting Error: ${error.message}`);
       openToast({ title: 'Error', description: 'Failed to start broadcasting.', type: 'error' });
     }
   };
 
-  // Stop Broadcasting
   const stopBroadcasting = async () => {
     try {
       await BLEHelper.stopBroadcasting();
@@ -315,36 +300,39 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         type: 'info',
       });
     } catch (error: any) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error stopping broadcasting:`, error);
       logMessage(`StopBroadcasting Error: ${error.message}`);
       openToast({ title: 'Error', description: 'Failed to stop broadcasting.', type: 'error' });
     }
   };
 
-  // Function to get detected beacons
   const getDetectedBeacons = async () => {
     try {
       const beacons = await BLEHelper.getDetectedBeacons();
       setDetectedBeacons(beacons);
       logMessage('Retrieved detected beacons.');
     } catch (error: any) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error getting detected beacons:`, error);
       logMessage(`GetDetectedBeacons Error: ${error.message}`);
       openToast({ title: 'Error', description: 'Failed to retrieve beacons.', type: 'error' });
     }
   };
 
-  // Function to log messages (for debugging purposes)
   const logMessage = (message: string) => {
-    // Implement your logging mechanism here, e.g., updating a state or sending to a logging service
     console.log(`${DEBUG_PREFIX} ${message}`);
+    Sentry.addBreadcrumb({
+      category: 'ble',
+      message,
+      level: "info",
+    });
   };
 
   const testEvent = async () => {
     await BLEHelper.testBeaconEvent();
   }
 
-  // Context value to be provided to consumers
   const contextValue: BLEContextProps = {
     bluetoothState,
     detectedBeacons,

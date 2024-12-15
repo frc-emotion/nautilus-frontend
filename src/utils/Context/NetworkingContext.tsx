@@ -7,10 +7,11 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Buffer } from 'buffer';
 import { NetworkingContextProps, QueuedRequest, UserObject } from '../../Constants';
+import * as Sentry from '@sentry/react-native';
 
 const API_URL = Constants.expoConfig?.extra?.API_URL || "http://localhost:7001";
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;
-const REQUEST_TIMEOUT = 5000; // 5 seconds
+const REQUEST_TIMEOUT = 5000;
 const DEBUG_PREFIX = '[ApiClient]';
 const REQUEST_QUEUE_KEY = 'REQUEST_QUEUE';
 
@@ -66,6 +67,7 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
         setRequestQueue(parsedQueue);
         console.log(`${DEBUG_PREFIX} Loaded request queue with ${parsedQueue.length} items.`);
       } catch (error) {
+        Sentry.captureException(error);
         console.error(`${DEBUG_PREFIX} Failed to load request queue:`, error);
       }
     };
@@ -86,7 +88,6 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [isConnected]);
 
-  // Initial connectivity check with a brief debounce to ensure stability
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -120,6 +121,7 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       await AsyncStorage.setItem(REQUEST_QUEUE_KEY, JSON.stringify(queue));
       console.log(`${DEBUG_PREFIX} Saved request queue.`);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Failed to save request queue:`, error);
     }
   }, []);
@@ -136,7 +138,6 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
   const scheduleRetryAfter = useCallback(async (request: QueuedRequest, retryAfter: number) => {
     console.log(`${DEBUG_PREFIX} Scheduling retry for request ${request.url} after ${retryAfter} seconds.`);
     setTimeout(() => {
-      // Re-enqueue the request after the delay
       enqueueRequest(request).catch(console.error);
     }, retryAfter * 1000);
   }, [enqueueRequest]);
@@ -180,16 +181,18 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       }
 
       console.log(`${DEBUG_PREFIX} Successfully executed [${method.toUpperCase()}] ${url}`);
+      console.log(`${DEBUG_PREFIX} Response status: ${response.status}`);
+      console.log(`${DEBUG_PREFIX} Response data:`, response.data);
       logRateLimitHeaders(response);
 
       successHandler && (await successHandler(response));
       return response;
     } catch (error: any) {
+      Sentry.captureException(error);
       if (axios.isAxiosError(error)) {
         const statusCode = error.response?.status;
         const retryAfterHeader = error.response?.headers['retry-after'];
 
-        // Handle 429 specifically
         if (statusCode === 429 && retryAfterHeader) {
           console.warn(`${DEBUG_PREFIX} Received 429 for request: ${request.url}`);
           let retryAfterSeconds = 0;
@@ -214,14 +217,12 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
           return Promise.reject(error);
         }
 
-        // Non-retryable errors
         if (statusCode && statusCode !== 429) {
           console.error(`${DEBUG_PREFIX} Non-retryable error [${statusCode}] for request: ${url}`);
           errorHandler && (await errorHandler(error));
           return Promise.reject(error);
         }
 
-        // Retryable errors (e.g., network issues)
         console.warn(
           `${DEBUG_PREFIX} Retryable error for request: ${url} | Status: ${statusCode || 'N/A'}`
         );
@@ -241,7 +242,6 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
 
     console.log(`${DEBUG_PREFIX} Processing ${requestQueue.length} queued requests.`);
 
-    // Remove all zero-retry requests now that we are online
     const filteredQueue = requestQueue.filter(req => req.retryCount > 0);
 
     const queueCopy = [...filteredQueue];
@@ -252,6 +252,7 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       try {
         await executeRequest(request);
       } catch (error) {
+        Sentry.captureException(error);
         if (request.retryCount < MAX_RETRIES) {
           console.warn(
             `${DEBUG_PREFIX} Retry ${request.retryCount + 1}/${MAX_RETRIES} for request: ${request.url}`
@@ -270,7 +271,6 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
     console.log("Online status:", isConnected);
 
     if (isConnected === null) {
-      // Unknown connectivity: treat as offline
       console.log(`${DEBUG_PREFIX} Unknown connectivity. Queuing request: ${request.url}`);
       request.offlineHandler && (await request.offlineHandler());
       await enqueueRequest(request);
@@ -278,7 +278,6 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
     }
 
     if (!isConnected) {
-      // Offline: Check for duplicates before enqueuing
       const isDuplicate = requestQueue.some(
         (queuedRequest) =>
           queuedRequest.url === request.url &&
@@ -298,12 +297,11 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       return;
     }
 
-    // If we are online: just execute the request immediately, skip duplication check
     try {
       await executeRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Error executing request: ${request.url}`, error);
-      //request.errorHandler && (await request.errorHandler(error));
     }
   }, [isConnected, requestQueue, enqueueRequest, executeRequest]);
 
@@ -320,6 +318,7 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       console.log(`${DEBUG_PREFIX} Successfully decoded JWT payload.`);
       return payload;
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Failed to decode JWT:`, error);
       return null;
     }
@@ -366,6 +365,7 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       const storedUser = await AsyncStorage.getItem("userData");
       return storedUser ? JSON.parse(storedUser) : null;
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Token validation encountered an error:`, error);
       return null;
     }

@@ -138,7 +138,7 @@ const HomeScreen: React.FC = () => {
     const totalHours = calculateTotalHours();
 
     return (
-        <VStack space="lg" className="flex-1">
+        <VStack className="flex-1">
             <UpdateRibbon />
             <ScrollView
                 contentContainerStyle={{

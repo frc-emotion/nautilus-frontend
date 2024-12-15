@@ -114,19 +114,16 @@ const UserDirectoryScreen: React.FC = () => {
     },
   });
 
-  // **Sorting States**
   const [sortConfig, setSortConfig] = useState<SortConfig[]>([
     { criteria: 'firstName', order: 'asc' },
     { criteria: 'role', order: 'asc' },
-  ]); // Default sort by First Name and Role
+  ]);
 
-  // **Role Hierarchy Mapping**
   const getRoleRank = (role: string): number => {
     const index = ROLES.indexOf(role);
-    return index !== -1 ? index : ROLES.length; // Unrecognized roles are ranked last
+    return index !== -1 ? index : ROLES.length;
   };
 
-  // **Memoized Sorted Users**
   const sortedUsers = useMemo(() => {
     if (sortConfig.length === 0) return filteredUsers;
 
@@ -153,12 +150,6 @@ const UserDirectoryScreen: React.FC = () => {
     });
     return sorted;
   }, [filteredUsers, sortConfig]);
-
-  useEffect(() => {
-    if (user && ['admin', 'advisor', 'executive'].includes(user.role)) {
-      fetchUsers();
-    }
-  }, [user, fetchUsers]);
 
   const handleViewUser = (user: UserObject) => {
     log('handleViewUser called', user);
@@ -280,7 +271,6 @@ const UserDirectoryScreen: React.FC = () => {
     }
   };
 
-  // **Function to Update Sort Config**
   const updateSortConfig = (criteria: SortCriteria) => {
     setSortConfig((prevConfig) => {
       const existingIndex = prevConfig.findIndex(
@@ -289,7 +279,6 @@ const UserDirectoryScreen: React.FC = () => {
       let newConfig = [...prevConfig];
 
       if (existingIndex !== -1) {
-        // Cycle through 'asc' → 'desc' → 'none'
         const currentOrder = newConfig[existingIndex].order;
         let newOrder: 'asc' | 'desc' | 'none';
 
@@ -302,13 +291,11 @@ const UserDirectoryScreen: React.FC = () => {
         }
 
         if (newOrder === 'none') {
-          // Remove the sort criteria if order is 'none'
           newConfig.splice(existingIndex, 1);
         } else {
           newConfig[existingIndex].order = newOrder;
         }
       } else {
-        // Add new sort criteria with ascending order
         newConfig.push({ criteria, order: 'asc' });
       }
 
@@ -316,7 +303,6 @@ const UserDirectoryScreen: React.FC = () => {
     });
   };
 
-  // **Function to Render Sort Indicator without Priority Numbers**
   const renderSortIndicator = (criteria: SortCriteria) => {
     const sort = sortConfig.find((sort) => sort.criteria === criteria);
     if (!sort || sort.order === 'none') return null;
@@ -338,7 +324,6 @@ const UserDirectoryScreen: React.FC = () => {
       className={`flex-1 ${colorMode === 'light' ? 'bg-white' : 'bg-gray-800'}`}
     >
       <Box className="p-4 flex-1">
-        {/* Search Bar */}
         {['admin', 'executive', 'advisor'].includes(user?.role ?? '') && (
           <Input variant="outline" size="md" className="mb-4">
             <InputField
@@ -353,10 +338,8 @@ const UserDirectoryScreen: React.FC = () => {
           </Input>
         )}
 
-        {/* Filters */}
         <View className="mb-4">
           <View className="flex flex-row flex-wrap justify-between">
-            {/* Subteam Filter */}
             <View className="flex-1 min-w-[45%] mb-2 mr-2">
               <Select
                 selectedValue={selectedSubteam}
@@ -381,7 +364,6 @@ const UserDirectoryScreen: React.FC = () => {
               </Select>
             </View>
 
-            {/* Grade Filter */}
             <View className="flex-1 min-w-[45%] mb-2">
               <Select
                 selectedValue={selectedGrade}
@@ -408,18 +390,15 @@ const UserDirectoryScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Users List */}
         <Box className="rounded-lg overflow-hidden flex-1">
           <ScrollView
             refreshControl={
               <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
             }
           >
-            {/* Table Header */}
             <View
               className={`flex flex-row`}
             >
-              {/* First Name Header */}
               <TouchableOpacity
                 className="p-2 font-medium flex-row items-center justify-center flex-1"
                 onPress={() => updateSortConfig('firstName')}
@@ -428,7 +407,6 @@ const UserDirectoryScreen: React.FC = () => {
                 {renderSortIndicator('firstName')}
               </TouchableOpacity>
 
-              {/* Last Name Header */}
               <TouchableOpacity
                 className="p-2 font-medium flex-row items-center justify-center flex-1"
                 onPress={() => updateSortConfig('lastName')}
@@ -437,16 +415,14 @@ const UserDirectoryScreen: React.FC = () => {
                 {renderSortIndicator('lastName')}
               </TouchableOpacity>
 
-              {/* Grade Header */}
               <TouchableOpacity
-                className="p-2 font-medium flex-row items-center justify-center flex-1" // Changed from flex-0.75 to flex-1
+                className="p-2 font-medium flex-row items-center justify-center flex-1"
                 onPress={() => updateSortConfig('grade')}
               >
                 <Text className="text-center">Grade</Text>
                 {renderSortIndicator('grade')}
               </TouchableOpacity>
 
-              {/* Role Header */}
               {user?.role === 'admin' && (
                 <>
                   <TouchableOpacity
@@ -456,7 +432,6 @@ const UserDirectoryScreen: React.FC = () => {
                     <Text className="text-center">Role</Text>
                     {renderSortIndicator('role')}
                   </TouchableOpacity>
-                  {/* Removed the settings emoji */}
                 </>
               )}
             </View>
@@ -493,7 +468,7 @@ const UserDirectoryScreen: React.FC = () => {
                       {userItem.last_name}
                     </Text>
                     <Text
-                      className="p-2 flex-1 text-center" // Changed from flex-0.75 to flex-1
+                      className="p-2 flex-1 text-center"
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
@@ -543,7 +518,6 @@ const UserDirectoryScreen: React.FC = () => {
           </ScrollView>
         </Box>
 
-        {/* View User Details Dialog */}
         {viewUser && showViewDialog && (
           <AlertDialog
             isOpen={showViewDialog}
@@ -559,8 +533,6 @@ const UserDirectoryScreen: React.FC = () => {
               </AlertDialogHeader>
               <AlertDialogBody>
                 <VStack space="sm">
-
-                  {/* Row 1: First Name, Last Name */}
                   <View className="flex flex-row justify-between mb-2">
                     <View className="flex-1 mr-1">
                       <Text className="font-medium">First Name:</Text>
@@ -572,7 +544,6 @@ const UserDirectoryScreen: React.FC = () => {
                     </View>
                   </View>
 
-                  {/* Row 2: Grade, Role */}
                   <View className="flex flex-row justify-between mb-2">
                     <View className="flex-1 mr-1">
                       <Text className="font-medium">Grade:</Text>
@@ -584,16 +555,13 @@ const UserDirectoryScreen: React.FC = () => {
                     </View>
                   </View>
 
-                  {/* Row 3: Subteams */}
                   <View className="mb-2">
                     <Text className="font-medium">Subteam(s):</Text>
                     <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
                   </View>
 
-                  {/* Admin/Executive Only Fields */}
                   {['admin', 'executive'].includes(user?.role ?? '') && (
                     <>
-                      {/* Row 4: Email, Phone */}
                       <View className="flex flex-row justify-between mb-2">
                         <View className="flex-1 mr-1">
                           <Text className="font-medium">Email:</Text>
@@ -605,14 +573,12 @@ const UserDirectoryScreen: React.FC = () => {
                         </View>
                       </View>
 
-                      {/* Row 5: Student ID */}
                       <View className="mb-2">
                         <Text className="font-medium">Student ID:</Text>
                         <Text>{viewUser.student_id}</Text>
                       </View>
                     </>
                   )}
-
                 </VStack>
               </AlertDialogBody>
               <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
@@ -629,7 +595,6 @@ const UserDirectoryScreen: React.FC = () => {
           </AlertDialog>
         )}
 
-        {/* Edit User Dialog */}
         {showEditDialog && (
           <AlertDialog
             isOpen={showEditDialog}
@@ -646,7 +611,6 @@ const UserDirectoryScreen: React.FC = () => {
               <AlertDialogBody>
                 <ScrollView>
                   <VStack space="sm">
-                    {/* Row 1: First Name and Last Name */}
                     <View className="flex flex-row flex-wrap justify-between">
                       <View className="flex-1 mr-1">
                         <Text className="font-medium">First Name</Text>
@@ -692,7 +656,6 @@ const UserDirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
-                    {/* Row 2: Email and Phone */}
                     <View className="flex flex-row flex-wrap justify-between mt-4">
                       <View className="flex-1 mr-1">
                         <Text className="font-medium">Email</Text>
@@ -745,7 +708,7 @@ const UserDirectoryScreen: React.FC = () => {
                                   }}
                                   placeholder="Phone"
                                   keyboardType="phone-pad"
-                                  maxLength={14} // e.g., (123) 456-7890
+                                  maxLength={14}
                                   className={`placeholder-gray-400`}
                                 />
                               </Input>
@@ -756,7 +719,6 @@ const UserDirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
-                    {/* Row 3: Student ID and Grade */}
                     <View className="flex flex-row flex-wrap justify-between mt-4">
                       <View className="flex-1 mr-1">
                         <Text className="font-medium">Student ID</Text>
@@ -826,7 +788,6 @@ const UserDirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
-                    {/* Row 4: Role */}
                     <View className="mt-4">
                       <Text className="font-medium">Role</Text>
                       <Controller
@@ -865,7 +826,6 @@ const UserDirectoryScreen: React.FC = () => {
                       />
                     </View>
 
-                    {/* Row 5: Subteams (Checkboxes) */}
                     <View className="mt-4">
                       <Text className="font-medium">Subteams</Text>
                       <Controller

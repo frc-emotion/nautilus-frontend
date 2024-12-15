@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContextType, UserObject } from "../../Constants";
 import { useNetworking } from "./NetworkingContext";
+import * as Sentry from '@sentry/react-native';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -16,14 +17,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await AsyncStorage.clear();
       setUser(null);
+      Sentry.setUser(null);
+      Sentry.setTag("role", "none");
     } catch (error) {
+      Sentry.captureException(error);
       console.error("AuthProvider: Error clearing auth data:", error);
     }
   }, []);
 
   const initializeAuth = useCallback(async () => {
-    if (hasInitializedAuth.current) return; // already ran
-
+    if (hasInitializedAuth.current) return; 
     hasInitializedAuth.current = true;
     try {
       const storedData = await AsyncStorage.getItem("userData");
@@ -32,11 +35,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const validatedUser = await validateToken(parsedUser.token);
         if (validatedUser) {
           setUser(validatedUser);
+          Sentry.setUser({ id: String(validatedUser._id), email: validatedUser.email });
+          Sentry.setTag("role", validatedUser.role);
         } else {
           await clearAuthData();
         }
       }
     } catch (error) {
+      Sentry.captureException(error);
       console.error("AuthProvider: Initialization error:", error);
       await clearAuthData();
     } finally {
@@ -53,7 +59,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await AsyncStorage.setItem("userData", JSON.stringify(authUser));
       setUser(authUser);
+      Sentry.setUser({ id: String(authUser._id), email: authUser.email });
+      Sentry.setTag("role", authUser.role);
     } catch (error) {
+      Sentry.captureException(error);
       console.error("AuthProvider: Login error:", error);
     }
   }, []);
@@ -73,10 +82,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const updatedUser = await validateToken(user.token);
       if (updatedUser) {
         setUser(updatedUser);
+        Sentry.setUser({ id: String(updatedUser._id), email: updatedUser.email });
+        Sentry.setTag("role", updatedUser.role);
       } else {
         await clearAuthData();
       }
     } catch (error) {
+      Sentry.captureException(error);
       console.error("AuthProvider: Error refreshing user:", error);
       await clearAuthData();
     }

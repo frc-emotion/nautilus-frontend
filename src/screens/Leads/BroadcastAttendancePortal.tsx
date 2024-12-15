@@ -24,6 +24,7 @@ import { Input, InputField } from '@/components/ui/input';
 import { Box } from '@/components/ui/box';
 import { Pressable } from '@/components/ui/pressable';
 import { View } from '@/components/ui/view';
+import * as Sentry from '@sentry/react-native';
 
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 
@@ -162,6 +163,7 @@ const BroadcastAttendancePortal: React.FC = () => {
         await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeeting.title);
       }
     } catch (error: any) {
+      Sentry.captureException(error);
       log('Error toggling broadcasting', error);
       openToast({
         title: 'Broadcast Error',

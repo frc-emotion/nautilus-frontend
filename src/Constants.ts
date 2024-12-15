@@ -3,7 +3,7 @@ import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from 'expo-constants';
 import { Subscription } from "expo-modules-core";
-import * as Notifications from "expo-notifications";
+//import * as Notifications from "expo-notifications";
 
 export const GRADES = ["9", "10", "11", "12"];
 export const ROLES = ["unverified", "member", "leadership", "executive", "advisor", "admin"];
@@ -35,14 +35,14 @@ export interface NetworkingContextProps {
     client: AxiosInstance;
   }
 
-export interface NotificationsContextProps {
-    hasPermission: boolean;
-    requestPermission: () => Promise<void>;
-    scheduleNotification: (title: string, body: string, schedulingOptions?: Notifications.NotificationContentInput & Notifications.NotificationTriggerInput) => Promise<void>;
-    sendBackendNotification: (title: string, body: string, data: any) => Promise<void>;
-    backendHasToken: boolean;
-    checkBackendPushToken: () => Promise<void>;
-}
+// export interface NotificationsContextProps {
+//     hasPermission: boolean;
+//     requestPermission: () => Promise<void>;
+//     scheduleNotification: (title: string, body: string, schedulingOptions?: Notifications.NotificationContentInput & Notifications.NotificationTriggerInput) => Promise<void>;
+//     sendBackendNotification: (title: string, body: string, data: any) => Promise<void>;
+//     backendHasToken: boolean;
+//     checkBackendPushToken: () => Promise<void>;
+// }
 
 export interface UpdateInfo {
     version: string;
@@ -56,6 +56,7 @@ export interface UpdateContextProps {
     isOutOfDate: boolean;
     latestVersion: string | null;
     openUpdateURL: () => void;
+    checkAppVersion: () => Promise<void>;
   }
   
 

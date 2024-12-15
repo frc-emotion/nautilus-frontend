@@ -1,62 +1,61 @@
 {
   "expo": {
-    "name": "Nautilus",
-    "slug": "nautilus",
-    "scheme": "nautilus",
-    "version": "1.0.0",
-    "platforms": [
-      "ios",
-      "android"
-    ],
-    "splash": {
-      "image": "./src/assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
-    "userInterfaceStyle": "light",
-    "entryPoint": "./App.tsx",
-    "developmentClient": {
-      "client": {
-        "enabled": true
-      }
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.team2658.nautilus",
-      "infoPlist": {
-        "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
-        "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
-        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to detect beacons."
-      }
-    },
-    "android": {
-      "package": "com.team2658.nautilus",
-      "permissions": [
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.FOREGROUND_SERVICE_LOCATION",
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_SCAN",
-        "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.VIBRATE"
+      "name": "Nautilus",
+      "slug": "nautilus",
+      "scheme": "nautilus",
+      "version": "0.0.1",
+      "platforms": ["ios", "android"],
+      "splash": {
+          "image": "./src/assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+      },
+      "orientation": "portrait",
+      "icon": "./src/assets/icon.png",
+      "userInterfaceStyle": "light",
+      "entryPoint": "./App.tsx",
+      "developmentClient": {
+          "client": {
+              "enabled": true
+          }
+      },
+      "ios": {
+          "supportsTablet": true,
+          "bundleIdentifier": "org.team2658.scouting",
+          "buildNumber": "2",
+          "appleTeamId": "7L23FMFWGW",
+          "infoPlist": {
+              "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
+              "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
+              "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to detect beacons."
+          }
+      },
+      "android": {
+          "package": "org.team2658.scouting",
+          "permissions": [
+              "android.permission.INTERNET",
+              "android.permission.ACCESS_COARSE_LOCATION",
+              "android.permission.FOREGROUND_SERVICE",
+              "android.permission.ACCESS_FINE_LOCATION",
+              "android.permission.ACCESS_BACKGROUND_LOCATION",
+              "android.permission.RECEIVE_BOOT_COMPLETED",
+              "android.permission.FOREGROUND_SERVICE_LOCATION",
+              "android.permission.BLUETOOTH",
+              "android.permission.BLUETOOTH_ADMIN",
+              "android.permission.BLUETOOTH_SCAN",
+              "android.permission.BLUETOOTH_CONNECT",
+              "android.permission.VIBRATE"
+          ]
+      },
+      "plugins": [
+          [
+              "@sentry/react-native/expo",
+              {
+                  "organization": "frc-team-2658",
+                  "project": "nautilus-app",
+                  "url": "https://sentry.io/"
+              }
+          ]
       ]
-    },
-    "plugins": [
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "frc-team-2658",
-          "project": "nautilus-app",
-          "url": "https://sentry.io/"
-        }
-      ]
-    ]
   }
 }

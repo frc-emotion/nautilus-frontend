@@ -1,17 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  QueuedRequest,
-  UserObject,
-  USERS_STORAGE_KEY,
-  UsersContextProps,
-} from '../../Constants';
+import { QueuedRequest, UserObject, USERS_STORAGE_KEY, UsersContextProps } from '../../Constants';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from './AuthContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
 import { useModal } from '../UI/CustomModalProvider';
 import { useNetworking } from './NetworkingContext';
+import * as Sentry from '@sentry/react-native';
 
 const UsersContext = createContext<UsersContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[UsersProvider]';
@@ -49,6 +45,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error loading cached users:`, error);
+      Sentry.captureException(error);
       openToast({
         title: 'Error',
         description: 'Failed to load cached users.',
@@ -63,6 +60,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.log(`${DEBUG_PREFIX} Users cached successfully.`);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Error caching users:`, error);
+      Sentry.captureException(error);
       openToast({
         title: 'Error',
         description: 'Failed to cache users.',
@@ -94,6 +92,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       },
       errorHandler: async (error: AxiosError) => {
         console.error(`${DEBUG_PREFIX} API error while fetching users:`, error.message);
+        Sentry.captureException(error);
         handleErrorWithModalOrToast({
           actionName: 'Fetch Users',
           error,
@@ -118,6 +117,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Unexpected error during fetch:`, error);
       openToast({
         title: 'Error',
@@ -154,14 +154,14 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setUsers((prevUsers) =>
           prevUsers.map((u) =>
             u._id === updatedUser._id
-              ? { ...u, ...updatedUser } // merge instead of replace
+              ? { ...u, ...updatedUser }
               : u
           )
         );
         
         await cacheUsers(users.map((u) =>
           u._id === updatedUser._id
-            ? { ...u, ...updatedUser } // do the same here when caching
+            ? { ...u, ...updatedUser }
             : u
         ));
         openToast({
@@ -171,13 +171,14 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
       },
       errorHandler: async (error: AxiosError) => {
+        Sentry.captureException(error);
         console.error(`${DEBUG_PREFIX} API error while editing user:`, error.message);
         handleErrorWithModalOrToast({
           actionName: 'Edit User',
           error,
           openToast,
           openModal,
-        })
+        });
       },
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline detected. Cannot edit user.`);
@@ -192,6 +193,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Unexpected error during edit:`, error);
       openToast({
         title: 'Error',
@@ -230,6 +232,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
       },
       errorHandler: async (error: AxiosError) => {
+        Sentry.captureException(error);
         console.error(`${DEBUG_PREFIX} API error while deleting user:`, error.message);
         handleErrorWithModalOrToast({
           actionName: 'Delete User',
@@ -237,7 +240,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           openToast,
           openModal,
 
-        })
+        });
       },
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline detected. Cannot delete user.`);
@@ -252,6 +255,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Unexpected error during delete:`, error);
       openToast({
         title: 'Error',
@@ -308,7 +312,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const init = useCallback(async () => {
     if (hasInitialized.current) {
-      return; // Already initialized once
+      return; 
     }
 
     console.log(`${DEBUG_PREFIX} Initializing...`);
@@ -322,6 +326,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       await loadCachedUsers();
       await fetchUsers();
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Initialization error:`, error);
       openToast({
         title: 'Initialization Error',
@@ -330,6 +335,13 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
     }
   }, [user, loadCachedUsers, fetchUsers, openToast]);
+
+  // Call init once user is available and not unverified
+  useEffect(() => {
+    if (user && user.role !== 'unverified' && !hasInitialized.current) {
+      init();
+    }
+  }, [user, init]);
 
   const value = useMemo(() => ({
     users,

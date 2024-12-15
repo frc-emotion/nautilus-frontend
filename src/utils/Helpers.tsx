@@ -1,14 +1,12 @@
+import { AlertCircle, Bluetooth, BluetoothOff, Lock, MapPin, MapPinOff, RefreshCw } from 'lucide-react-native';
 import { View } from "@/components/ui/view";
-import { Lock, AlertCircle, Bluetooth, BluetoothOff, RefreshCw, MapPinOff, MapPin } from 'lucide-react-native';
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { ErrorHandlerOptions, FailedRequest } from "@/src/Constants";
+import * as Sentry from '@sentry/react-native';
 
 export const formatPhoneNumber = (input: string): string => {
-  // Remove all non-digit characters
   const digits = input.replace(/\D/g, "");
-
-  // Format the phone number based on the length of the digits
   if (digits.length <= 3) {
     return `(${digits}`;
   } else if (digits.length <= 6) {
@@ -30,13 +28,12 @@ export const handleErrorWithModalOrToast = ({
   openModal,
   openToast,
 }: ErrorHandlerOptions) => {
-  console.log("running")
-  const statusCode = error.response?.status;
+  console.log("Running handleErrorWithModalOrToast", actionName, error);
+  Sentry.captureException(error);
 
+  const statusCode = error.response?.status;
   if (!statusCode) {
     const message = `${error.message}\nCode: ${error.code}`;
-
-    // Fallback for unexpected errors
     if (showModal) {
       openModal({
         title: `Unexpected Error: ${error.name}`,
@@ -44,7 +41,6 @@ export const handleErrorWithModalOrToast = ({
         type: "error",
       });
     }
-
     if (showToast) {
       openToast({
         title: `Unexpected Error: ${error.name}`,
@@ -52,16 +48,10 @@ export const handleErrorWithModalOrToast = ({
         type: "error",
       });
     }
-
     return;
   }
 
-  console.log(error)
-
   const errorData = error.response?.data as FailedRequest;
-
-  console.log(errorData)
-
   const errorMessage = errorData?.error || "An error occurred.";
 
   if (showModal) {
@@ -129,7 +119,6 @@ export const BluetoothStatusIndicator = ({ state }: { state: string }) => {
   );
 };
 
-
 export const LocationStatusIndicator = ({ state }: { state: string }) => {
   let IconComponent = MapPin;
   let color = 'gray';
@@ -168,25 +157,25 @@ export const LocationStatusIndicator = ({ state }: { state: string }) => {
 }
 
 /**
-* Compares two semantic version strings.
-* Returns:
-* -1 if v1 < v2
-*  0 if v1 == v2
-*  1 if v1 > v2
-*/
+ * Compares two semantic version strings.
+ * Returns:
+ * -1 if v1 < v2
+ *  0 if v1 == v2
+ *  1 if v1 > v2
+ */
 export const compareVersions = (v1: string, v2: string): number => {
- const v1Parts = v1.split('.').map(Number);
- const v2Parts = v2.split('.').map(Number);
+  const v1Parts = v1.split('.').map(Number);
+  const v2Parts = v2.split('.').map(Number);
 
- const maxLength = Math.max(v1Parts.length, v2Parts.length);
+  const maxLength = Math.max(v1Parts.length, v2Parts.length);
 
- for (let i = 0; i < maxLength; i++) {
-   const a = v1Parts[i] || 0;
-   const b = v2Parts[i] || 0;
+  for (let i = 0; i < maxLength; i++) {
+    const a = v1Parts[i] || 0;
+    const b = v2Parts[i] || 0;
 
-   if (a > b) return 1;
-   if (a < b) return -1;
- }
+    if (a > b) return 1;
+    if (a < b) return -1;
+  }
 
- return 0;
+  return 0;
 };

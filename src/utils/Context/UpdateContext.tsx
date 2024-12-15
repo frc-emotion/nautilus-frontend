@@ -7,6 +7,7 @@ import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
 import { Linking } from 'react-native';
 import { useNetworking } from './NetworkingContext';
+import * as Sentry from '@sentry/react-native';
 
 const UpdateContext = createContext<UpdateContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[UpdateProvider]';
@@ -38,7 +39,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const checkAppVersion = useCallback(async () => {
     if (hasCheckedVersion.current) {
-      return; // Already checked, avoid repeated checks
+      return; 
     }
 
     console.log(`${DEBUG_PREFIX} Starting version check.`);
@@ -82,6 +83,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       },
       errorHandler: async (error: AxiosError) => {
+        Sentry.captureException(error);
         console.error(`${DEBUG_PREFIX} Error fetching version info:`, error);
       },
       offlineHandler: async () => {
@@ -92,6 +94,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error(`${DEBUG_PREFIX} Unexpected error during version check:`, error);
     }
   }, [handleRequest, isVersionOutdated, openModal, openToast]);
@@ -102,14 +105,11 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [updateURL]);
 
-  useEffect(() => {
-    checkAppVersion();
-  }, [checkAppVersion]);
-
   const contextValue = useMemo(() => ({
     isOutOfDate,
     latestVersion,
     openUpdateURL,
+    checkAppVersion,
   }), [isOutOfDate, latestVersion, openUpdateURL]);
 
   return (

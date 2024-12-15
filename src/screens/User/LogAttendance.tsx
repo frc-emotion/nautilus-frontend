@@ -26,6 +26,7 @@ import { useThemeContext } from '@/src/utils/UI/CustomThemeProvider';
 import { HStack } from '@/components/ui/hstack';
 import { useLocation } from '@/src/utils/Context/LocationContext';
 import { useNetworking } from '@/src/utils/Context/NetworkingContext';
+import * as Sentry from '@sentry/react-native';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
@@ -107,6 +108,7 @@ const LogAttendance: React.FC = () => {
         await startListening();
       }
     } catch (error: any) {
+      Sentry.captureException(error);
       log('Error toggling listening', error);
       openToast({
         title: 'Error',
@@ -144,6 +146,7 @@ const LogAttendance: React.FC = () => {
       setSelectedBeacon(beacon);
       setSelectedMeeting(cachedMeeting || null);
     } catch (error) {
+      Sentry.captureException(error);
       console.error('Error during attendance logging preparation:', error);
       openToast({
         title: 'Error',
@@ -213,6 +216,7 @@ const LogAttendance: React.FC = () => {
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error('Error during attendance logging:', error);
       openToast({
         title: 'Error',
@@ -258,6 +262,7 @@ const LogAttendance: React.FC = () => {
     try {
       await handleRequest(request);
     } catch (error) {
+      Sentry.captureException(error);
       console.error('Error fetching meeting details:', error);
     }
 

@@ -11,8 +11,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { HStack } from "@/components/ui/hstack"; // for horizontal layout
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
+import * as Sentry from '@sentry/react-native';
+import { useUpdate } from "@/src/utils/Context/UpdateContext";
 
 interface ContextStatus {
+  Update: 'Pending' | 'Loading' | 'Success' | 'Error';
   Meetings: 'Pending' | 'Loading' | 'Success' | 'Error';
   Users: 'Pending' | 'Loading' | 'Success' | 'Error';
   Attendance: 'Pending' | 'Loading' | 'Success' | 'Error';
@@ -24,12 +27,14 @@ const AppInitializer: React.FC = () => {
   const { init: initUsers } = useUsers();
   const { init: initAttendance } = useAttendance();
   const { isConnected } = useNetworking();
+  const { checkAppVersion } = useUpdate();
   const route = useRoute();
 
   const navigation = useNavigation<StackNavigationProp<any>>();
   const [isInitializing, setIsInitializing] = useState(true);
 
   const [contextsLoadingStatus, setContextsLoadingStatus] = useState<ContextStatus>({
+    Update: 'Pending',
     Meetings: 'Pending',
     Users: 'Pending',
     Attendance: 'Pending',
@@ -50,6 +55,9 @@ const AppInitializer: React.FC = () => {
         navigateToAppropriateScreen();
         return;
       }
+
+      setContextsLoadingStatus((prev) => ({ ...prev, Update: 'Loading' }));
+      await initializeContext(checkAppVersion, "Update");
 
       // User is logged in and we know connectivity
       // Initialize additional contexts one by one for transparency

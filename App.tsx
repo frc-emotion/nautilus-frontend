@@ -27,7 +27,7 @@ const prefix = Linking.createURL('/');
 
 Sentry.init({
   _experiments: {
-    replaysSessionSampleRate: 1.0,
+    replaysSessionSampleRate: 0.6,
     replaysOnErrorSampleRate: 1.0,
   },
   integrations: [

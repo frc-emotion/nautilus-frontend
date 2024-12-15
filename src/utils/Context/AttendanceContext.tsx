@@ -1,21 +1,15 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { AxiosResponse, AxiosError } from 'axios';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useUsers } from './UsersContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
-import {
-    AttendanceContextProps,
-    SchoolYear,
-    AttendanceHours,
-    QueuedRequest,
-    UserObject,
-    AttendanceLog,
-    AttendanceLogWithMeeting,
-} from '@/src/Constants';
+import { AttendanceContextProps, SchoolYear, AttendanceHours, QueuedRequest, UserObject, AttendanceLog, AttendanceLogWithMeeting } from '@/src/Constants';
 import { useMeetings } from './MeetingContext';
 import { useModal } from '../UI/CustomModalProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
 import { useNetworking } from './NetworkingContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
+import { AxiosError, AxiosResponse } from 'axios';
 
 const AttendanceContext = createContext<AttendanceContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[AttendanceProvider]';
@@ -43,16 +37,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const hasInitialized = useRef(false);
-
-    const resetContext = useCallback(() => {
-        console.log(`${DEBUG_PREFIX} Resetting context state.`);
-        setSchoolYears([]);
-        setSchoolTerms({});
-        setCurrentYear('');
-        setCurrentTerm(1);
-        setUserAttendanceHours({});
-        setAllUsersAttendanceData({});
-    }, []);
 
     const computeAttendanceHours = useCallback((logs: AttendanceLog[]): AttendanceHours => {
         const attendanceHours: AttendanceHours = {};
@@ -134,6 +118,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setSchoolTerms(data || {});
             },
             errorHandler: async (error: AxiosError) => {
+                Sentry.captureException(error);
                 console.error(`${DEBUG_PREFIX} Error fetching years and terms:`, error);
                 handleErrorWithModalOrToast({
                     actionName: 'Fetch Years and Terms',
@@ -157,6 +142,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
             await handleRequest(request);
         } catch (error) {
+            Sentry.captureException(error);
             console.error(`${DEBUG_PREFIX} Unexpected error during fetchYearsAndTerms:`, error);
         }
     }, [handleRequest, openModal, openToast]);
@@ -181,6 +167,15 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 }
             },
             errorHandler: async (error: AxiosError) => {
+                
+                // If 404 then no attendance logs found for user
+                if (error.response?.status === 404) {
+                    console.log(`${DEBUG_PREFIX} No attendance logs found for user.`);
+                    setUserAttendanceHours({});
+                    return;
+                }
+
+                Sentry.captureException(error);
                 console.error(`${DEBUG_PREFIX} Error fetching user attendance logs:`, error);
                 handleErrorWithModalOrToast({
                     actionName: 'Fetch User Attendance Logs',
@@ -204,6 +199,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
             await handleRequest(request);
         } catch (error) {
+            Sentry.captureException(error);
             console.error(`${DEBUG_PREFIX} Unexpected error during fetchUserAttendanceLogs:`, error);
         }
     }, [user, computeAttendanceHours, handleRequest, openModal, openToast]);
@@ -259,6 +255,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 }
             },
             errorHandler: async (error: AxiosError) => {
+                Sentry.captureException(error);
                 console.error(`${DEBUG_PREFIX} Error fetching all users attendance logs:`, error);
                 handleErrorWithModalOrToast({
                     actionName: 'Fetch All Users Attendance Logs',
@@ -282,6 +279,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
             await handleRequest(request);
         } catch (error) {
+            Sentry.captureException(error);
             console.error(`${DEBUG_PREFIX} Unexpected error during fetchAllUsersAttendanceLogs:`, error);
         }
     }, [user, users, meetings, computeAttendanceHours, handleRequest, openModal, openToast]);
@@ -307,6 +305,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 });
             },
             errorHandler: async (error: AxiosError) => {
+                Sentry.captureException(error);
                 console.error(`${DEBUG_PREFIX} Error adding manual attendance log:`, error);
                 handleErrorWithModalOrToast({
                     actionName: 'Add Manual Attendance Log',
@@ -331,6 +330,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             await handleRequest(request);
             await fetchAllUsersAttendanceLogs();
         } catch (error) {
+            Sentry.captureException(error);
             console.error(`${DEBUG_PREFIX} Unexpected error during addManualAttendanceLog:`, error);
         }
     }, [user, openToast, openModal, handleRequest, fetchAllUsersAttendanceLogs]);
@@ -363,6 +363,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 });
             },
             errorHandler: async (error: AxiosError) => {
+                Sentry.captureException(error);
                 console.error(`${DEBUG_PREFIX} Error removing manual attendance logs:`, error);
                 handleErrorWithModalOrToast({
                     actionName: 'Remove Manual Attendance Logs',
@@ -387,6 +388,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             await handleRequest(request);
             await fetchAllUsersAttendanceLogs();
         } catch (error) {
+            Sentry.captureException(error);
             console.error(`${DEBUG_PREFIX} Unexpected error during removeManualAttendanceLogs:`, error);
         }
     }, [user, openToast, openModal, handleRequest, fetchAllUsersAttendanceLogs]);
@@ -413,6 +415,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 await fetchAllUsersAttendanceLogs();
             }
         } catch (error) {
+            Sentry.captureException(error);
             console.error(`${DEBUG_PREFIX} Initialization error:`, error);
             openToast({
                 title: 'Initialization Error',
@@ -425,7 +428,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
     }, [user, users, usersLoading, fetchUsers, fetchYearsAndTerms, fetchUserAttendanceLogs, fetchAllUsersAttendanceLogs, openToast]);
 
-    // Added useEffect to determine current year and term after schoolYears or schoolTerms change
     useEffect(() => {
         if (schoolYears.length > 0 && Object.keys(schoolTerms).length > 0) {
             determineCurrentYearAndTerm();
@@ -434,23 +436,21 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const init = useCallback(async () => {
         if (hasInitialized.current) {
-            return; // Already initialized once
+            return; 
         }
 
         if (!user) {
-            resetContext();
             return;
         }
 
         hasInitialized.current = true;
         await initializeAttendanceData();
-    }, [user, initializeAttendanceData, resetContext]);
+    }, [user, initializeAttendanceData]);
 
     const refreshAttendanceData = useCallback(async () => {
         console.log(`${DEBUG_PREFIX} Refreshing attendance data.`);
-        resetContext();
         await initializeAttendanceData();
-    }, [resetContext, initializeAttendanceData]);
+    }, [initializeAttendanceData]);
 
     const value = useMemo(() => ({
         schoolYears,
@@ -475,9 +475,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 };
 
 export const useAttendance = (): AttendanceContextProps => {
-    const context = useContext(AttendanceContext);
-    if (!context) {
-        throw new Error('useAttendance must be used within an AttendanceProvider');
-    }
-    return context;
+  const context = useContext(AttendanceContext);
+  if (!context) {
+    throw new Error('useAttendance must be used within an AttendanceProvider');
+  }
+  return context;
 };
