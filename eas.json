@@ -13,13 +13,6 @@
         "android": {
         "buildType": "apk"
       }
-      },
-      "preview": {
-        "developmentClient": true,
-        "distribution": "internal",
-        "android": {
-        "buildType": "apk"
-      }
       }
     }
   }
