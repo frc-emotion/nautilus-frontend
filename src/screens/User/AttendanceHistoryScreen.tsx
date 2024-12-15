@@ -21,7 +21,7 @@ import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { useForm, Controller } from "react-hook-form";
-import { useModal } from "@/src/utils/UI/CustomModalProvider";
+import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { Card } from "@/components/ui/card";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";

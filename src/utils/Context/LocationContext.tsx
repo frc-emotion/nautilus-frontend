@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import * as Location from 'expo-location';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { LocationContextProps } from '@/src/Constants';
-import { useModal } from '../UI/CustomModalProvider';
+import { useGlobalModal } from '../UI/CustomModalProvider';
 import { AppLifecycle } from 'react-native-applifecycle';
 import { Platform } from 'react-native';
 import * as Sentry from '@sentry/react-native';
@@ -21,7 +21,7 @@ export const useLocation = (): LocationContextProps => {
 export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [locationStatus, setLocationStatus] = useState<'enabled' | 'disabled' | 'unauthorized' | 'unknown'>('unknown');
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
 
   const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);

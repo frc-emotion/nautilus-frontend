@@ -21,11 +21,13 @@ import {
 import { MoonIcon, SunIcon, ChevronDownIcon } from 'lucide-react-native';
 import { Fab, FabIcon } from '@/components/ui/fab';
 import UpdateRibbon from '@/src/components/UpdateRibbon';
+import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 
 const HomeScreen: React.FC = () => {
     const { colorMode, toggleColorMode } = useThemeContext();
     const { user, refreshUser } = useAuth();
     const { userAttendanceHours, isLoading, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
+    const { openToast } = useGlobalToast();
 
     const [refreshing, setRefreshing] = useState(false);
     const [selectedYear, setSelectedYear] = useState<string>('All Years');
@@ -81,7 +83,11 @@ const HomeScreen: React.FC = () => {
                 await refreshUser();
             } catch (error) {
                 console.error("Error refreshing user data:", error);
-                // Optionally, show a toast or modal here
+                openToast({
+                    title: 'Error',
+                    description: 'Failed to refresh user data. Please try again later.',
+                    type: 'error',
+                });
             }
         } else {
             // If user is verified, refresh attendance data
@@ -89,7 +95,11 @@ const HomeScreen: React.FC = () => {
                 await refreshAttendanceData();
             } catch (error) {
                 console.error("Error refreshing attendance data:", error);
-                // Optionally, show a toast or modal here
+                openToast({
+                    title: 'Error',
+                    description: 'Failed to refresh attendance data. Please try again later.',
+                    type: 'error',
+                });
             }
         }
         setRefreshing(false);

@@ -12,7 +12,7 @@ import { Text } from "@/components/ui/text";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Button, ButtonText } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon, MoonIcon, SunIcon } from "lucide-react-native";
-import { useModal } from "../../utils/UI/CustomModalProvider";
+import { useGlobalModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
@@ -30,7 +30,7 @@ const icon = require("@/src/assets/icon.png");
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colorMode, toggleColorMode } = useThemeContext();
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { login } = useAuth();
   const { handleRequest } = useNetworking();
   const [isSubmitting, setIsSubmitting] = useState(false);

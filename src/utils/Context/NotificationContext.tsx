@@ -1,7 +1,7 @@
 // // NotificationsProvider.tsx
 // import React, { ReactNode, useState, useEffect, createContext, useContext } from "react";
 // import { AppState, AppStateStatus } from "react-native";
-// import { useModal } from "../UI/CustomModalProvider";
+// import { useGlobalModal } from "../UI/CustomModalProvider";
 // import { useGlobalToast } from "../UI/CustomToastProvider";
 // import * as Notifications from "expo-notifications";
 // import Constants from 'expo-constants';
@@ -18,7 +18,7 @@
 // export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 //     const { user } = useAuth(); // Assuming 'token' is part of user
 //     const { openToast } = useGlobalToast();
-//     const { openModal } = useModal();
+//     const { openModal } = useGlobalModal();
 //     const [hasPermission, setHasPermission] = useState<boolean>(false);
 //     const [isPermissionChecked, setIsPermissionChecked] = useState<boolean>(false);
 //     const [expoPushToken, setExpoPushToken] = useState<string | null>(null);

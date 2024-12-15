@@ -15,7 +15,7 @@ import { AxiosError, AxiosResponse } from "axios";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
-import { useModal } from "@/src/utils/UI/CustomModalProvider";
+import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const icon = require("@/src/assets/icon.png");
@@ -23,7 +23,7 @@ const icon = require("@/src/assets/icon.png");
 const ProfileScreen: React.FC = () => {
   const { user, logout, refreshUser, isLoading } = useAuth();
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { colorMode } = useThemeContext();
   // const { backendHasToken, checkBackendPushToken } = useNotifications();
   const { handleRequest } = useNetworking(); // handleRequest from networking

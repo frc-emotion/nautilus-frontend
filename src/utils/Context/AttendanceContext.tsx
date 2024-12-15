@@ -4,7 +4,7 @@ import { useUsers } from './UsersContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
 import { AttendanceContextProps, SchoolYear, AttendanceHours, QueuedRequest, UserObject, AttendanceLog, AttendanceLogWithMeeting } from '@/src/Constants';
 import { useMeetings } from './MeetingContext';
-import { useModal } from '../UI/CustomModalProvider';
+import { useGlobalModal } from '../UI/CustomModalProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
 import { useNetworking } from './NetworkingContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +19,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const { users, fetchUsers, isLoading: usersLoading } = useUsers();
     const { meetings } = useMeetings();
     const { openToast } = useGlobalToast();
-    const { openModal } = useModal();
+    const { openModal } = useGlobalModal();
     const { handleRequest } = useNetworking();
 
     const [schoolYears, setSchoolYears] = useState<string[]>([]);

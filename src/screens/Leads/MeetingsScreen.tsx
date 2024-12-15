@@ -5,7 +5,6 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  TouchableOpacity,
 } from "react-native";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Menu, MenuItem, MenuItemLabel } from "@/components/ui/menu";
@@ -25,13 +24,10 @@ import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
 import { Icon, ThreeDotsIcon, EyeIcon } from "@/components/ui/icon";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
-import DateTimePicker, {
-  DateTimePickerAndroid,
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useForm, Controller } from "react-hook-form";
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
-import { useModal } from "@/src/utils/UI/CustomModalProvider";
+import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { Card } from "@/components/ui/card";
 import { View } from "@/components/ui/view";
 import { Input, InputField } from "@/components/ui/input";
@@ -42,11 +38,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { useUsers } from "@/src/utils/Context/UsersContext";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 import { useAttendance } from "@/src/utils/Context/AttendanceContext";
+import { Dimensions } from "react-native";
+const screenHeight = Dimensions.get("window").height;
 
 const MeetingsScreen: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { colorMode } = useThemeContext();
   const { users } = useUsers();
   const { meetings, isLoadingMeetings, fetchMeetings, init } = useMeetings();
@@ -62,12 +60,7 @@ const MeetingsScreen: React.FC = () => {
 
   const [viewingUsers, setViewingUsers] = useState<UserObject[]>([]);
   const [showViewUsersDialog, setShowViewUsersDialog] = useState<boolean>(false);
-
-  // Android-only states for pickers
-  const [showEditStartDatePicker, setShowEditStartDatePicker] = useState(false);
-  const [showEditStartTimePicker, setShowEditStartTimePicker] = useState(false);
-  const [showEditEndDatePicker, setShowEditEndDatePicker] = useState(false);
-  const [showEditEndTimePicker, setShowEditEndTimePicker] = useState(false);
+  const [attendeesSearchQuery, setAttendeesSearchQuery] = useState("");
 
   const {
     control,
@@ -118,6 +111,12 @@ const MeetingsScreen: React.FC = () => {
 
     setFilteredMeetings(filtered);
   }, [searchQuery, meetings]);
+
+  const filteredAttendees = viewingUsers.filter((u) =>
+    `${u.first_name} ${u.last_name}`
+      .toLowerCase()
+      .includes(attendeesSearchQuery.toLowerCase())
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -304,94 +303,64 @@ const MeetingsScreen: React.FC = () => {
     });
   };
 
-  // Handlers for Edit Dialog (Android only)
-  const onChangeEditStartDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  // Handlers for changing start/end times (Android)
+  const onChangeEditStartDate = (event: any, selectedDate?: Date) => {
     if (event.type === "set" && selectedDate) {
       const currentStart = new Date(selectedDate);
+      const oldStart = watch("time_start");
+      currentStart.setHours(oldStart.getHours());
+      currentStart.setMinutes(oldStart.getMinutes());
       setValue("time_start", currentStart, { shouldValidate: true });
-      if (Platform.OS === "android") {
-        setShowEditStartTimePicker(true);
-      }
     }
-    setShowEditStartDatePicker(false);
   };
 
-  const onChangeEditStartTime = (event: DateTimePickerEvent, selectedTime?: Date) => {
+  const onChangeEditStartTime = (event: any, selectedTime?: Date) => {
     if (event.type === "set" && selectedTime) {
       const currentStart = new Date(watch("time_start"));
       currentStart.setHours(selectedTime.getHours());
       currentStart.setMinutes(selectedTime.getMinutes());
       setValue("time_start", currentStart, { shouldValidate: true });
     }
-    setShowEditStartTimePicker(false);
   };
 
-  const onChangeEditEndDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const onChangeEditEndDate = (event: any, selectedDate?: Date) => {
     if (event.type === "set" && selectedDate) {
       const currentEnd = new Date(selectedDate);
+      const oldEnd = watch("time_end");
+      currentEnd.setHours(oldEnd.getHours());
+      currentEnd.setMinutes(oldEnd.getMinutes());
       setValue("time_end", currentEnd, { shouldValidate: true });
-      if (Platform.OS === "android") {
-        setShowEditEndTimePicker(true);
-      }
     }
-    setShowEditEndDatePicker(false);
   };
 
-  const onChangeEditEndTime = (event: DateTimePickerEvent, selectedTime?: Date) => {
+  const onChangeEditEndTime = (event: any, selectedTime?: Date) => {
     if (event.type === "set" && selectedTime) {
       const currentEnd = new Date(watch("time_end"));
       currentEnd.setHours(selectedTime.getHours());
       currentEnd.setMinutes(selectedTime.getMinutes());
       setValue("time_end", currentEnd, { shouldValidate: true });
     }
-    setShowEditEndTimePicker(false);
   };
 
   const showEditDatePicker = (pickerType: 'start' | 'end') => {
-    if (pickerType === 'start') {
-      setShowEditStartDatePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeStart,
-          onChange: onChangeEditStartDate,
-          mode: 'date',
-          is24Hour: true,
-        });
-      }
-    } else {
-      setShowEditEndDatePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeEnd,
-          onChange: onChangeEditEndDate,
-          mode: 'date',
-          is24Hour: true,
-        });
-      }
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: pickerType === 'start' ? timeStart : timeEnd,
+        onChange: pickerType === 'start' ? onChangeEditStartDate : onChangeEditEndDate,
+        mode: 'date',
+        is24Hour: false,
+      });
     }
   };
 
   const showEditTimePicker = (pickerType: 'start' | 'end') => {
-    if (pickerType === 'start') {
-      setShowEditStartTimePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeStart,
-          onChange: onChangeEditStartTime,
-          mode: 'time',
-          is24Hour: true,
-        });
-      }
-    } else {
-      setShowEditEndTimePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeEnd,
-          onChange: onChangeEditEndTime,
-          mode: 'time',
-          is24Hour: true,
-        });
-      }
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: pickerType === 'start' ? timeStart : timeEnd,
+        onChange: pickerType === 'start' ? onChangeEditStartTime : onChangeEditEndTime,
+        mode: 'time',
+        is24Hour: false,
+      });
     }
   };
 
@@ -527,7 +496,9 @@ const MeetingsScreen: React.FC = () => {
                           value={value}
                           onChangeText={onChange}
                           placeholder="Title"
-                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                          placeholderTextColor={
+                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          }
                         />
                       </Input>
                     )}
@@ -548,7 +519,9 @@ const MeetingsScreen: React.FC = () => {
                           value={value}
                           onChangeText={onChange}
                           placeholder="Description"
-                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                          placeholderTextColor={
+                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          }
                         />
                       </Input>
                     )}
@@ -571,7 +544,9 @@ const MeetingsScreen: React.FC = () => {
                           value={value}
                           onChangeText={onChange}
                           placeholder="Location"
-                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                          placeholderTextColor={
+                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          }
                         />
                       </Input>
                     )}
@@ -582,7 +557,7 @@ const MeetingsScreen: React.FC = () => {
                     </Text>
                   )}
 
-                  {/* Start Time Picker */}
+                  {/* Start Time */}
                   <Text className="font-medium">Start Time</Text>
                   {Platform.OS === 'ios' ? (
                     <Controller
@@ -590,17 +565,18 @@ const MeetingsScreen: React.FC = () => {
                       name="time_start"
                       rules={{ required: "Start time is required" }}
                       render={({ field: { onChange, value } }) => (
-                        <DateTimePicker
-                          value={value}
-                          mode="datetime"
-                          display="default"
-                          onChange={(event, selectedDate) => {
-                            if (selectedDate) {
-                              onChange(selectedDate);
-                            }
-                          }}
-                          style={{ backgroundColor: '#fff' }}
-                        />
+                        <View className="bg-white">
+                          <DateTimePicker
+                            value={value}
+                            mode="datetime"
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                              if (selectedDate) {
+                                onChange(selectedDate);
+                              }
+                            }}
+                          />
+                        </View>
                       )}
                     />
                   ) : (
@@ -609,33 +585,35 @@ const MeetingsScreen: React.FC = () => {
                       name="time_start"
                       rules={{ required: "Start time is required" }}
                       render={({ field: { value } }) => (
-                        <TouchableOpacity
-                          onPress={() => {
-                            // Android: open date picker
-                            showEditDatePicker('start');
-                          }}
-                          style={{
-                            padding: 10,
-                            borderWidth: 1,
-                            borderColor: '#ccc',
-                            borderRadius: 5,
-                            marginBottom: 5,
-                          }}
-                        >
-                          <Text>
-                            {value ? value.toLocaleString() : "Select Start Time"}
-                          </Text>
-                        </TouchableOpacity>
+                        <View className="flex-row justify-between space-x-2">
+                          <Pressable
+                            onPress={() => showEditDatePicker('start')}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                          >
+                            <Text>
+                              {value ? value.toLocaleDateString() : "Select Start Date"}
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            onPress={() => showEditTimePicker('start')}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                          >
+                            <Text>
+                              {value
+                                ? value.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                                : "Select Start Time"}
+                            </Text>
+                          </Pressable>
+                        </View>
                       )}
                     />
                   )}
                   {errors.time_start && (
-                    <Text className="text-red-500">
-                      {errors.time_start.message}
-                    </Text>
+                    <Text className="text-red-500">{errors.time_start.message}</Text>
                   )}
 
-                  {/* End Time Picker */}
+                  {/* End Time */}
                   <Text className="font-medium">End Time</Text>
                   {Platform.OS === 'ios' ? (
                     <Controller
@@ -652,17 +630,18 @@ const MeetingsScreen: React.FC = () => {
                         },
                       }}
                       render={({ field: { onChange, value } }) => (
-                        <DateTimePicker
-                          value={value}
-                          mode="datetime"
-                          display="default"
-                          onChange={(event, selectedDate) => {
-                            if (selectedDate) {
-                              onChange(selectedDate);
-                            }
-                          }}
-                          style={{ backgroundColor: '#fff' }}
-                        />
+                        <View className="bg-white">
+                          <DateTimePicker
+                            value={value}
+                            mode="datetime"
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                              if (selectedDate) {
+                                onChange(selectedDate);
+                              }
+                            }}
+                          />
+                        </View>
                       )}
                     />
                   ) : (
@@ -680,30 +659,32 @@ const MeetingsScreen: React.FC = () => {
                         },
                       }}
                       render={({ field: { value } }) => (
-                        <TouchableOpacity
-                          onPress={() => {
-                            // Android: open date picker
-                            showEditDatePicker('end');
-                          }}
-                          style={{
-                            padding: 10,
-                            borderWidth: 1,
-                            borderColor: '#ccc',
-                            borderRadius: 5,
-                            marginBottom: 5,
-                          }}
-                        >
-                          <Text>
-                            {value ? value.toLocaleString() : "Select End Time"}
-                          </Text>
-                        </TouchableOpacity>
+                        <View className="flex-row justify-between space-x-2">
+                          <Pressable
+                            onPress={() => showEditDatePicker('end')}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                          >
+                            <Text>
+                              {value ? value.toLocaleDateString() : "Select End Date"}
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            onPress={() => showEditTimePicker('end')}
+                            className="flex-1 p-2 border border-gray-300 rounded"
+                          >
+                            <Text>
+                              {value
+                                ? value.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                                : "Select End Time"}
+                            </Text>
+                          </Pressable>
+                        </View>
                       )}
                     />
                   )}
                   {errors.time_end && (
-                    <Text className="text-red-500">
-                      {errors.time_end.message}
-                    </Text>
+                    <Text className="text-red-500">{errors.time_end.message}</Text>
                   )}
 
                   {/* Hours Field */}
@@ -725,7 +706,9 @@ const MeetingsScreen: React.FC = () => {
                           onChangeText={onChange}
                           placeholder="Hours"
                           keyboardType="numeric"
-                          placeholderTextColor={colorMode === "light" ? "#A0AEC0" : "#4A5568"}
+                          placeholderTextColor={
+                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          }
                         />
                       </Input>
                     )}
@@ -734,8 +717,6 @@ const MeetingsScreen: React.FC = () => {
                     <Text className="text-red-500">{errors.hours.message}</Text>
                   )}
                 </VStack>
-
-                {/* Android pickers are handled imperatively and do not require inline rendering */}
               </AlertDialogBody>
               <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
                 <Button
@@ -766,36 +747,53 @@ const MeetingsScreen: React.FC = () => {
 
         {/* View Users Dialog */}
         {showViewUsersDialog && (
-          <AlertDialog
-            isOpen={showViewUsersDialog}
-            onClose={() => setShowViewUsersDialog(false)}
+  <AlertDialog
+    isOpen={showViewUsersDialog}
+    onClose={() => setShowViewUsersDialog(false)}
+  >
+    <AlertDialogBackdrop />
+    <AlertDialogContent>
+      <AlertDialogHeader className="pb-4">
+        <Text className="text-lg font-semibold">Attending Users</Text>
+      </AlertDialogHeader>
+      <AlertDialogBody>
+        {/* Search bar for filtering attendees */}
+        <Input variant="outline" size="md" className="mb-4">
+          <InputField
+            value={attendeesSearchQuery}
+            onChangeText={(text) => setAttendeesSearchQuery(text)}
+            placeholder="Search users..."
+            placeholderTextColor={
+              colorMode === "light" ? "#A0AEC0" : "#4A5568"
+            }
+          />
+        </Input>
+
+        {filteredAttendees.length > 0 ? (
+          <ScrollView 
+            style={{ maxHeight: screenHeight * 0.4 }} 
+            showsVerticalScrollIndicator={true}
           >
-            <AlertDialogBackdrop />
-            <AlertDialogContent>
-              <AlertDialogHeader className="pb-4">
-                <Text className="text-lg font-semibold">Attending Users</Text>
-              </AlertDialogHeader>
-              <AlertDialogBody>
-                {viewingUsers.length > 0 ? (
-                  viewingUsers.map(user => (
-                    <VStack key={user._id} className="mb-2">
-                      <Text className="font-medium">{user.first_name} {user.last_name}</Text>
-                    </VStack>
-                  ))
-                ) : (
-                  <Text>No users have logged for this meeting.</Text>
-                )}
-              </AlertDialogBody>
-              <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
-                <Button
-                  onPress={() => setShowViewUsersDialog(false)}
-                >
-                  <ButtonText>Close</ButtonText>
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            {filteredAttendees.map((user) => (
+              <VStack key={user._id} className="mb-2">
+                <Text className="font-medium">
+                  {user.first_name} {user.last_name}
+                </Text>
+              </VStack>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text>No users match the search criteria.</Text>
         )}
+      </AlertDialogBody>
+      <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+        <Button onPress={() => setShowViewUsersDialog(false)}>
+          <ButtonText>Close</ButtonText>
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+)}
       </Box>
     </KeyboardAvoidingView>
   );

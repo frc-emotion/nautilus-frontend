@@ -3,7 +3,7 @@ import { Text } from "@/components/ui/text";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { AppStackParamList, QueuedRequest } from "../../Constants";
-import { useModal } from "../../utils/UI/CustomModalProvider";
+import { useGlobalModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
@@ -20,7 +20,7 @@ const ForgotPasswordScreen: React.FC = () => {
     const route = useRoute()
     const { token } = route.params as { token: string; email: string };
     const { openToast } = useGlobalToast();
-    const { openModal } = useModal();
+    const { openModal } = useGlobalModal();
     const { handleRequest } = useNetworking();
 
     const [isSubmitting, setIsSubmitting] = useState(false);

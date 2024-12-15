@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
-import { useModal } from '@/src/utils/UI/CustomModalProvider';
+import { useGlobalModal } from '@/src/utils/UI/CustomModalProvider';
 import { APP_UUID } from '@/src/Constants';
 import { useBLE } from '../utils/BLE/BLEContext';
 
@@ -35,7 +35,7 @@ const BLETestScreen: React.FC = () => {
   const [broadcastMinor, setBroadcastMinor] = useState<string>('200');
 
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
 
   // Function to start broadcasting
   const handleStartBroadcasting = async () => {

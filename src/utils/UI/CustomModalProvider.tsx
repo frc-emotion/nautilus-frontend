@@ -24,10 +24,10 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
-export const useModal = (): ModalContextProps => {
+export const useGlobalModal = (): ModalContextProps => {
   const context = useContext(ModalContext);
   if (!context) {
-    throw new Error("useModal must be used within a ModalProvider");
+    throw new Error("useGlobalModal must be used within a ModalProvider");
   }
   return context;
 };

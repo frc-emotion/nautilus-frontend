@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useGlobalToast } from '../UI/CustomToastProvider';
-import { useModal } from '../UI/CustomModalProvider';
+import { useGlobalModal } from '../UI/CustomModalProvider';
 import { AxiosResponse, AxiosError } from 'axios';
 import { QueuedRequest, UpdateContextProps, UpdateInfo } from '@/src/Constants';
 import DeviceInfo from 'react-native-device-info';
@@ -14,7 +14,7 @@ const DEBUG_PREFIX = '[UpdateProvider]';
 
 export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { handleRequest } = useNetworking();
 
   const [isOutOfDate, setIsOutOfDate] = useState<boolean>(false);

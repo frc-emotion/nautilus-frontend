@@ -11,7 +11,7 @@ import { Box } from "@/components/ui/box";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/Context/AuthContext";
-import { useModal } from "../../utils/UI/CustomModalProvider";
+import { useGlobalModal } from "../../utils/UI/CustomModalProvider";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
@@ -40,7 +40,7 @@ import { View } from "@/components/ui/view";
 const VerifyScreen: React.FC = () => {
     const { user } = useAuth();
     const { openToast } = useGlobalToast();
-    const { openModal } = useModal();
+    const { openModal } = useGlobalModal();
     const { colorMode } = useThemeContext();
     const { handleRequest } = useNetworking();
 

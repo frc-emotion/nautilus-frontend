@@ -11,7 +11,7 @@ import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import { Button, ButtonText } from "@/components/ui/button";
 
-import { useModal } from "../utils/UI/CustomModalProvider";
+import { useGlobalModal } from "../utils/UI/CustomModalProvider";
 import { ModalConfig } from "../Constants";
 import { Box } from "@/components/ui/box";
 import {
@@ -25,7 +25,7 @@ import {
 import { ScrollView } from "react-native";
 
 const GlobalModal: React.FC = () => {
-  const { isOpen, config, closeModal } = useModal();
+  const { isOpen, config, closeModal } = useGlobalModal();
 
   if (!config) return null;
 

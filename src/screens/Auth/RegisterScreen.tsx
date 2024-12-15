@@ -23,7 +23,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { EyeIcon, EyeOffIcon, ChevronDownIcon } from "lucide-react-native";
-import { useModal } from "../../utils/UI/CustomModalProvider";
+import { useGlobalModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
@@ -34,7 +34,7 @@ import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { handleRequest } = useNetworking(); // handleRequest from networking
   const [hidePassword, setHidePassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);

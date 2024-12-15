@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useRe
 import BLEHelper from '@/src/utils/BLE/BLEHelper';
 import { Beacon, BLEContextProps } from '@/src/Constants';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
-import { useModal } from '@/src/utils/UI/CustomModalProvider';
+import { useGlobalModal } from '@/src/utils/UI/CustomModalProvider';
 import Constants from 'expo-constants';
 import { Subscription } from "expo-modules-core";
 import * as Sentry from '@sentry/react-native';
@@ -31,7 +31,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const beaconDetectedSubscription = useRef<Subscription | null>(null);
 
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
 
   useEffect(() => {
     console.log(`${DEBUG_PREFIX} Subscribing to Bluetooth state changes and Beacon detected events.`);

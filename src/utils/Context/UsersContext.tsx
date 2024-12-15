@@ -5,7 +5,7 @@ import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from './AuthContext';
 import { useGlobalToast } from '../UI/CustomToastProvider';
 import { handleErrorWithModalOrToast } from '../Helpers';
-import { useModal } from '../UI/CustomModalProvider';
+import { useGlobalModal } from '../UI/CustomModalProvider';
 import { useNetworking } from './NetworkingContext';
 import * as Sentry from '@sentry/react-native';
 
@@ -15,7 +15,7 @@ const DEBUG_PREFIX = '[UsersProvider]';
 export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { handleRequest } = useNetworking();
 
   const [users, setUsers] = useState<UserObject[]>([]);

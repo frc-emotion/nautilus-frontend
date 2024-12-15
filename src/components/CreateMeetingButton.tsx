@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
+import { Platform, View, ActivityIndicator } from "react-native";
 import { Button, ButtonText } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -16,15 +12,13 @@ import {
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { useForm, Controller } from "react-hook-form";
-import DateTimePicker, {
-  DateTimePickerAndroid,
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { Pressable } from "@/components/ui/pressable";
 import { AxiosError, AxiosResponse } from "axios";
 import { QueuedRequest, FormData } from "../Constants";
 import { useThemeContext } from "../utils/UI/CustomThemeProvider";
 import { useGlobalToast } from "../utils/UI/CustomToastProvider";
-import { useModal } from "../utils/UI/CustomModalProvider";
+import { useGlobalModal } from "../utils/UI/CustomModalProvider";
 import { handleErrorWithModalOrToast } from "../utils/Helpers";
 import { Input, InputField } from "@/components/ui/input";
 import { useNetworking } from "../utils/Context/NetworkingContext";
@@ -34,19 +28,13 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
   onMeetingCreated,
 }) => {
   const { openToast } = useGlobalToast();
-  const { openModal } = useModal();
+  const { openModal } = useGlobalModal();
   const { colorMode } = useThemeContext();
   const { handleRequest } = useNetworking();
   const { currentYear, currentTerm } = useAttendance();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // State variables to control DateTimePicker visibility for Android
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
   const {
     control,
@@ -66,11 +54,9 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
     },
   });
 
-  // Watch the form values for time_start and time_end
   const timeStart = watch("time_start");
   const timeEnd = watch("time_end");
 
-  // Logging function
   const log = (...args: any[]) => {
     console.log(`[${new Date().toISOString()}] [CreateMeetingButton]`, ...args);
   };
@@ -78,6 +64,9 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
   const handleCreateMeeting = async (data: FormData) => {
     log("handleCreateMeeting called", data);
     setIsSubmitting(true);
+
+    log(currentTerm);
+    log(currentYear);
 
     const payload = {
       title: data.title,
@@ -130,7 +119,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
     };
 
     try {
-      await handleRequest(request); // Use handleRequest from networking context
+      await handleRequest(request);
       log("handleCreateMeeting request sent");
     } catch (error) {
       log("handleCreateMeeting exception", error);
@@ -139,111 +128,77 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
     }
   };
 
-  // Handlers for Date and Time Pickers (Android)
-  const onChangeStartDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const onChangeStartDate = (event: any, selectedDate?: Date) => {
     if (event.type === "set" && selectedDate) {
       const currentStart = new Date(selectedDate);
+      const oldStart = watch("time_start");
+      currentStart.setHours(oldStart.getHours());
+      currentStart.setMinutes(oldStart.getMinutes());
       setValue("time_start", currentStart, { shouldValidate: true });
-      if (Platform.OS === "android") {
-        // After selecting date, open time picker
-        setShowStartTimePicker(true);
-      }
     }
-    setShowStartDatePicker(false);
   };
 
-  const onChangeStartTime = (event: DateTimePickerEvent, selectedTime?: Date) => {
+  const onChangeStartTime = (event: any, selectedTime?: Date) => {
     if (event.type === "set" && selectedTime) {
       const currentStart = new Date(watch("time_start"));
       currentStart.setHours(selectedTime.getHours());
       currentStart.setMinutes(selectedTime.getMinutes());
       setValue("time_start", currentStart, { shouldValidate: true });
     }
-    setShowStartTimePicker(false);
   };
 
-  const onChangeEndDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const onChangeEndDate = (event: any, selectedDate?: Date) => {
     if (event.type === "set" && selectedDate) {
       const currentEnd = new Date(selectedDate);
+      const oldEnd = watch("time_end");
+      currentEnd.setHours(oldEnd.getHours());
+      currentEnd.setMinutes(oldEnd.getMinutes());
       setValue("time_end", currentEnd, { shouldValidate: true });
-      if (Platform.OS === "android") {
-        // After selecting date, open time picker
-        setShowEndTimePicker(true);
-      }
     }
-    setShowEndDatePicker(false);
   };
 
-  const onChangeEndTime = (event: DateTimePickerEvent, selectedTime?: Date) => {
+  const onChangeEndTime = (event: any, selectedTime?: Date) => {
     if (event.type === "set" && selectedTime) {
       const currentEnd = new Date(watch("time_end"));
       currentEnd.setHours(selectedTime.getHours());
       currentEnd.setMinutes(selectedTime.getMinutes());
       setValue("time_end", currentEnd, { shouldValidate: true });
     }
-    setShowEndTimePicker(false);
   };
 
   const showDatePicker = (pickerType: 'start' | 'end') => {
-    if (pickerType === 'start') {
-      setShowStartDatePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeStart,
-          onChange: onChangeStartDate,
-          mode: 'date',
-          is24Hour: true,
-        });
-      }
-    } else {
-      setShowEndDatePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeEnd,
-          onChange: onChangeEndDate,
-          mode: 'date',
-          is24Hour: true,
-        });
-      }
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: pickerType === 'start' ? timeStart : timeEnd,
+        onChange: pickerType === 'start' ? onChangeStartDate : onChangeEndDate,
+        mode: 'date',
+        is24Hour: false,
+      });
     }
   };
 
   const showTimePicker = (pickerType: 'start' | 'end') => {
-    if (pickerType === 'start') {
-      setShowStartTimePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeStart,
-          onChange: onChangeStartTime,
-          mode: 'time',
-          is24Hour: true,
-        });
-      }
-    } else {
-      setShowEndTimePicker(true);
-      if (Platform.OS === 'android') {
-        DateTimePickerAndroid.open({
-          value: timeEnd,
-          onChange: onChangeEndTime,
-          mode: 'time',
-          is24Hour: true,
-        });
-      }
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: pickerType === 'start' ? timeStart : timeEnd,
+        onChange: pickerType === 'start' ? onChangeStartTime : onChangeEndTime,
+        mode: 'time',
+        is24Hour: false,
+      });
     }
   };
 
   return (
     <>
-      <TouchableOpacity
+      <Pressable
         onPress={() => {
           reset();
           setShowCreateDialog(true);
         }}
+        className="p-2 bg-primary-500 rounded items-center justify-center"
       >
-        <Text>
-          Create Meeting
-        </Text>
-      </TouchableOpacity>
+        <Text className="text-typography-0">Create Meeting</Text>
+      </Pressable>
 
       {showCreateDialog && (
         <AlertDialog
@@ -304,9 +259,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                   )}
                 />
                 {errors.description && (
-                  <Text className="text-red-500">
-                    {errors.description.message}
-                  </Text>
+                  <Text className="text-red-500">{errors.description.message}</Text>
                 )}
 
                 {/* Location Field */}
@@ -329,12 +282,10 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                   )}
                 />
                 {errors.location && (
-                  <Text className="text-red-500">
-                    {errors.location.message}
-                  </Text>
+                  <Text className="text-red-500">{errors.location.message}</Text>
                 )}
 
-                {/* Start Time Picker */}
+                {/* Start Time */}
                 <Text className="font-medium">Start Time</Text>
                 {Platform.OS === 'ios' ? (
                   <Controller
@@ -342,54 +293,55 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                     name="time_start"
                     rules={{ required: "Start time is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <DateTimePicker
-                        value={value}
-                        mode="datetime"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          if (selectedDate) {
-                            onChange(selectedDate);
-                          }
-                        }}
-                        style={{ backgroundColor: '#fff' }}
-                      />
+                      <View className="bg-white">
+                        <DateTimePicker
+                          value={value}
+                          mode="datetime"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            if (selectedDate) {
+                              onChange(selectedDate);
+                            }
+                          }}
+                        />
+                      </View>
                     )}
                   />
                 ) : (
-                  <>
-                    <Controller
-                      control={control}
-                      name="time_start"
-                      rules={{ required: "Start time is required" }}
-                      render={({ field: { value } }) => (
-                        <TouchableOpacity
-                          onPress={() => {
-                            // For Android, open date picker
-                            showDatePicker('start');
-                          }}
-                          style={{
-                            padding: 10,
-                            borderWidth: 1,
-                            borderColor: '#ccc',
-                            borderRadius: 5,
-                            marginBottom: 5,
-                          }}
+                  <Controller
+                    control={control}
+                    name="time_start"
+                    rules={{ required: "Start time is required" }}
+                    render={({ field: { value } }) => (
+                      <View className="flex-row justify-between space-x-2">
+                        <Pressable
+                          onPress={() => showDatePicker('start')}
+                          className="flex-1 p-2 border border-gray-300 rounded"
                         >
                           <Text>
-                            {value ? value.toLocaleString() : "Select Start Time"}
+                            {value ? value.toLocaleDateString() : "Select Start Date"}
                           </Text>
-                        </TouchableOpacity>
-                      )}
-                    />
-                  </>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() => showTimePicker('start')}
+                          className="flex-1 p-2 border border-gray-300 rounded"
+                        >
+                          <Text>
+                            {value
+                              ? value.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                              : "Select Start Time"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  />
                 )}
                 {errors.time_start && (
-                  <Text className="text-red-500">
-                    {errors.time_start.message}
-                  </Text>
+                  <Text className="text-red-500">{errors.time_start.message}</Text>
                 )}
 
-                {/* End Time Picker */}
+                {/* End Time */}
                 <Text className="font-medium">End Time</Text>
                 {Platform.OS === 'ios' ? (
                   <Controller
@@ -397,51 +349,52 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                     name="time_end"
                     rules={{ required: "End time is required" }}
                     render={({ field: { onChange, value } }) => (
-                      <DateTimePicker
-                        value={value}
-                        mode="datetime"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          if (selectedDate) {
-                            onChange(selectedDate);
-                          }
-                        }}
-                        style={{ backgroundColor: '#fff' }}
-                      />
+                      <View className="bg-white">
+                        <DateTimePicker
+                          value={value}
+                          mode="datetime"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            if (selectedDate) {
+                              onChange(selectedDate);
+                            }
+                          }}
+                        />
+                      </View>
                     )}
                   />
                 ) : (
-                  <>
-                    <Controller
-                      control={control}
-                      name="time_end"
-                      rules={{ required: "End time is required" }}
-                      render={({ field: { value } }) => (
-                        <TouchableOpacity
-                          onPress={() => {
-                            // For Android, open date picker
-                            showDatePicker('end');
-                          }}
-                          style={{
-                            padding: 10,
-                            borderWidth: 1,
-                            borderColor: '#ccc',
-                            borderRadius: 5,
-                            marginBottom: 5,
-                          }}
+                  <Controller
+                    control={control}
+                    name="time_end"
+                    rules={{ required: "End time is required" }}
+                    render={({ field: { value } }) => (
+                      <View className="flex-row justify-between space-x-2">
+                        <Pressable
+                          onPress={() => showDatePicker('end')}
+                          className="flex-1 p-2 border border-gray-300 rounded"
                         >
                           <Text>
-                            {value ? value.toLocaleString() : "Select End Time"}
+                            {value ? value.toLocaleDateString() : "Select End Date"}
                           </Text>
-                        </TouchableOpacity>
-                      )}
-                    />
-                  </>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() => showTimePicker('end')}
+                          className="flex-1 p-2 border border-gray-300 rounded"
+                        >
+                          <Text>
+                            {value
+                              ? value.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                              : "Select End Time"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  />
                 )}
                 {errors.time_end && (
-                  <Text className="text-red-500">
-                    {errors.time_end.message}
-                  </Text>
+                  <Text className="text-red-500">{errors.time_end.message}</Text>
                 )}
 
                 {/* Hours Field */}
