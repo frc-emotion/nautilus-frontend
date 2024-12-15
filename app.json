@@ -3,7 +3,7 @@
       "name": "Nautilus",
       "slug": "nautilus",
       "scheme": "nautilus",
-      "version": "0.0.1",
+      "version": "3.0.0",
       "platforms": ["ios", "android"],
       "splash": {
           "image": "./src/assets/splash.png",
