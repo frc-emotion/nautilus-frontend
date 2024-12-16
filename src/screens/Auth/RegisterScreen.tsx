@@ -5,7 +5,8 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
@@ -153,9 +154,11 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
+    <View className="flex-1">
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+      keyboardVerticalOffset={100}
+      style={{ backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
@@ -213,6 +216,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               rules={{
                 required: "Email is required",
                 pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Invalid Email" },
+                validate: (value) => !value.includes("@stu.powayusd.com") || "Please use your personal email. School emails are not allowed.",
               }}
               render={({ field: { onChange, value } }) => (
                 <Input size="md" className="rounded">
@@ -410,6 +414,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </View>
   );
 };
 

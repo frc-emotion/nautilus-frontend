@@ -191,6 +191,13 @@ export interface LocationContextProps {
     checkLocationServices: () => Promise<void>;
 }
 
+export interface UserFlag {
+    field: string;
+    issue: string;
+    expected?: string | number;
+    actual?: string | number;
+  }
+
 export interface UserObject {
     token: string;
     _id: number;
@@ -203,7 +210,7 @@ export interface UserObject {
     grade: string;
     role: "unverified" | "member" | "leadership" | "executive" | "advisor" | "admin";
     created_at: string;
-    flags?: string[];
+    flags?: UserFlag[];
 };
 
 export enum TabNames {

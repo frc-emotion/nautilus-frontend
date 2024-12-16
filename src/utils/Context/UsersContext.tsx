@@ -164,11 +164,7 @@ export const UsersProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             ? { ...u, ...updatedUser }
             : u
         ));
-        openToast({
-          title: 'Success',
-          description: 'User updated successfully.',
-          type: 'success',
-        });
+        
       },
       errorHandler: async (error: AxiosError) => {
         Sentry.captureException(error);

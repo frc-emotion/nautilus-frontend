@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, Pressable } from 'react-native';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -49,7 +49,6 @@ import { formatPhoneNumber } from '@/src/utils/Helpers';
 import { useUsers } from '@/src/utils/Context/UsersContext';
 import { Input, InputField } from '@/components/ui/input';
 import { useForm, Controller, FieldErrors } from 'react-hook-form';
-import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 
 const SUBTEAMS = ["build", "software", "marketing", "electrical", "design"];
@@ -101,6 +100,13 @@ const UserDirectoryScreen: React.FC = () => {
   const [editUserId, setEditUserId] = useState<number | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
+  // If user role changes then refresh users
+  useEffect(() => {
+    if (user) {
+      fetchUsers();
+    }
+  }, [user]);
+
   const { control, handleSubmit, reset, formState: { errors } } = useForm<EditUserFormData>({
     defaultValues: {
       first_name: '',
@@ -125,9 +131,12 @@ const UserDirectoryScreen: React.FC = () => {
   };
 
   const sortedUsers = useMemo(() => {
-    if (sortConfig.length === 0) return filteredUsers;
+    // Exclude unverified users
+    const verifiedFilteredUsers = filteredUsers.filter(u => u.role !== 'unverified');
 
-    const sorted = [...filteredUsers].sort((a, b) => {
+    if (sortConfig.length === 0) return verifiedFilteredUsers;
+
+    const sorted = [...verifiedFilteredUsers].sort((a, b) => {
       for (const sort of sortConfig) {
         let comparison = 0;
         const { criteria, order } = sort;
@@ -143,11 +152,13 @@ const UserDirectoryScreen: React.FC = () => {
         }
 
         if (comparison !== 0) {
+          log(`Sorting by ${criteria} in ${order} order: ${a.first_name} vs ${b.first_name} => ${comparison}`);
           return order === 'asc' ? comparison : -comparison;
         }
       }
       return 0;
     });
+    log('Sorted Users:', sorted);
     return sorted;
   }, [filteredUsers, sortConfig]);
 
@@ -175,6 +186,7 @@ const UserDirectoryScreen: React.FC = () => {
 
   const handleDeleteUser = (userId: number) => {
     log('handleDeleteUser called', userId);
+    // Optionally, confirm deletion with a dialog
     deleteUser(userId);
   };
 
@@ -272,6 +284,7 @@ const UserDirectoryScreen: React.FC = () => {
   };
 
   const updateSortConfig = (criteria: SortCriteria) => {
+    log(`updateSortConfig called with criteria: ${criteria}`);
     setSortConfig((prevConfig) => {
       const existingIndex = prevConfig.findIndex(
         (sort) => sort.criteria === criteria
@@ -291,14 +304,18 @@ const UserDirectoryScreen: React.FC = () => {
         }
 
         if (newOrder === 'none') {
+          log(`Removing sort criteria: ${criteria}`);
           newConfig.splice(existingIndex, 1);
         } else {
+          log(`Updating sort criteria: ${criteria} to ${newOrder}`);
           newConfig[existingIndex].order = newOrder;
         }
       } else {
+        log(`Adding new sort criteria: ${criteria} with order asc`);
         newConfig.push({ criteria, order: 'asc' });
       }
 
+      log('New sortConfig:', newConfig);
       return newConfig;
     });
   };
@@ -308,11 +325,11 @@ const UserDirectoryScreen: React.FC = () => {
     if (!sort || sort.order === 'none') return null;
 
     return (
-      <HStack className="items-center ml-1">
+      <HStack className="flex-row items-center ml-1">
         {sort.order === 'asc' ? (
-          <ChevronUpIcon size={16} />
+          <ChevronUpIcon color={colorMode === 'light' ? "black" : "white"} size={16} />
         ) : (
-          <ChevronDownIcon size={16} />
+          <ChevronDownIcon color={colorMode === 'light' ? "black" : "white"} size={16} />
         )}
       </HStack>
     );
@@ -321,440 +338,495 @@ const UserDirectoryScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className={`flex-1 ${colorMode === 'light' ? 'bg-white' : 'bg-gray-800'}`}
+      keyboardVerticalOffset={80} // Adjust based on your header height
+      style={{ flex: 1, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
     >
-      <Box className="p-4 flex-1">
-        {['admin', 'executive', 'advisor'].includes(user?.role ?? '') && (
-          <Input variant="outline" size="md" className="mb-4">
-            <InputField
-              value={searchQuery}
-              onChangeText={(text) => {
-                log('Search query changed', text);
-                setSearchQuery(text);
-              }}
-              placeholder="Search by name, email, or role"
-              className={`placeholder-gray-400`}
-            />
-          </Input>
-        )}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+        }
+      >
+        <Box className="p-4 flex-1">
+          {/* Search Bar */}
+          {['admin', 'executive', 'advisor'].includes(user?.role ?? '') && (
+            <Input variant="outline" size="md" className="mb-4">
+              <InputField
+                value={searchQuery}
+                onChangeText={(text) => {
+                  log('Search query changed', text);
+                  setSearchQuery(text);
+                }}
+                placeholder="Search by name, email, or role"
+                className={`placeholder-gray-400`}
+              />
+            </Input>
+          )}
 
-        <View className="mb-4">
-          <View className="flex flex-row flex-wrap justify-between">
-            <View className="flex-1 min-w-[45%] mb-2 mr-2">
-              <Select
-                selectedValue={selectedSubteam}
-                onValueChange={(itemValue) => setSelectedSubteam(itemValue)}
-              >
-                <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
-                  <SelectInput placeholder="Subteam" />
-                  <SelectIcon className='mr-2' as={ChevronDownIcon} />
-                </SelectTrigger>
-                <SelectPortal>
-                  <SelectBackdrop />
-                  <SelectContent>
-                    <SelectDragIndicatorWrapper>
-                      <SelectDragIndicator />
-                    </SelectDragIndicatorWrapper>
-                    <SelectItem label="All Subteams" value="" />
-                    {SUBTEAMS.map((subteam) => (
-                      <SelectItem key={subteam} label={subteam.charAt(0).toUpperCase() + subteam.slice(1)} value={subteam} />
-                    ))}
-                  </SelectContent>
-                </SelectPortal>
-              </Select>
-            </View>
+          {/* Filters */}
+          <View className="mb-4">
+            <View className="flex flex-row flex-wrap justify-between">
+              <View className="flex-1 min-w-[45%] mb-2 mr-2">
+                <Select
+                  selectedValue={selectedSubteam}
+                  onValueChange={(itemValue) => {
+                    log('Subteam filter changed to:', itemValue);
+                    setSelectedSubteam(itemValue);
+                  }}
+                >
+                  <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
+                    <SelectInput placeholder="Subteam" />
+                    <SelectIcon className='mr-2' as={ChevronDownIcon} />
+                  </SelectTrigger>
+                  <SelectPortal>
+                    <SelectBackdrop />
+                    <SelectContent>
+                      <SelectDragIndicatorWrapper>
+                        <SelectDragIndicator />
+                      </SelectDragIndicatorWrapper>
+                      <SelectItem label="All Subteams" value="" />
+                      {SUBTEAMS.map((subteam) => (
+                        <SelectItem key={subteam} label={subteam.charAt(0).toUpperCase() + subteam.slice(1)} value={subteam} />
+                      ))}
+                    </SelectContent>
+                  </SelectPortal>
+                </Select>
+              </View>
 
-            <View className="flex-1 min-w-[45%] mb-2">
-              <Select
-                selectedValue={selectedGrade}
-                onValueChange={(itemValue) => setSelectedGrade(itemValue)}
-              >
-                <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
-                  <SelectInput placeholder="Grade" />
-                  <SelectIcon as={ChevronDownIcon} />
-                </SelectTrigger>
-                <SelectPortal>
-                  <SelectBackdrop />
-                  <SelectContent>
-                    <SelectDragIndicatorWrapper>
-                      <SelectDragIndicator />
-                    </SelectDragIndicatorWrapper>
-                    <SelectItem label="All Grades" value="" />
-                    {GRADES.map((grade) => (
-                      <SelectItem key={grade} label={grade} value={grade} />
-                    ))}
-                  </SelectContent>
-                </SelectPortal>
-              </Select>
+              <View className="flex-1 min-w-[45%] mb-2">
+                <Select
+                  selectedValue={selectedGrade}
+                  onValueChange={(itemValue) => {
+                    log('Grade filter changed to:', itemValue);
+                    setSelectedGrade(itemValue);
+                  }}
+                >
+                  <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
+                    <SelectInput placeholder="Grade" />
+                    <SelectIcon as={ChevronDownIcon} />
+                  </SelectTrigger>
+                  <SelectPortal>
+                    <SelectBackdrop />
+                    <SelectContent>
+                      <SelectDragIndicatorWrapper>
+                        <SelectDragIndicator />
+                      </SelectDragIndicatorWrapper>
+                      <SelectItem label="All Grades" value="" />
+                      {GRADES.map((grade) => (
+                        <SelectItem key={grade} label={grade} value={grade} />
+                      ))}
+                    </SelectContent>
+                  </SelectPortal>
+                </Select>
+              </View>
             </View>
           </View>
-        </View>
 
-        <Box className="rounded-lg overflow-hidden flex-1">
-          <ScrollView
-            refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
-            }
-          >
-            <View
-              className={`flex flex-row`}
+          {/* User Table Header */}
+          <View className="flex flex-row  p-2 rounded mb-1">
+            <Pressable
+              onPress={() => updateSortConfig('firstName')}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
             >
-              <TouchableOpacity
-                className="p-2 font-medium flex-row items-center justify-center flex-1"
-                onPress={() => updateSortConfig('firstName')}
-              >
-                <Text className="text-center">First Name</Text>
+              <HStack className="flex-row items-center">
+                <Text className="font-medium">First Name</Text>
                 {renderSortIndicator('firstName')}
-              </TouchableOpacity>
+              </HStack>
+            </Pressable>
 
-              <TouchableOpacity
-                className="p-2 font-medium flex-row items-center justify-center flex-1"
-                onPress={() => updateSortConfig('lastName')}
-              >
-                <Text className="text-center">Last Name</Text>
+            <Pressable
+              onPress={() => updateSortConfig('lastName')}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <HStack className="flex-row items-center">
+                <Text className="font-medium">Last Name</Text>
                 {renderSortIndicator('lastName')}
-              </TouchableOpacity>
+              </HStack>
+            </Pressable>
 
-              <TouchableOpacity
-                className="p-2 font-medium flex-row items-center justify-center flex-1"
-                onPress={() => updateSortConfig('grade')}
-              >
-                <Text className="text-center">Grade</Text>
+            <Pressable
+              onPress={() => updateSortConfig('grade')}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <HStack className="flex-row items-center">
+                <Text className="font-medium">Grade</Text>
                 {renderSortIndicator('grade')}
-              </TouchableOpacity>
+              </HStack>
+            </Pressable>
 
-              {user?.role === 'admin' && (
-                <>
-                  <TouchableOpacity
-                    className="p-2 font-medium flex-row items-center justify-center flex-1"
-                    onPress={() => updateSortConfig('role')}
-                  >
-                    <Text className="text-center">Role</Text>
-                    {renderSortIndicator('role')}
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-
-            <Divider className="my-1" />
-
-            {isLoading ? (
-              <View className="p-3">
-                <Text className="text-center">Loading users...</Text>
-              </View>
-            ) : sortedUsers.length === 0 ? (
-              <View className="p-3">
-                <Text className="text-center">No users found.</Text>
-              </View>
-            ) : (
-              sortedUsers.map((userItem) => (
-                <Pressable
-                  key={userItem._id}
-                  onPress={() => handleViewUser(userItem)}
-                >
-                  <View className="flex flex-row items-center border-b border-gray-300 dark:border-gray-600">
-                    <Text
-                      className="p-2 flex-1 text-center"
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {userItem.first_name}
-                    </Text>
-                    <Text
-                      className="p-2 flex-1 text-center"
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {userItem.last_name}
-                    </Text>
-                    <Text
-                      className="p-2 flex-1 text-center"
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {userItem.grade}
-                    </Text>
-                    {user?.role === 'admin' && (
-                      <>
-                        <Text
-                          className="p-2 flex-1 text-center"
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
-                        </Text>
-                        <View className="p-2 items-center justify-center w-10">
-                          <Menu
-                            trigger={({ ...triggerProps }) => (
-                              <Pressable {...triggerProps}>
-                                <Icon as={EllipsisVertical} />
-                              </Pressable>
-                            )}
-                          >
-                            <MenuItem
-                              onPress={() => {
-                                log('Edit user pressed', userItem._id);
-                                handleEditUser(userItem);
-                              }}
-                            >
-                              <MenuItemLabel>Edit</MenuItemLabel>
-                            </MenuItem>
-                            <MenuItem
-                              onPress={() => {
-                                log('Delete user pressed', userItem._id);
-                                handleDeleteUser(userItem._id);
-                              }}
-                            >
-                              <MenuItemLabel>Delete</MenuItemLabel>
-                            </MenuItem>
-                          </Menu>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                </Pressable>
-              ))
+            {user?.role === 'admin' && (
+              <Pressable
+                onPress={() => updateSortConfig('role')}
+                style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <HStack className="flex-row items-center">
+                  <Text className="font-medium">Role</Text>
+                  {renderSortIndicator('role')}
+                </HStack>
+              </Pressable>
             )}
-          </ScrollView>
-        </Box>
+          </View>
 
-        {viewUser && showViewDialog && (
-          <AlertDialog
-            isOpen={showViewDialog}
-            onClose={() => {
-              log('View user dialog closed');
-              setShowViewDialog(false);
-            }}
-          >
-            <AlertDialogBackdrop />
-            <AlertDialogContent className="w-11/12 max-w-2xl">
-              <AlertDialogHeader className="pb-4">
-                <Text className="text-lg font-semibold">User Details</Text>
-              </AlertDialogHeader>
-              <AlertDialogBody>
-                <VStack space="sm">
-                  <View className="flex flex-row justify-between mb-2">
-                    <View className="flex-1 mr-1">
-                      <Text className="font-medium">First Name:</Text>
-                      <Text>{viewUser.first_name}</Text>
-                    </View>
-                    <View className="flex-1 ml-1">
-                      <Text className="font-medium">Last Name:</Text>
-                      <Text>{viewUser.last_name}</Text>
-                    </View>
-                  </View>
+          <Divider className="my-1" />
 
-                  <View className="flex flex-row justify-between mb-2">
-                    <View className="flex-1 mr-1">
-                      <Text className="font-medium">Grade:</Text>
-                      <Text>{viewUser.grade}</Text>
-                    </View>
-                    <View className="flex-1 ml-1">
-                      <Text className="font-medium">Role:</Text>
-                      <Text>{viewUser.role.charAt(0).toUpperCase() + viewUser.role.slice(1)}</Text>
-                    </View>
-                  </View>
-
-                  <View className="mb-2">
-                    <Text className="font-medium">Subteam(s):</Text>
-                    <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
-                  </View>
-
-                  {['admin', 'executive'].includes(user?.role ?? '') && (
+          {/* User List */}
+          {isLoading ? (
+            <View className="p-3">
+              <Text className="text-center">Loading users...</Text>
+            </View>
+          ) : sortedUsers.length === 0 ? (
+            <View className="p-3">
+              <Text className="text-center">No users found.</Text>
+            </View>
+          ) : (
+            sortedUsers.map((userItem) => (
+              <Pressable
+                key={userItem._id}
+                onPress={() => handleViewUser(userItem)}
+              >
+                <View className={`flex flex-row items-center border-b ${colorMode === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
+                  <Text
+                    className="p-2 flex-1 text-center"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {userItem.first_name}
+                  </Text>
+                  <Text
+                    className="p-2 flex-1 text-center"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {userItem.last_name}
+                  </Text>
+                  <Text
+                    className="p-2 flex-1 text-center"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {userItem.grade}
+                  </Text>
+                  {user?.role === 'admin' && (
                     <>
-                      <View className="flex flex-row justify-between mb-2">
-                        <View className="flex-1 mr-1">
-                          <Text className="font-medium">Email:</Text>
-                          <Text>{viewUser.email}</Text>
-                        </View>
-                        <View className="flex-1 ml-1">
-                          <Text className="font-medium">Phone:</Text>
-                          <Text>{formatPhoneNumber(viewUser.phone)}</Text>
-                        </View>
-                      </View>
-
-                      <View className="mb-2">
-                        <Text className="font-medium">Student ID:</Text>
-                        <Text>{viewUser.student_id}</Text>
+                      <Text
+                        className="p-2 flex-1 text-center"
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
+                      </Text>
+                      <View className="p-2 items-center justify-center w-10">
+                        <Menu
+                          trigger={({ open }) => (
+                            <Pressable>
+                              <Icon as={EllipsisVertical} />
+                            </Pressable>
+                          )}
+                        >
+                          <MenuItem
+                            onPress={() => {
+                              log('Edit user pressed', userItem._id);
+                              handleEditUser(userItem);
+                            }}
+                          >
+                            <MenuItemLabel>Edit</MenuItemLabel>
+                          </MenuItem>
+                          <MenuItem
+                            onPress={() => {
+                              log('Delete user pressed', userItem._id);
+                              handleDeleteUser(userItem._id);
+                            }}
+                          >
+                            <MenuItemLabel>Delete</MenuItemLabel>
+                          </MenuItem>
+                        </Menu>
                       </View>
                     </>
                   )}
-                </VStack>
-              </AlertDialogBody>
-              <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
-                <Button
-                  onPress={() => {
-                    log('Close button pressed in View Dialog');
-                    setShowViewDialog(false);
-                  }}
-                >
-                  <ButtonText>Close</ButtonText>
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+                </View>
+              </Pressable>
+            ))
+          )}
 
-        {showEditDialog && (
-          <AlertDialog
-            isOpen={showEditDialog}
-            onClose={() => {
-              log('Edit dialog closed');
-              setShowEditDialog(false);
-            }}
-          >
-            <AlertDialogBackdrop />
-            <AlertDialogContent className="w-11/12 max-w-3xl">
-              <AlertDialogHeader className="pb-4">
-                <Text className="text-lg font-semibold">Edit User</Text>
-              </AlertDialogHeader>
-              <AlertDialogBody>
-                <ScrollView>
+          {/* View User Dialog */}
+          {viewUser && showViewDialog && (
+            <AlertDialog
+              isOpen={showViewDialog}
+              onClose={() => {
+                log('View user dialog closed');
+                setShowViewDialog(false);
+              }}
+            >
+              <AlertDialogBackdrop />
+              <AlertDialogContent className="w-11/12 max-w-2xl">
+                <AlertDialogHeader className="pb-4">
+                  <Text className="text-lg font-semibold">User Details</Text>
+                </AlertDialogHeader>
+                <AlertDialogBody>
                   <VStack space="sm">
-                    <View className="flex flex-row flex-wrap justify-between">
+                    <View className="flex flex-row justify-between mb-2">
                       <View className="flex-1 mr-1">
-                        <Text className="font-medium">First Name</Text>
-                        <Controller
-                          control={control}
-                          name="first_name"
-                          rules={{ required: 'First Name is required' }}
-                          render={({ field: { onChange, value }, fieldState: { error } }) => (
-                            <>
-                              <Input variant="outline" size="md" className="mt-1">
-                                <InputField
-                                  value={value}
-                                  onChangeText={onChange}
-                                  placeholder="First Name"
-                                  className={`placeholder-gray-400`}
-                                />
-                              </Input>
-                              {error && <Text className="text-red-500">{error.message}</Text>}
-                            </>
-                          )}
-                        />
+                        <Text className="font-medium">First Name:</Text>
+                        <Text>{viewUser.first_name}</Text>
                       </View>
                       <View className="flex-1 ml-1">
-                        <Text className="font-medium">Last Name</Text>
-                        <Controller
-                          control={control}
-                          name="last_name"
-                          rules={{ required: 'Last Name is required' }}
-                          render={({ field: { onChange, value }, fieldState: { error } }) => (
-                            <>
-                              <Input variant="outline" size="md" className="mt-1">
-                                <InputField
-                                  value={value}
-                                  onChangeText={onChange}
-                                  placeholder="Last Name"
-                                  className={`placeholder-gray-400`}
-                                />
-                              </Input>
-                              {error && <Text className="text-red-500">{error.message}</Text>}
-                            </>
-                          )}
-                        />
+                        <Text className="font-medium">Last Name:</Text>
+                        <Text>{viewUser.last_name}</Text>
                       </View>
                     </View>
 
-                    <View className="flex flex-row flex-wrap justify-between mt-4">
+                    <View className="flex flex-row justify-between mb-2">
                       <View className="flex-1 mr-1">
-                        <Text className="font-medium">Email</Text>
-                        <Controller
-                          control={control}
-                          name="email"
-                          rules={{
-                            required: 'Email is required',
-                            pattern: {
-                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                              message: 'Invalid Email',
-                            },
-                          }}
-                          render={({ field: { onChange, value }, fieldState: { error } }) => (
-                            <>
-                              <Input variant="outline" size="md" className="mt-1">
-                                <InputField
-                                  value={value}
-                                  onChangeText={onChange}
-                                  placeholder="Email"
-                                  keyboardType="email-address"
-                                  className={`placeholder-gray-400`}
-                                />
-                              </Input>
-                              {error && <Text className="text-red-500">{error.message}</Text>}
-                            </>
-                          )}
-                        />
+                        <Text className="font-medium">Grade:</Text>
+                        <Text>{viewUser.grade}</Text>
                       </View>
                       <View className="flex-1 ml-1">
-                        <Text className="font-medium">Phone</Text>
-                        <Controller
-                          control={control}
-                          name="phone"
-                          rules={{
-                            required: 'Phone Number is required',
-                            pattern: {
-                              value: /^\d{10}$/,
-                              message: 'Phone Number must be 10 digits',
-                            },
-                          }}
-                          render={({ field: { onChange, value }, fieldState: { error } }) => (
-                            <>
-                              <Input variant="outline" size="md" className="mt-1">
-                                <InputField
-                                  value={value}
-                                  onChangeText={(text) => {
-                                    const formattedText = formatPhoneNumber(text);
-                                    onChange(formattedText);
-                                  }}
-                                  placeholder="Phone"
-                                  keyboardType="phone-pad"
-                                  maxLength={14}
-                                  className={`placeholder-gray-400`}
-                                />
-                              </Input>
-                              {error && <Text className="text-red-500">{error.message}</Text>}
-                            </>
-                          )}
-                        />
+                        <Text className="font-medium">Role:</Text>
+                        <Text>{viewUser.role.charAt(0).toUpperCase() + viewUser.role.slice(1)}</Text>
                       </View>
                     </View>
 
-                    <View className="flex flex-row flex-wrap justify-between mt-4">
-                      <View className="flex-1 mr-1">
-                        <Text className="font-medium">Student ID</Text>
-                        <Controller
-                          control={control}
-                          name="student_id"
-                          rules={{
-                            required: 'Student ID is required',
-                            pattern: {
-                              value: /^\d{7}$/,
-                              message: 'Student ID must be 7 digits',
-                            },
-                          }}
-                          render={({ field: { onChange, value }, fieldState: { error } }) => (
-                            <>
-                              <Input variant="outline" size="md" className="mt-1">
-                                <InputField
-                                  value={value}
-                                  onChangeText={onChange}
-                                  placeholder="Student ID"
-                                  keyboardType="numeric"
-                                  maxLength={7}
-                                  className={`placeholder-gray-400`}
-                                />
-                              </Input>
-                              {error && <Text className="text-red-500">{error.message}</Text>}
-                            </>
-                          )}
-                        />
+                    <View className="mb-2">
+                      <Text className="font-medium">Subteam(s):</Text>
+                      <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
+                    </View>
+
+                    {['admin', 'executive'].includes(user?.role ?? '') && (
+                      <>
+                        <View className="flex flex-row justify-between mb-2">
+                          <View className="flex-1 mr-1">
+                            <Text className="font-medium">Email:</Text>
+                            <Text>{viewUser.email}</Text>
+                          </View>
+                          <View className="flex-1 ml-1">
+                            <Text className="font-medium">Phone:</Text>
+                            <Text>{formatPhoneNumber(viewUser.phone)}</Text>
+                          </View>
+                        </View>
+
+                        <View className="mb-2">
+                          <Text className="font-medium">Student ID:</Text>
+                          <Text>{viewUser.student_id}</Text>
+                        </View>
+                      </>
+                    )}
+                  </VStack>
+                </AlertDialogBody>
+                <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+                  <Button
+                    onPress={() => {
+                      log('Close button pressed in View Dialog');
+                      setShowViewDialog(false);
+                    }}
+                  >
+                    <ButtonText>Close</ButtonText>
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {/* Edit User Dialog */}
+          {showEditDialog && (
+            <AlertDialog
+              isOpen={showEditDialog}
+              onClose={() => {
+                log('Edit dialog closed');
+                setShowEditDialog(false);
+              }}
+            >
+              <AlertDialogBackdrop />
+              <AlertDialogContent className="w-11/12 max-w-3xl">
+                <AlertDialogHeader className="pb-4">
+                  <Text className="text-lg font-semibold">Edit User</Text>
+                </AlertDialogHeader>
+                <AlertDialogBody>
+                  <ScrollView>
+                    <VStack space="sm">
+                      <View className="flex flex-row flex-wrap justify-between">
+                        <View className="flex-1 mr-1">
+                          <Text className="font-medium">First Name</Text>
+                          <Controller
+                            control={control}
+                            name="first_name"
+                            rules={{ required: 'First Name is required' }}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                              <>
+                                <Input variant="outline" size="md" className="mt-1">
+                                  <InputField
+                                    value={value}
+                                    onChangeText={onChange}
+                                    placeholder="First Name"
+                                    className={`placeholder-gray-400`}
+                                  />
+                                </Input>
+                                {error && <Text className="text-red-500">{error.message}</Text>}
+                              </>
+                            )}
+                          />
+                        </View>
+                        <View className="flex-1 ml-1">
+                          <Text className="font-medium">Last Name</Text>
+                          <Controller
+                            control={control}
+                            name="last_name"
+                            rules={{ required: 'Last Name is required' }}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                              <>
+                                <Input variant="outline" size="md" className="mt-1">
+                                  <InputField
+                                    value={value}
+                                    onChangeText={onChange}
+                                    placeholder="Last Name"
+                                    className={`placeholder-gray-400`}
+                                  />
+                                </Input>
+                                {error && <Text className="text-red-500">{error.message}</Text>}
+                              </>
+                            )}
+                          />
+                        </View>
                       </View>
-                      <View className="flex-1 ml-1">
-                        <Text className="font-medium">Grade</Text>
+
+                      <View className="flex flex-row flex-wrap justify-between mt-4">
+                        <View className="flex-1 mr-1">
+                          <Text className="font-medium">Email</Text>
+                          <Controller
+                            control={control}
+                            name="email"
+                            rules={{
+                              required: 'Email is required',
+                              pattern: {
+                                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                message: 'Invalid Email',
+                              },
+                            }}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                              <>
+                                <Input variant="outline" size="md" className="mt-1">
+                                  <InputField
+                                    value={value}
+                                    onChangeText={onChange}
+                                    placeholder="Email"
+                                    keyboardType="email-address"
+                                    className={`placeholder-gray-400`}
+                                  />
+                                </Input>
+                                {error && <Text className="text-red-500">{error.message}</Text>}
+                              </>
+                            )}
+                          />
+                        </View>
+                        <View className="flex-1 ml-1">
+                          <Text className="font-medium">Phone</Text>
+                          <Controller
+                            control={control}
+                            name="phone"
+                            rules={{
+                              required: 'Phone Number is required',
+                              pattern: {
+                                value: /^\(\d{3}\)\s\d{3}-\d{4}$/,
+                                message: 'Phone Number must be in the format (123) 456-7890',
+                              },
+                            }}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                              <>
+                                <Input variant="outline" size="md" className="mt-1">
+                                  <InputField
+                                    value={value}
+                                    onChangeText={(text) => {
+                                      const formattedText = formatPhoneNumber(text);
+                                      onChange(formattedText);
+                                    }}
+                                    placeholder="Phone"
+                                    keyboardType="phone-pad"
+                                    maxLength={14}
+                                    className={`placeholder-gray-400`}
+                                  />
+                                </Input>
+                                {error && <Text className="text-red-500">{error.message}</Text>}
+                              </>
+                            )}
+                          />
+                        </View>
+                      </View>
+
+                      <View className="flex flex-row flex-wrap justify-between mt-4">
+                        <View className="flex-1 mr-1">
+                          <Text className="font-medium">Student ID</Text>
+                          <Controller
+                            control={control}
+                            name="student_id"
+                            rules={{
+                              required: 'Student ID is required',
+                              pattern: {
+                                value: /^\d{7}$/,
+                                message: 'Student ID must be 7 digits',
+                              },
+                            }}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                              <>
+                                <Input variant="outline" size="md" className="mt-1">
+                                  <InputField
+                                    value={value}
+                                    onChangeText={onChange}
+                                    placeholder="Student ID"
+                                    keyboardType="numeric"
+                                    maxLength={7}
+                                    className={`placeholder-gray-400`}
+                                  />
+                                </Input>
+                                {error && <Text className="text-red-500">{error.message}</Text>}
+                              </>
+                            )}
+                          />
+                        </View>
+                        <View className="flex-1 ml-1">
+                          <Text className="font-medium">Grade</Text>
+                          <Controller
+                            control={control}
+                            name="grade"
+                            rules={{ required: 'Grade is required' }}
+                            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                              <>
+                                <Select
+                                  selectedValue={value}
+                                  onValueChange={onChange}
+                                >
+                                  <SelectTrigger
+                                    variant="outline"
+                                    size="md"
+                                    className="mt-1 rounded justify-between"
+                                  >
+                                    <SelectInput placeholder="Select Grade" />
+                                    <SelectIcon as={ChevronDownIcon} />
+                                  </SelectTrigger>
+                                  <SelectPortal>
+                                    <SelectBackdrop />
+                                    <SelectContent>
+                                      <SelectDragIndicatorWrapper>
+                                        <SelectDragIndicator />
+                                      </SelectDragIndicatorWrapper>
+                                      {GRADES.map((grade) => (
+                                        <SelectItem key={grade} label={grade} value={grade} />
+                                      ))}
+                                    </SelectContent>
+                                  </SelectPortal>
+                                </Select>
+                                {error && <Text className="text-red-500">{error.message}</Text>}
+                              </>
+                            )}
+                          />
+                        </View>
+                      </View>
+
+                      <View className="mt-4">
+                        <Text className="font-medium">Role</Text>
                         <Controller
                           control={control}
-                          name="grade"
-                          rules={{ required: 'Grade is required' }}
+                          name="role"
+                          rules={{ required: 'Role is required' }}
                           render={({ field: { onChange, value }, fieldState: { error } }) => (
                             <>
                               <Select
@@ -766,7 +838,7 @@ const UserDirectoryScreen: React.FC = () => {
                                   size="md"
                                   className="mt-1 rounded justify-between"
                                 >
-                                  <SelectInput placeholder="Select Grade" />
+                                  <SelectInput placeholder="Select Role" />
                                   <SelectIcon as={ChevronDownIcon} />
                                 </SelectTrigger>
                                 <SelectPortal>
@@ -775,8 +847,8 @@ const UserDirectoryScreen: React.FC = () => {
                                     <SelectDragIndicatorWrapper>
                                       <SelectDragIndicator />
                                     </SelectDragIndicatorWrapper>
-                                    {GRADES.map((grade) => (
-                                      <SelectItem key={grade} label={grade} value={grade} />
+                                    {ROLES.map((role) => (
+                                      <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
                                     ))}
                                   </SelectContent>
                                 </SelectPortal>
@@ -786,14 +858,304 @@ const UserDirectoryScreen: React.FC = () => {
                           )}
                         />
                       </View>
+
+                      <View className="mt-4">
+                        <Text className="font-medium">Subteams</Text>
+                        <Controller
+                          control={control}
+                          name="subteam"
+                          rules={{ required: 'At least one subteam is required' }}
+                          render={({ field: { onChange, value }, fieldState: { error } }) => (
+                            <>
+                              <CheckboxGroup
+                                value={value || []}
+                                onChange={onChange}
+                              >
+                                <View className="flex flex-row flex-wrap">
+                                  {SUBTEAMS.map((team) => (
+                                    <View key={team} className="w-1/2 mb-2 mr-2">
+                                      <Checkbox value={team} className="flex-row items-center">
+                                        <CheckboxIndicator className="mr-2">
+                                          <CheckboxIcon as={CheckIcon} />
+                                        </CheckboxIndicator>
+                                        <CheckboxLabel>
+                                          {team.charAt(0).toUpperCase() + team.slice(1)}
+                                        </CheckboxLabel>
+                                      </Checkbox>
+                                    </View>
+                                  ))}
+                                </View>
+                              </CheckboxGroup>
+                              {error && <Text className="text-red-500">{error.message}</Text>}
+                            </>
+                          )}
+                        />
+                      </View>
+                    </VStack>
+                  </ScrollView>
+                </AlertDialogBody>
+                <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+                  <Button
+                    variant="outline"
+                    onPress={() => {
+                      log('Cancel button pressed in Edit Dialog');
+                      setShowEditDialog(false);
+                    }}
+                  >
+                    <ButtonText>Cancel</ButtonText>
+                  </Button>
+                  <Button
+                    onPress={saveEditChanges}
+                    action="primary"
+                  >
+                    <ButtonText>Save</ButtonText>
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </Box>
+      </ScrollView>
+
+      {/* View User Dialog */}
+      {viewUser && showViewDialog && (
+        <AlertDialog
+          isOpen={showViewDialog}
+          onClose={() => {
+            log('View user dialog closed');
+            setShowViewDialog(false);
+          }}
+        >
+          <AlertDialogBackdrop />
+          <AlertDialogContent className="w-11/12 max-w-2xl">
+            <AlertDialogHeader className="pb-4">
+              <Text className="text-lg font-semibold">User Details</Text>
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              <VStack space="sm">
+                <View className="flex flex-row justify-between mb-2">
+                  <View className="flex-1 mr-1">
+                    <Text className="font-medium">First Name:</Text>
+                    <Text>{viewUser.first_name}</Text>
+                  </View>
+                  <View className="flex-1 ml-1">
+                    <Text className="font-medium">Last Name:</Text>
+                    <Text>{viewUser.last_name}</Text>
+                  </View>
+                </View>
+
+                <View className="flex flex-row justify-between mb-2">
+                  <View className="flex-1 mr-1">
+                    <Text className="font-medium">Grade:</Text>
+                    <Text>{viewUser.grade}</Text>
+                  </View>
+                  <View className="flex-1 ml-1">
+                    <Text className="font-medium">Role:</Text>
+                    <Text>{viewUser.role.charAt(0).toUpperCase() + viewUser.role.slice(1)}</Text>
+                  </View>
+                </View>
+
+                <View className="mb-2">
+                  <Text className="font-medium">Subteam(s):</Text>
+                  <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
+                </View>
+
+                {['admin', 'executive'].includes(user?.role ?? '') && (
+                  <>
+                    <View className="flex flex-row justify-between mb-2">
+                      <View className="flex-1 mr-1">
+                        <Text className="font-medium">Email:</Text>
+                        <Text>{viewUser.email}</Text>
+                      </View>
+                      <View className="flex-1 ml-1">
+                        <Text className="font-medium">Phone:</Text>
+                        <Text>{formatPhoneNumber(viewUser.phone)}</Text>
+                      </View>
                     </View>
 
-                    <View className="mt-4">
-                      <Text className="font-medium">Role</Text>
+                    <View className="mb-2">
+                      <Text className="font-medium">Student ID:</Text>
+                      <Text>{viewUser.student_id}</Text>
+                    </View>
+                  </>
+                )}
+              </VStack>
+            </AlertDialogBody>
+            <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+              <Button
+                onPress={() => {
+                  log('Close button pressed in View Dialog');
+                  setShowViewDialog(false);
+                }}
+              >
+                <ButtonText>Close</ButtonText>
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Edit User Dialog */}
+      {showEditDialog && (
+        <AlertDialog
+          isOpen={showEditDialog}
+          onClose={() => {
+            log('Edit dialog closed');
+            setShowEditDialog(false);
+          }}
+        >
+          <AlertDialogBackdrop />
+          <AlertDialogContent className="w-11/12 max-w-3xl">
+            <AlertDialogHeader className="pb-4">
+              <Text className="text-lg font-semibold">Edit User</Text>
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              <ScrollView>
+                <VStack space="sm">
+                  <View className="flex flex-row flex-wrap justify-between">
+                    <View className="flex-1 mr-1">
+                      <Text className="font-medium">First Name</Text>
                       <Controller
                         control={control}
-                        name="role"
-                        rules={{ required: 'Role is required' }}
+                        name="first_name"
+                        rules={{ required: 'First Name is required' }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <Input variant="outline" size="md" className="mt-1">
+                              <InputField
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="First Name"
+                                className={`placeholder-gray-400`}
+                              />
+                            </Input>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
+                    <View className="flex-1 ml-1">
+                      <Text className="font-medium">Last Name</Text>
+                      <Controller
+                        control={control}
+                        name="last_name"
+                        rules={{ required: 'Last Name is required' }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <Input variant="outline" size="md" className="mt-1">
+                              <InputField
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="Last Name"
+                                className={`placeholder-gray-400`}
+                              />
+                            </Input>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
+                  </View>
+
+                  <View className="flex flex-row flex-wrap justify-between mt-4">
+                    <View className="flex-1 mr-1">
+                      <Text className="font-medium">Email</Text>
+                      <Controller
+                        control={control}
+                        name="email"
+                        rules={{
+                          required: 'Email is required',
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: 'Invalid Email',
+                          },
+                        }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <Input variant="outline" size="md" className="mt-1">
+                              <InputField
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="Email"
+                                keyboardType="email-address"
+                                className={`placeholder-gray-400`}
+                              />
+                            </Input>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
+                    <View className="flex-1 ml-1">
+                      <Text className="font-medium">Phone</Text>
+                      <Controller
+                        control={control}
+                        name="phone"
+                        rules={{
+                          required: 'Phone Number is required',
+                          pattern: {
+                            value: /^\(\d{3}\)\s\d{3}-\d{4}$/,
+                            message: 'Phone Number must be in the format (123) 456-7890',
+                          },
+                        }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <Input variant="outline" size="md" className="mt-1">
+                              <InputField
+                                value={value}
+                                onChangeText={(text) => {
+                                  const formattedText = formatPhoneNumber(text);
+                                  onChange(formattedText);
+                                }}
+                                placeholder="Phone"
+                                keyboardType="phone-pad"
+                                maxLength={14}
+                                className={`placeholder-gray-400`}
+                              />
+                            </Input>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
+                  </View>
+
+                  <View className="flex flex-row flex-wrap justify-between mt-4">
+                    <View className="flex-1 mr-1">
+                      <Text className="font-medium">Student ID</Text>
+                      <Controller
+                        control={control}
+                        name="student_id"
+                        rules={{
+                          required: 'Student ID is required',
+                          pattern: {
+                            value: /^\d{7}$/,
+                            message: 'Student ID must be 7 digits',
+                          },
+                        }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <Input variant="outline" size="md" className="mt-1">
+                              <InputField
+                                value={value}
+                                onChangeText={onChange}
+                                placeholder="Student ID"
+                                keyboardType="numeric"
+                                maxLength={7}
+                                className={`placeholder-gray-400`}
+                              />
+                            </Input>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
+                    <View className="flex-1 ml-1">
+                      <Text className="font-medium">Grade</Text>
+                      <Controller
+                        control={control}
+                        name="grade"
+                        rules={{ required: 'Grade is required' }}
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                           <>
                             <Select
@@ -805,7 +1167,7 @@ const UserDirectoryScreen: React.FC = () => {
                                 size="md"
                                 className="mt-1 rounded justify-between"
                               >
-                                <SelectInput placeholder="Select Role" />
+                                <SelectInput placeholder="Select Grade" />
                                 <SelectIcon as={ChevronDownIcon} />
                               </SelectTrigger>
                               <SelectPortal>
@@ -814,8 +1176,8 @@ const UserDirectoryScreen: React.FC = () => {
                                   <SelectDragIndicatorWrapper>
                                     <SelectDragIndicator />
                                   </SelectDragIndicatorWrapper>
-                                  {ROLES.map((role) => (
-                                    <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
+                                  {GRADES.map((grade) => (
+                                    <SelectItem key={grade} label={grade} value={grade} />
                                   ))}
                                 </SelectContent>
                               </SelectPortal>
@@ -825,63 +1187,101 @@ const UserDirectoryScreen: React.FC = () => {
                         )}
                       />
                     </View>
+                  </View>
 
-                    <View className="mt-4">
-                      <Text className="font-medium">Subteams</Text>
-                      <Controller
-                        control={control}
-                        name="subteam"
-                        rules={{ required: 'At least one subteam is required' }}
-                        render={({ field: { onChange, value }, fieldState: { error } }) => (
-                          <>
-                            <CheckboxGroup
-                              value={value || []}
-                              onChange={onChange}
+                  <View className="mt-4">
+                    <Text className="font-medium">Role</Text>
+                    <Controller
+                      control={control}
+                      name="role"
+                      rules={{ required: 'Role is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <Select
+                            selectedValue={value}
+                            onValueChange={onChange}
+                          >
+                            <SelectTrigger
+                              variant="outline"
+                              size="md"
+                              className="mt-1 rounded justify-between"
                             >
-                              <View className="flex flex-row flex-wrap">
-                                {SUBTEAMS.map((team) => (
-                                  <View key={team} className="w-1/2 mb-2 mr-2">
-                                    <Checkbox value={team} className="flex-row items-center">
-                                      <CheckboxIndicator className="mr-2">
-                                        <CheckboxIcon as={CheckIcon} />
-                                      </CheckboxIndicator>
-                                      <CheckboxLabel>
-                                        {team.charAt(0).toUpperCase() + team.slice(1)}
-                                      </CheckboxLabel>
-                                    </Checkbox>
-                                  </View>
+                              <SelectInput placeholder="Select Role" />
+                              <SelectIcon as={ChevronDownIcon} />
+                            </SelectTrigger>
+                            <SelectPortal>
+                              <SelectBackdrop />
+                              <SelectContent>
+                                <SelectDragIndicatorWrapper>
+                                  <SelectDragIndicator />
+                                </SelectDragIndicatorWrapper>
+                                {ROLES.map((role) => (
+                                  <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
                                 ))}
-                              </View>
-                            </CheckboxGroup>
-                            {error && <Text className="text-red-500">{error.message}</Text>}
-                          </>
-                        )}
-                      />
-                    </View>
-                  </VStack>
-                </ScrollView>
-              </AlertDialogBody>
-              <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
-                <Button
-                  variant="outline"
-                  onPress={() => {
-                    log('Cancel button pressed in Edit Dialog');
-                    setShowEditDialog(false);
-                  }}
-                >
-                  <ButtonText>Cancel</ButtonText>
-                </Button>
-                <Button
-                  onPress={saveEditChanges}
-                  action="primary"
-                >
-                  <ButtonText>Save</ButtonText>
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </Box>
+                              </SelectContent>
+                            </SelectPortal>
+                          </Select>
+                          {error && <Text className="text-red-500">{error.message}</Text>}
+                        </>
+                      )}
+                    />
+                  </View>
+
+                  <View className="mt-4">
+                    <Text className="font-medium">Subteams</Text>
+                    <Controller
+                      control={control}
+                      name="subteam"
+                      rules={{ required: 'At least one subteam is required' }}
+                      render={({ field: { onChange, value }, fieldState: { error } }) => (
+                        <>
+                          <CheckboxGroup
+                            value={value || []}
+                            onChange={onChange}
+                          >
+                            <View className="flex flex-row flex-wrap">
+                              {SUBTEAMS.map((team) => (
+                                <View key={team} className="w-1/2 mb-2 mr-2">
+                                  <Checkbox value={team} className="flex-row items-center">
+                                    <CheckboxIndicator className="mr-2">
+                                      <CheckboxIcon as={CheckIcon} />
+                                    </CheckboxIndicator>
+                                    <CheckboxLabel>
+                                      {team.charAt(0).toUpperCase() + team.slice(1)}
+                                    </CheckboxLabel>
+                                  </Checkbox>
+                                </View>
+                              ))}
+                            </View>
+                          </CheckboxGroup>
+                          {error && <Text className="text-red-500">{error.message}</Text>}
+                        </>
+                      )}
+                    />
+                  </View>
+                </VStack>
+              </ScrollView>
+            </AlertDialogBody>
+            <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+              <Button
+                variant="outline"
+                onPress={() => {
+                  log('Cancel button pressed in Edit Dialog');
+                  setShowEditDialog(false);
+                }}
+              >
+                <ButtonText>Cancel</ButtonText>
+              </Button>
+              <Button
+                onPress={saveEditChanges}
+                action="primary"
+              >
+                <ButtonText>Save</ButtonText>
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </KeyboardAvoidingView>
   );
 };

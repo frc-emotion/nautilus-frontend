@@ -32,13 +32,13 @@ import { Card } from "@/components/ui/card";
 import { View } from "@/components/ui/view";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
-import { useMeetings } from "@/src/utils/Context/MeetingContext";
 import { MeetingObject, FormData, QueuedRequest, UserObject } from "@/src/Constants";
 import { Spinner } from "@/components/ui/spinner";
 import { useUsers } from "@/src/utils/Context/UsersContext";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 import { Dimensions } from "react-native";
+import { useMeetings } from "@/src/utils/Context/MeetingContext";
 const screenHeight = Dimensions.get("window").height;
 
 const MeetingsScreen: React.FC = () => {
@@ -101,7 +101,7 @@ const MeetingsScreen: React.FC = () => {
       return;
     }
 
-    const filtered = meetings.filter((meeting) => {
+    const filtered = meetings.filter((meeting: MeetingObject) => {
       return (
         meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
