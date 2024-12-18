@@ -12,22 +12,23 @@ const Tab = createBottomTabNavigator();
 const NotLoggedIn: React.FC = () => {
   const { colorMode } = useThemeContext();
   const route = useRoute();
-  const { token }  = route.params as { token?: string } || {};
+  const { token = false }  = route.params as { token?: string } || {};
 
   return (
     <Tab.Navigator>
-      <Tab.Screen options={{
+      {!token && <Tab.Screen options={{
         headerTitleAlign: "center",
         tabBarIcon: ({ }) => (
           <LogIn color={colorMode === "light" ? "black" : "white"} />
         )
-      }} name="Login" component={LoginScreen} />
+      }} name="Login" component={LoginScreen} />}
+      {!token && 
        <Tab.Screen options={{
         headerTitleAlign: "center",
         tabBarIcon: ({ }) => (
           <UserRoundPen color={colorMode === "light" ? "black" : "white"} />
         )
-      }} name="Register" component={RegisterScreen} />
+      }} name="Register" component={RegisterScreen} />}
       {token && <Tab.Screen options={{
         tabBarIcon: ({ }) => (
           <KeyRound color={colorMode === "light" ? "black" : "white"} />

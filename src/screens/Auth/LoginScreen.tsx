@@ -141,13 +141,13 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       successHandler: async (response: AxiosResponse) => {
         openModal({
           title: "Success",
-          message: "Email sent successfully.",
+          message: "If the email exists, a reset link has been sent.",
           type: "success",
         });
 
         openToast({
           title: "Email Sent",
-          description: "The email has been sent successfully.",
+          description: "If the email exists, a reset link has been sent.",
           type: "success",
         });
       },
