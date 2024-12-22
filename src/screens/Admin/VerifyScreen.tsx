@@ -41,6 +41,7 @@ import { Portal } from "@/components/ui/portal";
 import { HStack } from "@/components/ui/hstack";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
+import { useUsers } from '@/src/utils/Context/UsersContext';
 
 type SortCriteria = 'name' | 'subteam';
 
@@ -57,9 +58,9 @@ const VerifyScreen: React.FC = () => {
     const { handleRequest } = useNetworking();
     const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
 
-    const [users, setUsers] = useState<UserObject[]>([]);
+    const [unverifiedUsers, setUnverifiedUsers] = useState<UserObject[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isFiltering, setIsFiltering] = useState(true);
     const [selectedUserInfo, setSelectedUserInfo] = useState<UserObject | null>(null);
     const [showUserDialog, setShowUserDialog] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -69,7 +70,7 @@ const VerifyScreen: React.FC = () => {
     const [flagsToShow, setFlagsToShow] = useState<UserFlag[]>([]);
 
     // Search query
-    const [searchQuery, setSearchQuery] = useState("");
+    // const [searchQuery, setSearchQuery] = useState("");
 
     // Sorting
     const [sortConfig, setSortConfig] = useState<SortConfig[]>([]);
@@ -77,6 +78,22 @@ const VerifyScreen: React.FC = () => {
     // Confirmation dialogs
     const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const {
+        users,
+        isLoading,
+        fetchUsers,
+        editUser,
+        deleteUser,
+        searchQuery,
+        setSearchQuery,
+        selectedSubteam,
+        setSelectedSubteam,
+        selectedGrade,
+        setSelectedGrade,
+        filteredUsers,
+      } = useUsers();
+
 
     const log = (...args: any[]) => {
         console.log(`[${new Date().toISOString()}] [VerifyScreen]`, ...args);
@@ -100,6 +117,7 @@ const VerifyScreen: React.FC = () => {
 
     const handleRefresh = async () => {
         setRefreshing(true);
+        await fetchUsers();
         await fetchUnverifiedUsers();
         openToast({
             title: "Refreshed!",
@@ -110,55 +128,20 @@ const VerifyScreen: React.FC = () => {
     };    
 
     const fetchUnverifiedUsers = async () => {
-        log("fetchUnverifiedUsers called");
-        setIsLoading(true);
-        const request: QueuedRequest = {
-            url: "/api/account/users",
-            method: "get",
-            retryCount: 0,
-            successHandler: async (response: AxiosResponse) => {
-                log("fetchUnverifiedUsers successHandler", response.data);
-                const unverifiedUsers = response.data.data.users.filter(
-                    (user: UserObject) => user.role === "unverified"
-                );
+        setUnverifiedUsers(users.filter(
+            (user: UserObject) =>
+                user.role === "unverified"
+        ));
 
-                const usersWithFlags = unverifiedUsers.map((u: UserObject) => ({
-                    ...u,
-                    flags: getUserFlags(u, response.data.data.users),
-                }));
-
-                setUsers(usersWithFlags);
-                setIsLoading(false);
-            },
-            errorHandler: async (error: AxiosError) => {
-                log("fetchUnverifiedUsers errorHandler", error);
-                handleErrorWithModalOrToast({
-                    actionName: "Fetching unverified users",
-                    error,
-                    showModal: false,
-                    showToast: true,
-                    openModal,
-                    openToast,
-                });
-                setIsLoading(false);
-            },
-            offlineHandler: async () => {
-                log("fetchUnverifiedUsers offlineHandler");
-                openToast({
-                    title: "Offline",
-                    description: "You are offline!",
-                    type: "error",
-                });
-                setIsLoading(false);
-            },
-        };
-        try {
-            await handleRequest(request);
-            log("fetchUnverifiedUsers request sent");
-        } catch (error) {
-            log("fetchUnverifiedUsers exception", error);
-            setIsLoading(false);
-        }
+        // Apply flagging logic
+        // const usersWithFlags = unverifiedUsers.map(
+        //     (user: UserObject) => ({
+        //         ...user,
+        //         flags: getUserFlags(user, users),
+        //     })
+        // );
+        // setUnverifiedUsers(usersWithFlags);
+        setIsFiltering(false);
     };
 
     const getUserFlags = (user: UserObject, allUsers: UserObject[]): UserFlag[] => {
@@ -406,20 +389,21 @@ const VerifyScreen: React.FC = () => {
         }
     };
 
-    const filteredUsers = useMemo(() => {
-        return users.filter((u) => {
+    const filteredUsersFr = useMemo(() => {
+        return unverifiedUsers.filter((u) => {
             const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
             return (
                 fullName.includes(searchQuery.toLowerCase()) ||
                 u.subteam.some(st => st.toLowerCase().includes(searchQuery.toLowerCase()))
             );
         });
-    }, [users, searchQuery]);
+    }, [unverifiedUsers, searchQuery]);
 
     const sortedUsers = useMemo(() => {
-        if (sortConfig.length === 0) return filteredUsers;
+        if (sortConfig.length === 0) return filteredUsersFr;
 
-        const sorted = [...filteredUsers].sort((a, b) => {
+        const sorted = [...filteredUsersFr
+        ].sort((a, b) => {
             for (const sort of sortConfig) {
                 let comparison = 0;
                 const { criteria, order } = sort;
@@ -441,7 +425,7 @@ const VerifyScreen: React.FC = () => {
             return 0;
         });
         return sorted;
-    }, [filteredUsers, sortConfig]);
+    }, [filteredUsersFr, sortConfig]);
 
     const updateSortConfig = (criteria: SortCriteria) => {
         setSortConfig((prevConfig) => {
@@ -538,7 +522,7 @@ const VerifyScreen: React.FC = () => {
 
                         <Divider className="my-1 bg-outline-300" />
 
-                        {isLoading ? (
+                        {isFiltering ? (
                             <View className="p-3">
                                 <Text className="text-center ">Loading users...</Text>
                             </View>
