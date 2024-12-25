@@ -16,7 +16,7 @@ import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
 import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
-import { useNetworking } from "@/src/utils/Context/NetworkingContext";
+import { CLEAN_API_URL, useNetworking } from "@/src/utils/Context/NetworkingContext";
 
 const icon = require("@/src/assets/icon.png");
 
@@ -196,6 +196,10 @@ const ProfileScreen: React.FC = () => {
             <Text>Push Notifications</Text>
             {/* <Text className="font-semibold">{backendHasToken}</Text> */}
             <Text className="font-semibold">Disabled</Text>
+          </HStack>
+          <HStack className="justify-between">
+            <Text>API</Text>
+            <Text className="font-semibold">{CLEAN_API_URL}</Text>
           </HStack>
         </VStack>
 

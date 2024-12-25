@@ -59,12 +59,11 @@ interface EditUserFormData {
   email: string;
   phone: string;
   student_id: string;
-  grade: string;
   role: string;
   subteam: string[];
 }
 
-type SortCriteria = 'firstName' | 'lastName' | 'grade' | 'role';
+type SortCriteria = 'role';
 
 interface SortConfig {
   criteria: SortCriteria;
@@ -85,7 +84,7 @@ const UserDirectoryScreen: React.FC = () => {
     setSearchQuery,
     selectedSubteam,
     setSelectedSubteam,
-    selectedGrade,
+    selectedGrade, // Assuming this is still used for filtering
     setSelectedGrade,
     filteredUsers,
   } = useUsers();
@@ -114,15 +113,13 @@ const UserDirectoryScreen: React.FC = () => {
       email: '',
       phone: '',
       student_id: '',
-      grade: '',
       role: '',
       subteam: [],
     },
   });
 
   const [sortConfig, setSortConfig] = useState<SortConfig[]>([
-    { criteria: 'firstName', order: 'asc' },
-    { criteria: 'role', order: 'asc' },
+    { criteria: 'role', order: 'desc' },
   ]);
 
   const getRoleRank = (role: string): number => {
@@ -141,18 +138,12 @@ const UserDirectoryScreen: React.FC = () => {
         let comparison = 0;
         const { criteria, order } = sort;
 
-        if (criteria === 'firstName') {
-          comparison = a.first_name.localeCompare(b.first_name);
-        } else if (criteria === 'lastName') {
-          comparison = a.last_name.localeCompare(b.last_name);
-        } else if (criteria === 'grade') {
-          comparison = a.grade.localeCompare(b.grade);
-        } else if (criteria === 'role') {
+        if (criteria === 'role') {
           comparison = getRoleRank(a.role) - getRoleRank(b.role);
         }
 
         if (comparison !== 0) {
-          log(`Sorting by ${criteria} in ${order} order: ${a.first_name} vs ${b.first_name} => ${comparison}`);
+          log(`Sorting by ${criteria} in ${order} order: ${a.role} vs ${b.role} => ${comparison}`);
           return order === 'asc' ? comparison : -comparison;
         }
       }
@@ -177,7 +168,6 @@ const UserDirectoryScreen: React.FC = () => {
       email: userToEdit.email,
       phone: userToEdit.phone,
       student_id: userToEdit.student_id,
-      grade: userToEdit.grade,
       role: userToEdit.role,
       subteam: userToEdit.subteam,
     });
@@ -424,47 +414,33 @@ const UserDirectoryScreen: React.FC = () => {
           </View>
 
           {/* User Table Header */}
-          <View className="flex flex-row  p-2 rounded mb-1">
-            <Pressable
-              onPress={() => updateSortConfig('firstName')}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <HStack className="flex-row items-center">
-                <Text className="font-medium">First Name</Text>
-                {renderSortIndicator('firstName')}
-              </HStack>
-            </Pressable>
+          <View className="flex flex-row p-2 rounded mb-1">
+            <View className="flex-1 items-center justify-center">
+              <Text className="font-medium">First Name</Text>
+            </View>
 
-            <Pressable
-              onPress={() => updateSortConfig('lastName')}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <HStack className="flex-row items-center">
-                <Text className="font-medium">Last Name</Text>
-                {renderSortIndicator('lastName')}
-              </HStack>
-            </Pressable>
+            <View className="flex-1 items-center justify-center">
+              <Text className="font-medium">Last Name</Text>
+            </View>
 
-            <Pressable
-              onPress={() => updateSortConfig('grade')}
+            {/* <Pressable
+              onPress={() => updateSortConfig('role')}
               style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
             >
               <HStack className="flex-row items-center">
-                <Text className="font-medium">Grade</Text>
-                {renderSortIndicator('grade')}
+                <Text className="font-medium">Role</Text>
+                {renderSortIndicator('role')}
               </HStack>
-            </Pressable>
+            </Pressable> */}
+
+            <View className="flex-1 items-center justify-center">
+              <Text className="font-medium">Role</Text>
+            </View>
 
             {user?.role === 'admin' && (
-              <Pressable
-                onPress={() => updateSortConfig('role')}
-                style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <HStack className="flex-row items-center">
-                  <Text className="font-medium">Role</Text>
-                  {renderSortIndicator('role')}
-                </HStack>
-              </Pressable>
+              <View className="flex-1 items-center justify-center">
+                <Text className="font-medium">Actions</Text>
+              </View>
             )}
           </View>
 
@@ -505,44 +481,35 @@ const UserDirectoryScreen: React.FC = () => {
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {userItem.grade}
+                    {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
                   </Text>
                   {user?.role === 'admin' && (
-                    <>
-                      <Text
-                        className="p-2 flex-1 text-center"
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
+                    <View className="p-2 items-center justify-center w-10">
+                      <Menu
+                        trigger={({ ...triggerProps }) => (
+                          <Pressable {...triggerProps}>
+                            <Icon as={EllipsisVertical} />
+                          </Pressable>
+                        )}
                       >
-                        {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
-                      </Text>
-                      <View className="p-2 items-center justify-center w-10">
-                          <Menu
-                            trigger={({ ...triggerProps }) => (
-                              <Pressable {...triggerProps}>
-                                <Icon as={EllipsisVertical} />
-                              </Pressable>
-                            )}
-                          >
-                            <MenuItem
-                              onPress={() => {
-                                log('Edit user pressed', userItem._id);
-                                handleEditUser(userItem);
-                              }}
-                            >
-                              <MenuItemLabel>Edit</MenuItemLabel>
-                            </MenuItem>
-                            <MenuItem
-                              onPress={() => {
-                                log('Delete user pressed', userItem._id);
-                                handleDeleteUser(userItem._id);
-                              }}
-                            >
-                              <MenuItemLabel>Delete</MenuItemLabel>
-                            </MenuItem>
-                          </Menu>
-                        </View>
-                    </>
+                        <MenuItem
+                          onPress={() => {
+                            log('Edit user pressed', userItem._id);
+                            handleEditUser(userItem);
+                          }}
+                        >
+                          <MenuItemLabel>Edit</MenuItemLabel>
+                        </MenuItem>
+                        <MenuItem
+                          onPress={() => {
+                            log('Delete user pressed', userItem._id);
+                            handleDeleteUser(userItem._id);
+                          }}
+                        >
+                          <MenuItemLabel>Delete</MenuItemLabel>
+                        </MenuItem>
+                      </Menu>
+                    </View>
                   )}
                 </View>
               </Pressable>
@@ -578,18 +545,13 @@ const UserDirectoryScreen: React.FC = () => {
 
                     <View className="flex flex-row justify-between mb-2">
                       <View className="flex-1 mr-1">
-                        <Text className="font-medium">Grade:</Text>
-                        <Text>{viewUser.grade}</Text>
-                      </View>
-                      <View className="flex-1 ml-1">
                         <Text className="font-medium">Role:</Text>
                         <Text>{viewUser.role.charAt(0).toUpperCase() + viewUser.role.slice(1)}</Text>
                       </View>
-                    </View>
-
-                    <View className="mb-2">
-                      <Text className="font-medium">Subteam(s):</Text>
-                      <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
+                      <View className="flex-1 ml-1">
+                        <Text className="font-medium">Subteam(s):</Text>
+                        <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
+                      </View>
                     </View>
 
                     {['admin', 'executive'].includes(user?.role ?? '') && (
@@ -782,12 +744,13 @@ const UserDirectoryScreen: React.FC = () => {
                             )}
                           />
                         </View>
+                        {/* Removed Grade field */}
                         <View className="flex-1 ml-1">
-                          <Text className="font-medium">Grade</Text>
+                          <Text className="font-medium">Role</Text>
                           <Controller
                             control={control}
-                            name="grade"
-                            rules={{ required: 'Grade is required' }}
+                            name="role"
+                            rules={{ required: 'Role is required' }}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                               <>
                                 <Select
@@ -799,7 +762,7 @@ const UserDirectoryScreen: React.FC = () => {
                                     size="md"
                                     className="mt-1 rounded justify-between"
                                   >
-                                    <SelectInput placeholder="Select Grade" />
+                                    <SelectInput placeholder="Select Role" />
                                     <SelectIcon as={ChevronDownIcon} />
                                   </SelectTrigger>
                                   <SelectPortal>
@@ -808,8 +771,8 @@ const UserDirectoryScreen: React.FC = () => {
                                       <SelectDragIndicatorWrapper>
                                         <SelectDragIndicator />
                                       </SelectDragIndicatorWrapper>
-                                      {GRADES.map((grade) => (
-                                        <SelectItem key={grade} label={grade} value={grade} />
+                                      {ROLES.map((role) => (
+                                        <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
                                       ))}
                                     </SelectContent>
                                   </SelectPortal>
@@ -819,44 +782,6 @@ const UserDirectoryScreen: React.FC = () => {
                             )}
                           />
                         </View>
-                      </View>
-
-                      <View className="mt-4">
-                        <Text className="font-medium">Role</Text>
-                        <Controller
-                          control={control}
-                          name="role"
-                          rules={{ required: 'Role is required' }}
-                          render={({ field: { onChange, value }, fieldState: { error } }) => (
-                            <>
-                              <Select
-                                selectedValue={value}
-                                onValueChange={onChange}
-                              >
-                                <SelectTrigger
-                                  variant="outline"
-                                  size="md"
-                                  className="mt-1 rounded justify-between"
-                                >
-                                  <SelectInput placeholder="Select Role" />
-                                  <SelectIcon as={ChevronDownIcon} />
-                                </SelectTrigger>
-                                <SelectPortal>
-                                  <SelectBackdrop />
-                                  <SelectContent>
-                                    <SelectDragIndicatorWrapper>
-                                      <SelectDragIndicator />
-                                    </SelectDragIndicatorWrapper>
-                                    {ROLES.map((role) => (
-                                      <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
-                                    ))}
-                                  </SelectContent>
-                                </SelectPortal>
-                              </Select>
-                              {error && <Text className="text-red-500">{error.message}</Text>}
-                            </>
-                          )}
-                        />
                       </View>
 
                       <View className="mt-4">
@@ -946,18 +871,13 @@ const UserDirectoryScreen: React.FC = () => {
 
                 <View className="flex flex-row justify-between mb-2">
                   <View className="flex-1 mr-1">
-                    <Text className="font-medium">Grade:</Text>
-                    <Text>{viewUser.grade}</Text>
-                  </View>
-                  <View className="flex-1 ml-1">
                     <Text className="font-medium">Role:</Text>
                     <Text>{viewUser.role.charAt(0).toUpperCase() + viewUser.role.slice(1)}</Text>
                   </View>
-                </View>
-
-                <View className="mb-2">
-                  <Text className="font-medium">Subteam(s):</Text>
-                  <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
+                  <View className="flex-1 ml-1">
+                    <Text className="font-medium">Subteam(s):</Text>
+                    <Text>{viewUser.subteam.map(st => st.charAt(0).toUpperCase() + st.slice(1)).join(', ')}</Text>
+                  </View>
                 </View>
 
                 {['admin', 'executive'].includes(user?.role ?? '') && (
@@ -1150,12 +1070,13 @@ const UserDirectoryScreen: React.FC = () => {
                         )}
                       />
                     </View>
+                    {/* Removed Grade field */}
                     <View className="flex-1 ml-1">
-                      <Text className="font-medium">Grade</Text>
+                      <Text className="font-medium">Role</Text>
                       <Controller
                         control={control}
-                        name="grade"
-                        rules={{ required: 'Grade is required' }}
+                        name="role"
+                        rules={{ required: 'Role is required' }}
                         render={({ field: { onChange, value }, fieldState: { error } }) => (
                           <>
                             <Select
@@ -1167,7 +1088,7 @@ const UserDirectoryScreen: React.FC = () => {
                                 size="md"
                                 className="mt-1 rounded justify-between"
                               >
-                                <SelectInput placeholder="Select Grade" />
+                                <SelectInput placeholder="Select Role" />
                                 <SelectIcon as={ChevronDownIcon} />
                               </SelectTrigger>
                               <SelectPortal>
@@ -1176,8 +1097,8 @@ const UserDirectoryScreen: React.FC = () => {
                                   <SelectDragIndicatorWrapper>
                                     <SelectDragIndicator />
                                   </SelectDragIndicatorWrapper>
-                                  {GRADES.map((grade) => (
-                                    <SelectItem key={grade} label={grade} value={grade} />
+                                  {ROLES.map((role) => (
+                                    <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
                                   ))}
                                 </SelectContent>
                               </SelectPortal>
@@ -1187,44 +1108,6 @@ const UserDirectoryScreen: React.FC = () => {
                         )}
                       />
                     </View>
-                  </View>
-
-                  <View className="mt-4">
-                    <Text className="font-medium">Role</Text>
-                    <Controller
-                      control={control}
-                      name="role"
-                      rules={{ required: 'Role is required' }}
-                      render={({ field: { onChange, value }, fieldState: { error } }) => (
-                        <>
-                          <Select
-                            selectedValue={value}
-                            onValueChange={onChange}
-                          >
-                            <SelectTrigger
-                              variant="outline"
-                              size="md"
-                              className="mt-1 rounded justify-between"
-                            >
-                              <SelectInput placeholder="Select Role" />
-                              <SelectIcon as={ChevronDownIcon} />
-                            </SelectTrigger>
-                            <SelectPortal>
-                              <SelectBackdrop />
-                              <SelectContent>
-                                <SelectDragIndicatorWrapper>
-                                  <SelectDragIndicator />
-                                </SelectDragIndicatorWrapper>
-                                {ROLES.map((role) => (
-                                  <SelectItem key={role} label={role.charAt(0).toUpperCase() + role.slice(1)} value={role} />
-                                ))}
-                              </SelectContent>
-                            </SelectPortal>
-                          </Select>
-                          {error && <Text className="text-red-500">{error.message}</Text>}
-                        </>
-                      )}
-                    />
                   </View>
 
                   <View className="mt-4">
