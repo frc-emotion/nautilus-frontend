@@ -517,31 +517,31 @@ const UserDirectoryScreen: React.FC = () => {
                         {userItem.role.charAt(0).toUpperCase() + userItem.role.slice(1)}
                       </Text>
                       <View className="p-2 items-center justify-center w-10">
-                        <Menu
-                          trigger={({ open }) => (
-                            <Pressable>
-                              <Icon as={EllipsisVertical} />
-                            </Pressable>
-                          )}
-                        >
-                          <MenuItem
-                            onPress={() => {
-                              log('Edit user pressed', userItem._id);
-                              handleEditUser(userItem);
-                            }}
+                          <Menu
+                            trigger={({ ...triggerProps }) => (
+                              <Pressable {...triggerProps}>
+                                <Icon as={EllipsisVertical} />
+                              </Pressable>
+                            )}
                           >
-                            <MenuItemLabel>Edit</MenuItemLabel>
-                          </MenuItem>
-                          <MenuItem
-                            onPress={() => {
-                              log('Delete user pressed', userItem._id);
-                              handleDeleteUser(userItem._id);
-                            }}
-                          >
-                            <MenuItemLabel>Delete</MenuItemLabel>
-                          </MenuItem>
-                        </Menu>
-                      </View>
+                            <MenuItem
+                              onPress={() => {
+                                log('Edit user pressed', userItem._id);
+                                handleEditUser(userItem);
+                              }}
+                            >
+                              <MenuItemLabel>Edit</MenuItemLabel>
+                            </MenuItem>
+                            <MenuItem
+                              onPress={() => {
+                                log('Delete user pressed', userItem._id);
+                                handleDeleteUser(userItem._id);
+                              }}
+                            >
+                              <MenuItemLabel>Delete</MenuItemLabel>
+                            </MenuItem>
+                          </Menu>
+                        </View>
                     </>
                   )}
                 </View>
