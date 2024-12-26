@@ -22,7 +22,7 @@
       "ios": {
           "supportsTablet": true,
           "bundleIdentifier": "org.team2658.scouting",
-          "buildNumber": "3",
+          "buildNumber": "4",
           "appleTeamId": "7L23FMFWGW",
           "infoPlist": {
               "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
