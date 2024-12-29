@@ -26,7 +26,7 @@ const AppInitializer: React.FC = () => {
   const { init: initMeetings } = useMeetings();
   const { init: initUsers } = useUsers();
   const { init: initAttendance } = useAttendance();
-  const { isConnected } = useNetworking();
+  const { isConnected, isLoading } = useNetworking();
   const { checkAppVersion } = useUpdate();
   const route = useRoute();
 
@@ -50,14 +50,15 @@ const AppInitializer: React.FC = () => {
       const { email, token } = (route.params ?? {}) as { email?: string, token?: string };
       console.log("Deep link params:", email, token);
 
-      // If user is not logged in, navigate immediately.
+
+      setContextsLoadingStatus((prev) => ({ ...prev, Update: 'Loading' }));
+      await initializeContext(checkAppVersion, "Update");
+
+      // If user is not logged in, navigate.
       if (!isLoggedIn) {
         navigateToAppropriateScreen();
         return;
       }
-
-      setContextsLoadingStatus((prev) => ({ ...prev, Update: 'Loading' }));
-      await initializeContext(checkAppVersion, "Update");
 
       // User is logged in and we know connectivity
       // Initialize additional contexts one by one for transparency

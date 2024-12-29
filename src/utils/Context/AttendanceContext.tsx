@@ -15,7 +15,7 @@ const AttendanceContext = createContext<AttendanceContextProps | undefined>(unde
 const DEBUG_PREFIX = '[AttendanceProvider]';
 
 export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user } = useAuth();
+    const { user, isLoggedIn } = useAuth();
     const { users, fetchUsers, isLoading: usersLoading } = useUsers();
     const { meetings } = useMeetings();
     const { openToast } = useGlobalToast();
@@ -393,6 +393,32 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
     }, [user, openToast, openModal, handleRequest, fetchAllUsersAttendanceLogs]);
 
+    // useEffect(() => {
+    //     try {
+    //         fetchYearsAndTerms();
+    //         fetchUserAttendanceLogs();
+    //     } catch (error) {
+    //         Sentry.captureException(error);
+    //         console.error(`${DEBUG_PREFIX} Unexpected error during useEffect:`, error);
+    //     }
+    // }, [isLoggedIn]);
+
+    const loadYearsAndTerms = async () => {
+        try {
+            await fetchYearsAndTerms();
+            await determineCurrentYearAndTerm();
+        } catch (error) {
+            Sentry.captureException(error);
+            console.error(`${DEBUG_PREFIX} Error loading years and terms:`, error);
+            openToast({
+                title: 'Error',
+                description: 'An error occurred while loading school years and terms.',
+                type: 'error',
+            });
+        }
+    }
+
+
     const initializeAttendanceData = useCallback(async () => {
         console.log(`${DEBUG_PREFIX} Initializing attendance data.`);
         
@@ -440,6 +466,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
 
         if (!user) {
+            await fetchYearsAndTerms();
+            await determineCurrentYearAndTerm();
             return;
         }
 
@@ -464,7 +492,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addManualAttendanceLog,
         removeManualAttendanceLogs,
         init,
-        refreshAttendanceData
+        refreshAttendanceData,
+        loadYearsAndTerms
     }), [schoolYears, schoolTerms, currentYear, currentTerm, userAttendanceHours, isLoading, allUsersAttendanceData, fetchAllUsersAttendanceLogs, addManualAttendanceLog, removeManualAttendanceLogs, init, refreshAttendanceData]);
 
     return (

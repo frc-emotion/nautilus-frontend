@@ -20,6 +20,7 @@ const NetworkingContext = createContext<NetworkingContextProps | undefined>(unde
 
 export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [requestQueue, setRequestQueue] = useState<QueuedRequest[]>([]);
   const clientRef = useRef<AxiosInstance | null>(null);
 
@@ -104,6 +105,7 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
       if (mounted) {
         setIsConnected(newConnectionState);
         console.log(`${DEBUG_PREFIX} Initial network state: isConnected = ${newConnectionState}`);
+        setIsLoading(false);
         if (newConnectionState) {
           processRequestQueue();
         }
@@ -376,7 +378,8 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
     handleRequest,
     validateToken,
     isConnected: isConnected ?? false,
-    client
+    client,
+    isLoading
   }), [handleRequest, validateToken, isConnected, client]);
 
   return (

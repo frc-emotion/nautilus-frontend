@@ -33,6 +33,7 @@ export interface NetworkingContextProps {
     validateToken: (token: string) => Promise<UserObject | null>;
     isConnected: boolean;
     client: AxiosInstance;
+    isLoading: boolean;
   }
 
 // export interface NotificationsContextProps {
@@ -89,6 +90,7 @@ export interface AttendanceContextProps {
     removeManualAttendanceLogs: (userId: number, hours: number, term: number, year: string) => Promise<void>;
     init: () => Promise<void>;
     refreshAttendanceData: () => Promise<void>;
+    loadYearsAndTerms: () => Promise<void>;
 }
 
 export interface UserAttendanceLogs {
