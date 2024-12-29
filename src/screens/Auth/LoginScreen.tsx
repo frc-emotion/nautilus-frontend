@@ -24,6 +24,7 @@ import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { Image } from "@/components/ui/image";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
+import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 
 const icon = require("@/src/assets/icon.png");
 
@@ -36,6 +37,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hidePassword, setHidePassword] = useState(true);
   const [forgot, setForgot] = useState(false);
+  const { loadYearsAndTerms } = useAttendance();
 
   const {
     control,
@@ -83,7 +85,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         await AsyncStorage.setItem("userData", JSON.stringify(user));
 
         console.log("User data saved to AsyncStorage:", user);
-
+        await loadYearsAndTerms();
         navigation.replace("RoleBasedTabs");
       },
       errorHandler: async (error: AxiosError) => {
