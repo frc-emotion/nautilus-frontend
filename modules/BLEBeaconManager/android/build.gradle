@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
 
-group = 'com.team2658'
+group = 'org.team2658'
 version = '0.6.0'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
@@ -37,7 +37,7 @@ if (useManagedAndroidSdkVersions) {
 }
 
 android {
-  namespace "com.team2658"
+  namespace "org.team2658"
   defaultConfig {
     versionCode 1
     versionName "0.6.0"

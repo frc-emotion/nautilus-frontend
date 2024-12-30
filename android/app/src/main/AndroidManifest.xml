@@ -35,7 +35,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="nautilus"/>
-        <data android:scheme="org.team2658.scouting"/>
+        <data android:scheme="org.team2658.nautilus"/>
         <data android:scheme="exp+nautilus"/>
       </intent-filter>
     </activity>

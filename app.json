@@ -31,7 +31,7 @@
           }
       },
       "android": {
-          "package": "org.team2658.scouting",
+          "package": "org.team2658.nautilus",
           "permissions": [
               "android.permission.INTERNET",
               "android.permission.ACCESS_COARSE_LOCATION",

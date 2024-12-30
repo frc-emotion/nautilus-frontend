@@ -1,4 +1,5 @@
 *.ipa
+credentials.json
 
 # Logs
 logs

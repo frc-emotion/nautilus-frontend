@@ -1,6 +1,6 @@
 {
   "platforms": ["android"],
   "android": {
-    "modules": ["com.team2658.BLEBeaconManager"]
+    "modules": ["org.team2658.BLEBeaconManager"]
   }
 }

@@ -2,10 +2,7 @@
     "build": {
       "production": {
       "distribution": "store",
-      "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
-      }
+      "developmentClient": false
     },
       "development": {
         "developmentClient": true,

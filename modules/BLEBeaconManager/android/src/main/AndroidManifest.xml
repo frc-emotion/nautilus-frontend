@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.team2658">
+          package="org.team2658">
 
     <!-- Required for Android versions below 12 -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
