@@ -1,4 +1,5 @@
 *.ipa
+*.aab
 credentials.json
 
 # Logs
