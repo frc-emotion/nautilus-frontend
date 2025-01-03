@@ -1,24 +1,28 @@
 {
     "build": {
-      "production": {
-      "distribution": "store",
-      "developmentClient": false
+        "production": {
+            "distribution": "store",
+            "developmentClient": false,
+            "autoIncrement": true
+        },
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk"
+            }
+        },
+        "preview": {
+            "developmentClient": false,
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk"
+            }
+        },
+        "release": {}
     },
-      "development": {
-        "developmentClient": true,
-        "distribution": "internal",
-        "android": {
-        "buildType": "apk"
-      }
-      },
-      "preview": {
-        "developmentClient": false,
-        "distribution": "internal",
-        "android": {
-        "buildType": "apk"
-      }
-      },
-      "release": {
-      }
+    "cli": {
+        "version": ">=14.2.0",
+        "appVersionSource": "remote"
     }
-  }
+}
