@@ -16,6 +16,8 @@ import AttendanceStackNavigator from "./AttendanceStackNavigator";
 import DirectoryStackNavigator from "./DirectoryStackNavigator";
 import { roleHierarchy, Roles, TabNames } from "../Constants";
 import ProfileStackNavigator from "./ProfileStackNavigator";
+import ScoutingForm from "../screens/User/ScoutingForm";
+import ScoutingStackNavigator from "./ScoutingStackNavigator";
 
 const Tab = createBottomTabNavigator();
 
@@ -91,6 +93,17 @@ const allTabs: Array<{
       Roles.Admin,
     ],
   },
+  {
+    name:TabNames.Scouting,
+    component: ScoutingStackNavigator,
+    roles: [
+      Roles.Member,
+      Roles.Leadership,
+      Roles.Executive,
+      Roles.Advisor,
+      Roles.Admin
+    ]
+  }
 ];
 
 // Role-Based Tab Navigator Component
