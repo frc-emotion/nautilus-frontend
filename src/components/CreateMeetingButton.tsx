@@ -50,7 +50,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       location: "",
       time_start: new Date(),
       time_end: new Date(),
-      hours: "1",
+      hours: 1.0,
     },
   });
 
@@ -74,7 +74,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
       location: data.location,
       time_start: Math.floor(data.time_start.getTime() / 1000),
       time_end: Math.floor(data.time_end.getTime() / 1000),
-      hours: parseFloat(data.hours),
+      hours: data.hours,
       term: currentTerm,
       year: currentYear,
     };
@@ -412,7 +412,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                   render={({ field: { onChange, value } }) => (
                     <Input variant="outline" size="md">
                       <InputField
-                        value={value}
+                        value={value.toString()}
                         onChangeText={onChange}
                         placeholder="Hours"
                         keyboardType="numeric"

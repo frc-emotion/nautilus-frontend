@@ -278,7 +278,7 @@ export interface FormData {
     location: string;
     time_start: Date;
     time_end: Date;
-    hours: string;
+    hours: number;
     created_by: number;
 };
 

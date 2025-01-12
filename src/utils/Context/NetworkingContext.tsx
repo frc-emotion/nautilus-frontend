@@ -164,6 +164,9 @@ export const NetworkingProvider: React.FC<{ children: ReactNode }> = ({ children
   const executeRequest = useCallback(async (request: QueuedRequest): Promise<AxiosResponse<any>> => {
     const { url, method, data, headers, config, successHandler, errorHandler } = request;
 
+    console.log(`${DEBUG_PREFIX} Executing [${method.toUpperCase()}] ${url}`);
+    console.log(`${DEBUG_PREFIX} Request data:`, data);
+
     try {
       let response: AxiosResponse<any>;
       switch (method.toLowerCase()) {
