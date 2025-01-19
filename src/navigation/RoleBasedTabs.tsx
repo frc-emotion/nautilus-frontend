@@ -1,7 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../utils/Context/AuthContext";
-import { useThemeContext } from "../utils/UI/CustomThemeProvider";
+import { useTheme } from "../utils/UI/CustomThemeProvider";
 import {
   BookUser,
   CircleHelpIcon,
@@ -20,8 +20,8 @@ import ProfileStackNavigator from "./ProfileStackNavigator";
 const Tab = createBottomTabNavigator();
 
 // Icon mapping remains the same
-const getIcon = (name: TabNames, colorMode: string) => {
-  const color = colorMode === "light" ? "black" : "white";
+const getIcon = (name: TabNames, theme: string) => {
+  const color = theme === "light" ? "black" : "white";
   switch (name) {
     case TabNames.Home:
       return <HomeIcon color={color} />;
@@ -97,7 +97,7 @@ const allTabs: Array<{
 const RoleBasedTabs: React.FC = () => {
   const { user } = useAuth();
   const role = (user?.role as Roles) || Roles.Unverified;
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   // Get all roles that the current role includes
   const allowedRoles = roleHierarchy[role] || [Roles.Unverified];
@@ -119,7 +119,7 @@ const RoleBasedTabs: React.FC = () => {
           name={name}
           component={component}
           options={{
-            tabBarIcon: ({ size = 24 }) => getIcon(name, colorMode),
+            tabBarIcon: ({ size = 24 }) => getIcon(name, theme),
           }}
         />
       ))}

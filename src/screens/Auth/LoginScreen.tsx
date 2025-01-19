@@ -20,7 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { QueuedRequest } from "../../Constants";
 import { Fab, FabIcon } from "@/components/ui/fab";
-import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useTheme } from '../../utils/UI/CustomThemeProvider';
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { Image } from "@/components/ui/image";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
@@ -29,7 +29,7 @@ import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 const icon = require("@/src/assets/icon.png");
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { colorMode, toggleColorMode } = useThemeContext();
+  const { theme, toggleTheme } = useTheme();
   const { openToast } = useGlobalToast();
   const { openModal } = useGlobalModal();
   const { login } = useAuth();
@@ -207,9 +207,9 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={120}
+      keyboardVerticalOffset={60}
       className="flex-1"
-      style={{ backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+      style={{ backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
@@ -318,9 +318,9 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Button
                 onPress={() => setForgot(true)}
                 size="sm"
-                className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white" : "mt-4 py-2 rounded-md bg-grey"} disabled={false}
+                className={theme === 'light' ? "mt-4 py-2 rounded-md bg-white" : "mt-4 py-2 rounded-md bg-grey"} disabled={false}
               >
-                <ButtonText className={colorMode === 'light' ? "color-black" : "color-white"}>
+                <ButtonText className={theme === 'light' ? "color-black" : "color-white"}>
                   Forgot Password?
                 </ButtonText>
               </Button>
@@ -330,9 +330,9 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <Button
                   onPress={()=>setForgot(false)}
                   size="sm"
-                  className={colorMode === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"} disabled={false}
+                  className={theme === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"} disabled={false}
                   >
-                    <ButtonText className={colorMode === 'light' ? "color-black" : "color-white"}>
+                    <ButtonText className={theme === 'light' ? "color-black" : "color-white"}>
                       Remember Password?
                     </ButtonText>
                   </Button>
@@ -341,10 +341,10 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <Fab
             size="md"
             placement="bottom right"
-            onPress={toggleColorMode}
+            onPress={toggleTheme}
             className="absolute bottom-4 right-4"
           >
-            <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+            <FabIcon as={theme === 'light' ? MoonIcon : SunIcon} />
           </Fab>
         </ScrollView>
       </TouchableWithoutFeedback>

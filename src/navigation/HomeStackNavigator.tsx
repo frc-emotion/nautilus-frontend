@@ -4,13 +4,13 @@ import HomeScreen from "../screens/User/HomeScreen";
 import AttendanceHistoryScreen from "../screens/User/AttendanceHistoryScreen";
 import { Roles } from "../Constants";
 import RoleBasedHeaderButton from "../components/RoleBasedHeaderButton";
-import { useThemeContext } from "../utils/UI/CustomThemeProvider";
+import { useTheme } from "../utils/UI/CustomThemeProvider";
 import { useAuth } from "../utils/Context/AuthContext";
 
 const Stack = createNativeStackNavigator();
 
 const HomeStackNavigator: React.FC = () => {
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
   const { user } = useAuth();
 
   return (
@@ -27,7 +27,7 @@ const HomeStackNavigator: React.FC = () => {
                 onPress={() => navigation.navigate("AttendanceHistoryScreen")}
                 title="Attendance History"
                 requiredRoles={[Roles.Member, Roles.Leadership, Roles.Executive, Roles.Admin]}
-                style={{color: colorMode === "light" ? "black" : "white" }}
+                style={{color: theme === "light" ? "black" : "white" }}
               />
             ),
           })}

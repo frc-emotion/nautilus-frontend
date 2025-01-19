@@ -24,7 +24,7 @@ import { GRADES, ROLES, UserObject } from '../../Constants';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, EllipsisVertical } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
-import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useTheme } from '../../utils/UI/CustomThemeProvider';
 import { Divider } from '@/components/ui/divider';
 import {
   Select,
@@ -73,7 +73,7 @@ interface SortConfig {
 const UserDirectoryScreen: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
   const {
     users,
     isLoading,
@@ -317,9 +317,9 @@ const UserDirectoryScreen: React.FC = () => {
     return (
       <HStack className="flex-row items-center ml-1">
         {sort.order === 'asc' ? (
-          <ChevronUpIcon color={colorMode === 'light' ? "black" : "white"} size={16} />
+          <ChevronUpIcon color={theme === 'light' ? "black" : "white"} size={16} />
         ) : (
-          <ChevronDownIcon color={colorMode === 'light' ? "black" : "white"} size={16} />
+          <ChevronDownIcon color={theme === 'light' ? "black" : "white"} size={16} />
         )}
       </HStack>
     );
@@ -328,8 +328,8 @@ const UserDirectoryScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={80} // Adjust based on your header height
-      style={{ flex: 1, backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+      keyboardVerticalOffset={80}
+      style={{ flex: 1, backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -437,11 +437,11 @@ const UserDirectoryScreen: React.FC = () => {
               <Text className="font-medium">Role</Text>
             </View>
 
-            {user?.role === 'admin' && (
+            {/* {user?.role === 'admin' && (
               <View className="flex-1 items-center justify-center">
                 <Text className="font-medium">Actions</Text>
               </View>
-            )}
+            )} */}
           </View>
 
           <Divider className="my-1" />
@@ -461,7 +461,7 @@ const UserDirectoryScreen: React.FC = () => {
                 key={userItem._id}
                 onPress={() => handleViewUser(userItem)}
               >
-                <View className={`flex flex-row items-center border-b ${colorMode === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
+                <View className={`flex flex-row items-center border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
                   <Text
                     className="p-2 flex-1 text-center"
                     numberOfLines={1}

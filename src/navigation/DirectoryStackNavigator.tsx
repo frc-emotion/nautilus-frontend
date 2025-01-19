@@ -5,12 +5,12 @@ import VerifyScreen from "../screens/Admin/VerifyScreen";
 import AttendanceManagementScreen from "../screens/Admin/AttendanceManagementScreen";
 import { Roles } from "../Constants";
 import RoleBasedHeaderButton from "../components/RoleBasedHeaderButton";
-import { useThemeContext } from "../utils/UI/CustomThemeProvider";
+import { useTheme } from "../utils/UI/CustomThemeProvider";
 
 const Stack = createNativeStackNavigator();
 
 const DirectoryStackNavigator: React.FC = () => {
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   return (
     <Stack.Navigator screenOptions={{}}>
@@ -25,7 +25,7 @@ const DirectoryStackNavigator: React.FC = () => {
               onPress={() => navigation.navigate("Verifier")}
               title="Verifier"
               requiredRoles={[Roles.Executive, Roles.Admin]}
-              style={{ color: colorMode === "light" ? "black" : "white" }}
+              style={{ color: theme === "light" ? "black" : "white" }}
             />
           ),
           headerLeft: () => (
@@ -33,7 +33,7 @@ const DirectoryStackNavigator: React.FC = () => {
               onPress={() => navigation.navigate("Attendance")}
               title="Attendance"
               requiredRoles={[Roles.Executive, Roles.Admin]}
-              style={{ color: colorMode === "light" ? "black" : "white" }}
+              style={{ color: theme === "light" ? "black" : "white" }}
             />
           ),
         })}

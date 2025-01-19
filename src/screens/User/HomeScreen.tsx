@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../utils/Context/AuthContext';
-import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useTheme } from '../../utils/UI/CustomThemeProvider';
 import { useAttendance } from '../../utils/Context/AttendanceContext';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
@@ -24,7 +24,7 @@ import UpdateRibbon from '@/src/components/UpdateRibbon';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 
 const HomeScreen: React.FC = () => {
-    const { colorMode, toggleColorMode } = useThemeContext();
+    const { theme, toggleTheme } = useTheme();
     const { user, refreshUser } = useAuth();
     const { userAttendanceHours, isLoading, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
     const { openToast } = useGlobalToast();
@@ -111,7 +111,7 @@ const HomeScreen: React.FC = () => {
                 contentContainerStyle={{
                     flexGrow: 1,
                     padding: 16,
-                    backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+                    backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
                 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             >
@@ -154,7 +154,7 @@ const HomeScreen: React.FC = () => {
                 contentContainerStyle={{
                     flexGrow: 1,
                     padding: 16,
-                    backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+                    backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
                 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             >
@@ -248,8 +248,8 @@ const HomeScreen: React.FC = () => {
                         )}
                     </Button>
                 </VStack>
-                <Fab size="md" placement="bottom right" onPress={toggleColorMode}>
-                    <FabIcon as={colorMode === 'light' ? MoonIcon : SunIcon} />
+                <Fab size="md" placement="bottom right" onPress={toggleTheme}>
+                    <FabIcon as={theme === 'light' ? MoonIcon : SunIcon} />
                 </Fab>
             </ScrollView>
         </VStack>

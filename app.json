@@ -13,6 +13,9 @@
       "orientation": "portrait",
       "icon": "./src/assets/icon.png",
       "userInterfaceStyle": "light",
+      "autolinking": {
+        "nativeModulesDir": "./modules/BLEBeaconManager"
+        },
       "ios": {
           "supportsTablet": true,
           "bundleIdentifier": "org.team2658.scouting",

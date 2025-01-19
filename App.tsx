@@ -8,7 +8,7 @@ import NotLoggedIn from "./src/navigation/NotLoggedInTabs";
 import { ModalProvider } from "./src/utils/UI/CustomModalProvider";
 import GlobalModal from "./src/components/GlobalModal";
 import { ToastProvider } from "./src/utils/UI/CustomToastProvider";
-import { ThemeProvider, useThemeContext } from './src/utils/UI/CustomThemeProvider';
+import { ThemeProvider, useTheme } from './src/utils/UI/CustomThemeProvider';
 import { LightTheme, DarkTheme, AppStackParamList } from './src/Constants';
 import { BLEProvider } from './src/utils/BLE/BLEContext';
 import { MeetingsProvider } from './src/utils/Context/MeetingContext';
@@ -46,7 +46,7 @@ Sentry.init({
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 function AppContent() {
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   const linking = {
     prefixes: [prefix],
@@ -63,7 +63,7 @@ function AppContent() {
   };
 
   return (
-    <GluestackUIProvider mode={colorMode}>
+    <GluestackUIProvider mode={theme}>
       <SafeAreaProvider>
         <NetworkingProvider>
 
@@ -75,7 +75,7 @@ function AppContent() {
               <GlobalModal />
 
               <AuthProvider>
-              <NavigationContainer theme={colorMode === 'light' ? LightTheme : DarkTheme} linking={linking}>
+              <NavigationContainer theme={theme === 'light' ? LightTheme : DarkTheme} linking={linking}>
 
                 
                   {/* <NotificationsProvider> */}

@@ -13,7 +13,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosError, AxiosResponse } from "axios";
 import { AppStackParamList, QueuedRequest, UserObject } from "../../Constants";
-import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { useTheme } from "../../utils/UI/CustomThemeProvider";
 import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { CLEAN_API_URL, useNetworking } from "@/src/utils/Context/NetworkingContext";
@@ -25,7 +25,7 @@ const ProfileScreen: React.FC = () => {
   const { user, logout, refreshUser, isLoading } = useAuth();
   const { openToast } = useGlobalToast();
   const { openModal } = useGlobalModal();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
   // const { backendHasToken, checkBackendPushToken } = useNotifications();
   const { handleRequest } = useNetworking(); // handleRequest from networking
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
@@ -144,7 +144,7 @@ const ProfileScreen: React.FC = () => {
       contentContainerStyle={{
         flexGrow: 1,
         padding: 16,
-        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C'
+        backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C'
       }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >

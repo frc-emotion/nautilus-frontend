@@ -19,7 +19,7 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
-import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { useTheme } from "../../utils/UI/CustomThemeProvider";
 import { useForm, Controller } from "react-hook-form";
 import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { Card } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export interface FormData {
 
 const AttendanceHistoryScreen: React.FC = () => {
   const { user } = useAuth();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   const { meetings, isLoadingMeetings, fetchMeetings, init } = useMeetings();
   const { users, isLoading: isLoadingUsers, fetchUsers } = useUsers();
@@ -148,7 +148,7 @@ const AttendanceHistoryScreen: React.FC = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{
         flex: 1,
-        backgroundColor: colorMode === "light" ? "#FFFFFF" : "#1A202C",
+        backgroundColor: theme === "light" ? "#FFFFFF" : "#1A202C",
       }}
     >
       <Box className="p-4 flex-1">
@@ -165,7 +165,7 @@ const AttendanceHistoryScreen: React.FC = () => {
                   setSearchQuery(text);
                 }}
                 placeholder="Search your meetings by title, location, or description..."
-                placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                placeholderTextColor={theme === 'light' ? '#A0AEC0' : '#4A5568'}
               />
             </Input>
           )}

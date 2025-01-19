@@ -23,7 +23,7 @@ import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { AxiosError, AxiosResponse } from "axios";
 import { Icon, ThreeDotsIcon, EyeIcon } from "@/components/ui/icon";
-import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { useTheme } from "../../utils/UI/CustomThemeProvider";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useForm, Controller } from "react-hook-form";
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
@@ -45,7 +45,7 @@ const MeetingsScreen: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
   const { openModal } = useGlobalModal();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
   const { users } = useUsers();
   const { meetings, isLoadingMeetings, fetchMeetings, init } = useMeetings();
   const { handleRequest } = useNetworking();
@@ -369,7 +369,7 @@ const MeetingsScreen: React.FC = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{
         flex: 1,
-        backgroundColor: colorMode === "light" ? "#FFFFFF" : "#1A202C",
+        backgroundColor: theme === "light" ? "#FFFFFF" : "#1A202C",
       }}
     >
       <Box className="p-4 flex-1">
@@ -382,7 +382,7 @@ const MeetingsScreen: React.FC = () => {
               setSearchQuery(text);
             }}
             placeholder="Search by name, description, location..."
-            placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+            placeholderTextColor={theme === 'light' ? '#A0AEC0' : '#4A5568'}
           />
         </Input>
 
@@ -497,7 +497,7 @@ const MeetingsScreen: React.FC = () => {
                           onChangeText={onChange}
                           placeholder="Title"
                           placeholderTextColor={
-                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                            theme === "light" ? "#A0AEC0" : "#4A5568"
                           }
                         />
                       </Input>
@@ -520,7 +520,7 @@ const MeetingsScreen: React.FC = () => {
                           onChangeText={onChange}
                           placeholder="Description"
                           placeholderTextColor={
-                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                            theme === "light" ? "#A0AEC0" : "#4A5568"
                           }
                         />
                       </Input>
@@ -545,7 +545,7 @@ const MeetingsScreen: React.FC = () => {
                           onChangeText={onChange}
                           placeholder="Location"
                           placeholderTextColor={
-                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                            theme === "light" ? "#A0AEC0" : "#4A5568"
                           }
                         />
                       </Input>
@@ -707,7 +707,7 @@ const MeetingsScreen: React.FC = () => {
                           placeholder="Hours"
                           keyboardType="numeric"
                           placeholderTextColor={
-                            colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                            theme === "light" ? "#A0AEC0" : "#4A5568"
                           }
                         />
                       </Input>
@@ -764,7 +764,7 @@ const MeetingsScreen: React.FC = () => {
             onChangeText={(text) => setAttendeesSearchQuery(text)}
             placeholder="Search users..."
             placeholderTextColor={
-              colorMode === "light" ? "#A0AEC0" : "#4A5568"
+              theme === "light" ? "#A0AEC0" : "#4A5568"
             }
           />
         </Input>

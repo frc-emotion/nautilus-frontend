@@ -313,11 +313,6 @@ export interface AuthContextType {
     refreshUser: () => Promise<void>;
 };
 
-export interface ThemeContextType {
-    colorMode: "light" | "dark";
-    toggleColorMode: () => void;
-}
-
 export interface ToastOptions {
     title: string;
     description?: string;
@@ -373,11 +368,6 @@ export interface ModalContextProps {
     openModal: (config: ModalConfig) => void;
     closeModal: () => void;
 }
-
-export interface ThemeContextType {
-    colorMode: 'light' | 'dark';
-    toggleColorMode: () => void;
-};
 
 export const LightTheme: Theme = {
     dark: false,

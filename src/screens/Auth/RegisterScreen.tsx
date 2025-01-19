@@ -30,7 +30,7 @@ import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { AxiosError, AxiosResponse } from "axios";
 import { GRADES, QueuedRequest, SUBTEAMS } from "../../Constants";
-import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { useTheme } from "../../utils/UI/CustomThemeProvider";
 import { cleanPhoneNumber, formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 
@@ -40,7 +40,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { handleRequest } = useNetworking(); // handleRequest from networking
   const [hidePassword, setHidePassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   const {
     control,
@@ -159,7 +159,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={100}
-        style={{ backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C' }}
+        style={{ backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView

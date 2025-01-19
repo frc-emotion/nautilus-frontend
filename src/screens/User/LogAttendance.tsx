@@ -22,7 +22,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Card } from '@/components/ui/card';
-import { useThemeContext } from '@/src/utils/UI/CustomThemeProvider';
+import { useTheme } from '@/src/utils/UI/CustomThemeProvider';
 import { HStack } from '@/components/ui/hstack';
 import { useLocation } from '@/src/utils/Context/LocationContext';
 import { useNetworking } from '@/src/utils/Context/NetworkingContext';
@@ -46,7 +46,7 @@ const LogAttendance: React.FC = () => {
   const { users, isLoading: isUsersLoading } = useUsers();
   const { openToast } = useGlobalToast();
   const { user } = useAuth();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedBeacon, setSelectedBeacon] = useState<Beacon | null>(null);
@@ -316,7 +316,7 @@ const LogAttendance: React.FC = () => {
       contentContainerStyle={{
         flexGrow: 1,
         padding: 16,
-        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+        backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
       }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >

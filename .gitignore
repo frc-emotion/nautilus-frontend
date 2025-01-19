@@ -1,5 +1,5 @@
-ios
-android
+/ios
+/android
 
 *.ipa
 *.aab

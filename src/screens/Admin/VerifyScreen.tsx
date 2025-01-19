@@ -28,7 +28,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
 } from "@/components/ui/alert-dialog";
-import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
+import { useTheme } from "../../utils/UI/CustomThemeProvider";
 import { Divider } from "@/components/ui/divider";
 import { CheckIcon } from "@/components/ui/icon";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react-native";
@@ -54,7 +54,7 @@ const VerifyScreen: React.FC = () => {
     const { user } = useAuth();
     const { openToast } = useGlobalToast();
     const { openModal } = useGlobalModal();
-    const { colorMode } = useThemeContext();
+    const { theme } = useTheme();
     const { handleRequest } = useNetworking();
     const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
 
@@ -479,7 +479,7 @@ const VerifyScreen: React.FC = () => {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{
                 flex: 1,
-                backgroundColor: colorMode === "light" ? "#FFFFFF" : "#1A202C",
+                backgroundColor: theme === "light" ? "#FFFFFF" : "#1A202C",
             }}
         >
             <Box className="p-4 flex-1">

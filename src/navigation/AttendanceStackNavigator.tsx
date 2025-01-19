@@ -6,12 +6,12 @@ import MeetingsScreen from "../screens/Leads/MeetingsScreen";
 import CreateMeetingButton from "../components/CreateMeetingButton";
 import { Roles } from "../Constants";
 import RoleBasedHeaderButton from "../components/RoleBasedHeaderButton";
-import { useThemeContext } from "../utils/UI/CustomThemeProvider";
+import { useTheme } from "../utils/UI/CustomThemeProvider";
 
 const Stack = createNativeStackNavigator();
 
 const AttendanceStackNavigator: React.FC = () => {
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
 
   return (
     <Stack.Navigator screenOptions={{}}>
@@ -26,7 +26,7 @@ const AttendanceStackNavigator: React.FC = () => {
               onPress={() => navigation.navigate("BroadcastMain")}
               title="Broadcast"
               requiredRoles={[Roles.Leadership, Roles.Executive, Roles.Admin]}
-              style={{ color: colorMode === "light" ? "black" : "white" }}
+              style={{ color: theme === "light" ? "black" : "white" }}
             />
           ),
           headerLeft: () => (
@@ -34,7 +34,7 @@ const AttendanceStackNavigator: React.FC = () => {
               onPress={() => navigation.navigate("MeetingsMain")}
               title="Meetings"
               requiredRoles={[Roles.Leadership, Roles.Executive, Roles.Admin]}
-              style={{ color: colorMode === "light" ? "black" : "white" }}
+              style={{ color: theme === "light" ? "black" : "white" }}
             />
           ),
         })}

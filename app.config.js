@@ -17,7 +17,7 @@ export default ({ config }) => ({
     },
     plugins: [
       withCustomBeaconModule,
-      [withRemoveiOSNotificationEntitlement],
+      // [withRemoveiOSNotificationEntitlement],
       ...(config.plugins || [])
       
     ],

@@ -16,7 +16,7 @@ import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/d
 import { Pressable } from "@/components/ui/pressable";
 import { AxiosError, AxiosResponse } from "axios";
 import { QueuedRequest, FormData } from "../Constants";
-import { useThemeContext } from "../utils/UI/CustomThemeProvider";
+import { useTheme } from "../utils/UI/CustomThemeProvider";
 import { useGlobalToast } from "../utils/UI/CustomToastProvider";
 import { useGlobalModal } from "../utils/UI/CustomModalProvider";
 import { handleErrorWithModalOrToast } from "../utils/Helpers";
@@ -29,7 +29,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
 }) => {
   const { openToast } = useGlobalToast();
   const { openModal } = useGlobalModal();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
   const { handleRequest } = useNetworking();
   const { currentYear, currentTerm } = useAttendance();
 
@@ -229,7 +229,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                         onChangeText={onChange}
                         placeholder="Title"
                         placeholderTextColor={
-                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          theme === "light" ? "#A0AEC0" : "#4A5568"
                         }
                       />
                     </Input>
@@ -252,7 +252,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                         onChangeText={onChange}
                         placeholder="Description"
                         placeholderTextColor={
-                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          theme === "light" ? "#A0AEC0" : "#4A5568"
                         }
                       />
                     </Input>
@@ -275,7 +275,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                         onChangeText={onChange}
                         placeholder="Location"
                         placeholderTextColor={
-                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          theme === "light" ? "#A0AEC0" : "#4A5568"
                         }
                       />
                     </Input>
@@ -417,7 +417,7 @@ const CreateMeetingButton: React.FC<{ onMeetingCreated?: () => void }> = ({
                         placeholder="Hours"
                         keyboardType="numeric"
                         placeholderTextColor={
-                          colorMode === "light" ? "#A0AEC0" : "#4A5568"
+                          theme === "light" ? "#A0AEC0" : "#4A5568"
                         }
                       />
                     </Input>

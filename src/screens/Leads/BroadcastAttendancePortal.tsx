@@ -8,7 +8,7 @@ import {
   Linking,
 } from 'react-native';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
-import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useTheme } from '../../utils/UI/CustomThemeProvider';
 import { useBLE } from '../../utils/BLE/BLEContext';
 import { APP_UUID, MeetingObject } from '../../Constants';
 import { useMeetings } from '../../utils/Context/MeetingContext';
@@ -31,7 +31,7 @@ const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 const BroadcastAttendancePortal: React.FC = () => {
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
-  const { colorMode } = useThemeContext();
+  const { theme } = useTheme();
   const { locationStatus, checkLocationServices } = useLocation();
 
   // BLE Context
@@ -221,7 +221,7 @@ const BroadcastAttendancePortal: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{
         flex: 1,
-        backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+        backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
       }}
     >
       <Box className="p-4 flex-1">

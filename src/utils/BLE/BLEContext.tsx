@@ -184,7 +184,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnauthorized = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth unauthorized.`);
-    Sentry.captureMessage('Bluetooth unauthorized on this device.');
+    //Sentry.captureMessage('Bluetooth unauthorized on this device.');
     openToast({
       title: 'Bluetooth Unauthorized',
       description: 'Bluetooth is unauthorized on this device.',
@@ -199,7 +199,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const handleBluetoothUnknown = () => {
     console.error(`${DEBUG_PREFIX} Bluetooth state unknown or transitioning.`);
-    Sentry.captureMessage('Bluetooth state unknown or transitioning.');
+    //Sentry.captureMessage('Bluetooth state unknown or transitioning.');
     openToast({
       title: 'Bluetooth State Unknown',
       description: 'Bluetooth state is unknown or transitioning.',

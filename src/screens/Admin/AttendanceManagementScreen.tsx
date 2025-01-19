@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, RefreshControl, FlatList } from 'react-native';
 import { useAuth } from '../../utils/Context/AuthContext';
-import { useThemeContext } from '../../utils/UI/CustomThemeProvider';
+import { useTheme } from '../../utils/UI/CustomThemeProvider';
 import { useAttendance } from '../../utils/Context/AttendanceContext';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
@@ -49,7 +49,7 @@ interface EditHoursFormData {
 }
 
 const AttendanceManagementScreen: React.FC = () => {
-    const { colorMode } = useThemeContext();
+    const { theme } = useTheme();
     const { user } = useAuth();
     if (!user) return null; // Add null check for user
     const { openToast } = useGlobalToast();
@@ -279,7 +279,7 @@ const AttendanceManagementScreen: React.FC = () => {
                 contentContainerStyle={{
                     flexGrow: 1,
                     padding: 16,
-                    backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+                    backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
                 }}
             >
                 <Text>You do not have permission to access this screen.</Text>
@@ -357,7 +357,7 @@ const AttendanceManagementScreen: React.FC = () => {
             contentContainerStyle={{
                 flexGrow: 1,
                 padding: 16,
-                backgroundColor: colorMode === 'light' ? '#FFFFFF' : '#1A202C',
+                backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
             }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
@@ -370,7 +370,7 @@ const AttendanceManagementScreen: React.FC = () => {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             placeholder="Search by first or last name"
-                            placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                            placeholderTextColor={theme === 'light' ? '#A0AEC0' : '#4A5568'}
                         />
                     </Input>
 
@@ -507,7 +507,7 @@ const AttendanceManagementScreen: React.FC = () => {
                                             onChangeText={onChange}
                                             placeholder="Enter hours adjustment"
                                             keyboardType="numeric"
-                                            placeholderTextColor={colorMode === 'light' ? '#A0AEC0' : '#4A5568'}
+                                            placeholderTextColor={theme === 'light' ? '#A0AEC0' : '#4A5568'}
                                         />
                                     </Input>
                                 )}
