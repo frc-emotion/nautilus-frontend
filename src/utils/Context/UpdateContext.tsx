@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useRef
+} from 'react';
 import { useGlobalToast } from '../UI/CustomToastProvider';
 import { useGlobalModal } from '../UI/CustomModalProvider';
 import { AxiosResponse, AxiosError } from 'axios';
 import { QueuedRequest, UpdateContextProps, UpdateInfo } from '@/src/Constants';
 import DeviceInfo from 'react-native-device-info';
-import NetInfo from '@react-native-community/netinfo';
 import { Linking } from 'react-native';
 import { useNetworking } from './NetworkingContext';
 import * as Sentry from '@sentry/react-native';
@@ -12,7 +19,7 @@ import * as Sentry from '@sentry/react-native';
 const UpdateContext = createContext<UpdateContextProps | undefined>(undefined);
 const DEBUG_PREFIX = '[UpdateProvider]';
 
-export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const UpdateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { openToast } = useGlobalToast();
   const { openModal } = useGlobalModal();
   const { handleRequest } = useNetworking();
@@ -21,35 +28,44 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [updateURL, setUpdateURL] = useState<string | null>(null);
 
+  /**
+   * Use a ref so we only check version once per session, 
+   * unless you want to allow multiple checks.
+   */
   const hasCheckedVersion = useRef(false);
 
-  const isVersionOutdated = useCallback((currentVersion: string, latestVersion: string): boolean => {
-    const currParts = currentVersion.split('.').map(Number);
-    const latestParts = latestVersion.split('.').map(Number);
+  /**
+   * Compare two semver-ish strings. 
+   * Returns true if currentVersion < latestVersion.
+   */
+  const isVersionOutdated = useCallback(
+    (currentVersion: string, latestVersion: string): boolean => {
+      const currParts = currentVersion.split('.').map(Number);
+      const latestParts = latestVersion.split('.').map(Number);
 
-    for (let i = 0; i < latestParts.length; i++) {
-      if ((currParts[i] || 0) < latestParts[i]) {
-        return true;
-      } else if ((currParts[i] || 0) > latestParts[i]) {
-        return false;
+      for (let i = 0; i < latestParts.length; i++) {
+        if ((currParts[i] || 0) < latestParts[i]) {
+          return true;
+        } else if ((currParts[i] || 0) > latestParts[i]) {
+          return false;
+        }
       }
-    }
-    return false;
-  }, []);
+      return false;
+    },
+    []
+  );
 
+  /**
+   * Only call this from AppInitializer (or wherever) 
+   * AFTER networking is known to be online or offline.
+   */
   const checkAppVersion = useCallback(async () => {
     if (hasCheckedVersion.current) {
-      return; 
-    }
-
-    console.log(`${DEBUG_PREFIX} Starting version check.`);
-    hasCheckedVersion.current = true;
-    
-    const state = await NetInfo.fetch();
-    if (!state.isConnected) {
-      console.log(`${DEBUG_PREFIX} No internet connection. Skipping version check.`);
       return;
     }
+    hasCheckedVersion.current = true;
+
+    console.log(`${DEBUG_PREFIX} Starting version check.`);
 
     const currentVersion = DeviceInfo.getVersion();
     console.log(`${DEBUG_PREFIX} Current app version: ${currentVersion}`);
@@ -61,20 +77,25 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       successHandler: async (response: AxiosResponse<UpdateInfo>) => {
         const data = response.data;
         console.log(`${DEBUG_PREFIX} Received version data:`, data);
+
         setLatestVersion(data.version);
-        setUpdateURL(data.update_url[DeviceInfo.getSystemName().toLowerCase() as 'android' | 'ios']);
+
+        // e.g. data.update_url = { android: "...", ios: "..." }
+        const systemName = DeviceInfo.getSystemName().toLowerCase() as 'android' | 'ios';
+        setUpdateURL(data.update_url[systemName] || null);
 
         if (isVersionOutdated(currentVersion, data.version)) {
           setIsOutOfDate(true);
           console.warn(`${DEBUG_PREFIX} App is out of date.`);
+
           openToast({
             title: 'Update Available',
-            description: 'A newer version of the app is available. Please update to avoid any problems.',
+            description: 'A newer version of the app is available. Please update.',
             type: 'warning',
           });
           openModal({
             title: 'Update Available',
-            message: 'A newer version of the app is available. Please update to avoid any problems.',
+            message: 'A newer version of the app is available. Please update.',
             type: 'warning',
           });
         } else {
@@ -86,6 +107,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         Sentry.captureException(error);
         console.error(`${DEBUG_PREFIX} Error fetching version info:`, error);
       },
+      // If we’re offline at the time of request
       offlineHandler: async () => {
         console.warn(`${DEBUG_PREFIX} Offline during version check. Skipping.`);
       },
@@ -99,18 +121,22 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [handleRequest, isVersionOutdated, openModal, openToast]);
 
+  /**
+   * If we have an updateURL, 
+   * open it in the browser or store listing.
+   */
   const openUpdateURL = useCallback(() => {
     if (updateURL) {
       Linking.openURL(updateURL);
     }
   }, [updateURL]);
 
-  const contextValue = useMemo(() => ({
+  const contextValue = useMemo<UpdateContextProps>(() => ({
     isOutOfDate,
     latestVersion,
     openUpdateURL,
     checkAppVersion,
-  }), [isOutOfDate, latestVersion, openUpdateURL]);
+  }), [isOutOfDate, latestVersion, openUpdateURL, checkAppVersion]);
 
   return (
     <UpdateContext.Provider value={contextValue}>

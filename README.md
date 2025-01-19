@@ -35,3 +35,8 @@ yarn install
 ```
 
 After you have completed these steps, your development environment should be fully set up, making you ready for development and writing your first contribution.
+
+Command for building
+```sh
+npx eas build --platform android --profile production --local
+```

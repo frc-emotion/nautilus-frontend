@@ -17,6 +17,7 @@ import { useThemeContext } from "../../utils/UI/CustomThemeProvider";
 import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { CLEAN_API_URL, useNetworking } from "@/src/utils/Context/NetworkingContext";
+import * as Application from 'expo-application';
 
 const icon = require("@/src/assets/icon.png");
 
@@ -200,6 +201,10 @@ const ProfileScreen: React.FC = () => {
           <HStack className="justify-between">
             <Text>API</Text>
             <Text className="font-semibold">{CLEAN_API_URL}</Text>
+          </HStack>
+          <HStack className="justify-between">
+            <Text>Version</Text>
+            <Text className="font-semibold">{Application.nativeApplicationVersion}</Text>
           </HStack>
         </VStack>
 

@@ -13,16 +13,9 @@
       "orientation": "portrait",
       "icon": "./src/assets/icon.png",
       "userInterfaceStyle": "light",
-      "entryPoint": "./App.tsx",
-      "developmentClient": {
-          "client": {
-              "enabled": true
-          }
-      },
       "ios": {
           "supportsTablet": true,
           "bundleIdentifier": "org.team2658.scouting",
-          "appleTeamId": "7L23FMFWGW",
           "infoPlist": {
               "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
               "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",

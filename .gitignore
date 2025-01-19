@@ -1,3 +1,6 @@
+ios
+android
+
 *.ipa
 *.aab
 credentials.json
