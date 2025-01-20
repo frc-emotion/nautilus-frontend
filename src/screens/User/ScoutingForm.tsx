@@ -55,23 +55,27 @@ const ScoutingForm: React.FC = () => {
                 "rankingPoints": 0,
                 "auto": {
                     "leave": false,
-                    "ampNotes": 0,
-                    "speakerNotes": 0,
+                    "coral": 0,
+                    "algae": 0,
+                    "humanPlayer": false, // did the human player interact during auto
                 },
                 "teleop": {
-                    "ampNotes": 0,
-                    "speakerUnamp": 0,
-                    "speakerAmp": 0,
+                    "coral": 0,
+                    "algae": 0,
                 },
-                "stage": {
-                    "state": "NOT_PARKED", //"NOT_PARKED" | "PARKED" | "ONSTAGE" | "ONSTAGE_SPOTLIT"
-                    "harmony": 0,
-                    "trapNotes": 0,
-                },
-                "ranking": {
-                    "melody": false,
-                    "ensemble": false              
-            }
+                "climb":{
+                    "shallowCage":false,
+                    "deepCage":false,
+                }
+                // "stage": {
+                //     "state": "NOT_PARKED", //"NOT_PARKED" | "PARKED" | "ONSTAGE" | "ONSTAGE_SPOTLIT"
+                //     "harmony": 0,
+                //     "trapNotes": 0,
+                // },
+            //     "ranking": {
+            //         "melody": false,
+            //         "ensemble": false              
+            // }
         },
       });
 
@@ -97,6 +101,10 @@ const ScoutingForm: React.FC = () => {
             setValue(field, !currentValue);
         }
         console.log(getValues(field));
+    };
+
+    const updateField = (field: string) => {
+        const currentValue=watch()
     }
 
     return (
@@ -122,6 +130,10 @@ const ScoutingForm: React.FC = () => {
                     paddingVertical: Platform.OS === "ios" ? 24 : 16,
                 }}
                 >
+                
+                {/* Start General */}
+
+                <Text size="xl" className="self-center color-black"> General </Text>
                 <HStack space="2xl" className="w-full justify-center">
                 <VStack className="w-4/9">
                 <Text className="mb-1">Competition</Text>
@@ -207,6 +219,9 @@ const ScoutingForm: React.FC = () => {
                 )}
                 </VStack>
                 </HStack>
+
+                {/* Second Row of General*/}
+
                 <HStack space="4xl" className="w-full justify-center">
                 <VStack space="lg" className="w-1/4 justify-center">
                         <VStack className="">
@@ -304,6 +319,288 @@ const ScoutingForm: React.FC = () => {
                 </VStack>
                 </VStack>
                 </HStack>
+
+                {/* End General */}
+
+                {/* Start Auto */}
+
+                <Text size="xl" className="self-center color-black"> Auto </Text>
+
+                <HStack space="4xl" className="w-full justify-center">
+                
+
+                <VStack space="lg" className="w-1/4 justify-center">
+                        <VStack className="">
+                        <Text className="">Coral</Text>
+                        <Controller
+                            control={control}
+                            name="auto.coral"
+                            rules={{
+                                required: "Required",
+                                pattern: {
+                                    value: /^\d+$/,
+                                    message: "The num must be numeric.",
+                                },
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputField
+                                        inputMode="numeric"
+                                        placeholder="0"
+                                        value={String(value || 0)} // Ensure value is a string for InputField
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10) || 0;
+                                            onChange(numericValue); // Update React Hook Form's state
+                                        }}
+                                        autoCorrect={false}
+                                    />
+                                </Input>
+                            )}
+                        />
+                    
+                        <HStack className="">
+                            <Pressable
+                                onPress={() => {
+                                    handleIncrease("auto.coral");
+                                    if (watch("auto.coral") >= 1){
+                                    setValue("auto.leave",true);
+                                    }
+                                }
+                                }
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">+</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => {handleDecrease("auto.coral");
+                                                if (watch("auto.coral") >= 0){
+                                                    setValue("auto.leave",false);
+                                                }
+
+                                }}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">-</Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
+                </VStack>
+
+                <VStack space="lg" className="w-1/4 justify-center">
+                        <VStack className="">
+                        <Text className="">Algae</Text>
+                        <Controller
+                            control={control}
+                            name="auto.algae"
+                            rules={{
+                                required: "Required",
+                                pattern: {
+                                    value: /^\d+$/,
+                                    message: "The num must be numeric.",
+                                },
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputField
+                                        inputMode="numeric"
+                                        placeholder="0"
+                                        value={String(value || 0)} // Ensure value is a string for InputField
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10) || 0;
+                                            onChange(numericValue); // Update React Hook Form's state
+                                        }}
+                                        autoCorrect={false}
+                                    />
+                                </Input>
+                            )}
+                        />
+                    
+                        <HStack className="">
+                            <Pressable
+                                onPress={() => handleIncrease("auto.algae")}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">+</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => handleDecrease("auto.algae")}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">-</Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
+                </VStack>
+
+                <VStack>
+
+                <VStack className="items-center">
+                <Text>Left</Text>
+                <Pressable
+                    onPress={()=>toggleField("auto.leave")}
+                    className="flex rounded items-center justify-center bg-primary-500"
+                    style={{ height: 40, width: 80 }}
+                    disabled={watch("auto.coral")>0}
+                >
+                    <Text className="text-typography-0">{watch("auto.leave") ? "yes" : "no"}</Text>
+                </Pressable>
+                </VStack>
+
+                <VStack className="items-center">
+                <Text>Human Player</Text>
+                <Pressable
+                    onPress={()=>toggleField("auto.humanPlayer")}
+                    className="flex rounded items-center justify-center bg-primary-500"
+                    style={{ height: 40, width: 80 }}
+                >
+                    <Text className="text-typography-0">{watch("auto.humanPlayer") ? "Feed" : "No Feed"}</Text>
+                </Pressable>
+                </VStack>
+
+                </VStack>
+
+                </HStack> 
+
+                {/* End Auto */}
+
+                {/* Start Teleop */}
+
+                <Text size="xl" className="self-center color-black"> Teleop </Text>
+
+                <HStack space="4xl" className="w-full justify-center">
+                
+
+                <VStack space="lg" className="w-1/4 justify-center">
+                        <VStack className="">
+                        <Text className="">Coral</Text>
+                        <Controller
+                            control={control}
+                            name="teleop.coral"
+                            rules={{
+                                required: "Required",
+                                pattern: {
+                                    value: /^\d+$/,
+                                    message: "The num must be numeric.",
+                                },
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputField
+                                        inputMode="numeric"
+                                        placeholder="0"
+                                        value={String(value || 0)} // Ensure value is a string for InputField
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10) || 0;
+                                            onChange(numericValue); // Update React Hook Form's state
+                                        }}
+                                        autoCorrect={false}
+                                    />
+                                </Input>
+                            )}
+                        />
+                    
+                        <HStack className="">
+                            <Pressable
+                                onPress={() => handleIncrease("teleop.coral")}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">+</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => handleDecrease("teleop.coral")}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">-</Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
+                </VStack>
+
+                <VStack space="lg" className="w-1/4 justify-center">
+                        <VStack className="">
+                        <Text className="">Algae</Text>
+                        <Controller
+                            control={control}
+                            name="teleop.algae"
+                            rules={{
+                                required: "Required",
+                                pattern: {
+                                    value: /^\d+$/,
+                                    message: "The num must be numeric.",
+                                },
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputField
+                                        inputMode="numeric"
+                                        placeholder="0"
+                                        value={String(value || 0)} // Ensure value is a string for InputField
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10) || 0;
+                                            onChange(numericValue); // Update React Hook Form's state
+                                        }}
+                                        autoCorrect={false}
+                                    />
+                                </Input>
+                            )}
+                        />
+                    
+                        <HStack className="">
+                            <Pressable
+                                onPress={() => handleIncrease("teleop.algae")}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">+</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => handleDecrease("teleop.algae")}
+                                className="flex rounded items-center justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">-</Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
+                </VStack>
+
+                <VStack>
+
+                <VStack className="items-center">
+                <Text>Left</Text>
+                <Pressable
+                    onPress={()=>toggleField("auto.leave")}
+                    className="flex rounded items-center justify-center bg-primary-500"
+                    style={{ height: 40, width: 80 }}
+                >
+                    <Text className="text-typography-0">{watch("auto.leave") ? "yes" : "no"}</Text>
+                </Pressable>
+                </VStack>
+
+                <VStack className="items-center">
+                <Text>Human Player</Text>
+                <Pressable
+                    onPress={()=>toggleField("auto.humanPlayer")}
+                    className="flex rounded items-center justify-center bg-primary-500"
+                    style={{ height: 40, width: 80 }}
+                >
+                    <Text className="text-typography-0">{watch("auto.humanPlayer") ? "Feed" : "No Feed"}</Text>
+                </Pressable>
+                </VStack>
+
+                </VStack>
+
+                </HStack> 
+
+                {/* End Teleop */}
+                
+
                 <VStack space="lg" className="w-1/4">
                         <VStack className="">
                         <Text className="">Ranking Points</Text>
