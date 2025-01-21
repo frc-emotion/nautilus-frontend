@@ -25,6 +25,7 @@ import { Box } from '@/components/ui/box';
 import { Pressable } from '@/components/ui/pressable';
 import { View } from '@/components/ui/view';
 import * as Sentry from '@sentry/react-native';
+import PermissionStatusPopup from '@/src/components/PermissionStatusPopup';
 
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 
@@ -57,6 +58,8 @@ const BroadcastAttendancePortal: React.FC = () => {
   const [validMeetings, setValidMeetings] = useState<MeetingObject[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
+  const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
+
 
   useEffect(() => {
     log('useEffect [searchQuery]', searchQuery);
@@ -216,6 +219,14 @@ const BroadcastAttendancePortal: React.FC = () => {
     setFilteredMeetings(eligibleMeetings); // Update filteredMeetings when validMeetings change
   }, [meetings]);
 
+  const openPermissionPopup = () => {
+    setIsPopupVisible(true);
+  };
+
+  const closePermissionPopup = () => {
+    setIsPopupVisible(false);
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -228,11 +239,15 @@ const BroadcastAttendancePortal: React.FC = () => {
         <VStack space="lg" className="flex-1">
           {/* Bluetooth and Location Status Indicators */}
           <View className="flex items-center justify-center">
+          <Pressable onPress={openPermissionPopup}>
             <BluetoothStatusIndicator state={bluetoothState} />
+          </Pressable>
+          <Pressable onPress={openPermissionPopup}>
             <View className="ml-4">
               <LocationStatusIndicator state={locationStatus} />
             </View>
-          </View>
+          </Pressable>
+        </View>
 
           {/* Open Settings Button */}
           {(bluetoothState === 'unknown' ||
@@ -329,6 +344,8 @@ const BroadcastAttendancePortal: React.FC = () => {
               )}
             </ButtonText>
           </Button>
+          {/* Permission Status Popup */}
+        <PermissionStatusPopup visible={isPopupVisible} onClose={closePermissionPopup} />
         </VStack>
       </Box>
     </KeyboardAvoidingView>

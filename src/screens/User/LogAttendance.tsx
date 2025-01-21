@@ -27,6 +27,8 @@ import { HStack } from '@/components/ui/hstack';
 import { useLocation } from '@/src/utils/Context/LocationContext';
 import { useNetworking } from '@/src/utils/Context/NetworkingContext';
 import * as Sentry from '@sentry/react-native';
+import PermissionStatusPopup from '@/src/components/PermissionStatusPopup';
+import { Pressable } from '@/components/ui/pressable';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
@@ -53,6 +55,8 @@ const LogAttendance: React.FC = () => {
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingObject | null>(null);
   const [loggingBeacons, setLoggingBeacons] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
 
   const log = (...args: any[]) => {
     console.log(`[${new Date().toISOString()}] ${DEBUG_PREFIX}`, ...args);
@@ -311,6 +315,14 @@ const LogAttendance: React.FC = () => {
     );
   }
 
+  const openPermissionPopup = () => {
+    setIsPopupVisible(true);
+  };
+
+  const closePermissionPopup = () => {
+    setIsPopupVisible(false);
+  };
+
   return (
     <ScrollView
       contentContainerStyle={{
@@ -320,12 +332,16 @@ const LogAttendance: React.FC = () => {
       }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <VStack space="lg" className="items-center">
+      <VStack space="lg" className="flex-1">
         <View className="flex items-center justify-center">
-          <BluetoothStatusIndicator state={bluetoothState} />
-          <View className="ml-4">
-            <LocationStatusIndicator state={locationStatus} />
-          </View>
+          <Pressable onPress={openPermissionPopup}>
+            <BluetoothStatusIndicator state={bluetoothState} />
+          </Pressable>
+          <Pressable onPress={openPermissionPopup}>
+            <View className="ml-4">
+              <LocationStatusIndicator state={locationStatus} />
+            </View>
+          </Pressable>
         </View>
 
         {(bluetoothState === 'unknown' || locationStatus === 'unknown' || bluetoothState === 'unauthorized' || locationStatus === 'unauthorized') && (
@@ -439,16 +455,20 @@ const LogAttendance: React.FC = () => {
                   action="secondary"
                   onPress={() => { setSelectedBeacon(null); setSelectedMeeting(null); }}
                   size="sm"
+                  className="mr-2"
                 >
-                  <ButtonText>Cancel</ButtonText>
+                  <Text>Cancel</Text>
                 </Button>
-                <Button size="sm" onPress={confirmLogAttendance}>
-                  <ButtonText>Confirm</ButtonText>
+                <Button size="sm" onPress={confirmLogAttendance} className="bg-blue-500">
+                  <Text className="text-white">Confirm</Text>
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         )}
+
+        {/* Permission Status Popup */}
+        <PermissionStatusPopup visible={isPopupVisible} onClose={closePermissionPopup} />
       </VStack>
     </ScrollView>
   );

@@ -9,7 +9,7 @@ const emitter = new EventEmitter(
   Platform.OS === 'ios' ? NativeModules.BeaconBroadcaster : BLEBeaconManager
 );
 
-const checkAndRequestPermissions = async (): Promise<boolean> => {
+export const checkAndRequestPermissions = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
     return true;
   }

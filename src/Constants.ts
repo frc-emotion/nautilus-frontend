@@ -191,6 +191,7 @@ export interface MeetingsContextProps {
 export interface LocationContextProps {
     locationStatus: 'enabled' | 'disabled' | 'unauthorized' | 'unknown';
     checkLocationServices: () => Promise<void>;
+    requestLocationServices: () => Promise<void>;
 }
 
 export interface UserFlag {
