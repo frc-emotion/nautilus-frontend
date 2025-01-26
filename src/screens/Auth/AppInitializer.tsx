@@ -105,10 +105,10 @@ const AppInitializer: React.FC = () => {
     authLoading,
     isConnected,
     isLoggedIn,
-    checkAppVersion,
-    initMeetings,
-    initUsers,
-    initAttendance
+    // checkAppVersion,
+    // initMeetings,
+    // initUsers,
+    // initAttendance
   ]);
 
   function navigateAway() {
