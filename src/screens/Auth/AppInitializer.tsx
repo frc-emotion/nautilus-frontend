@@ -52,9 +52,15 @@ const AppInitializer: React.FC = () => {
     const initializeApp = async () => {
       // 1) Check version
       try {
+        console.log("I tried");
         setContextsLoadingStatus((prev) => ({ ...prev, Update: "Loading" }));
+        console.log("I tried 2");
+
         await checkAppVersion(); // Now isConnected===true or false, never null
+        console.log("I tried 3");
         setContextsLoadingStatus((prev) => ({ ...prev, Update: "Success" }));
+        console.log("I tried 3");
+
       } catch (err) {
         Sentry.captureException(err);
         setContextsLoadingStatus((prev) => ({ ...prev, Update: "Error" }));
@@ -96,6 +102,8 @@ const AppInitializer: React.FC = () => {
         setContextsLoadingStatus((prev) => ({ ...prev, Attendance: "Error" }));
       }
 
+      console.log("APP DEBUGGIN || I ran");
+
       navigateAway();
     };
 
@@ -105,10 +113,10 @@ const AppInitializer: React.FC = () => {
     authLoading,
     isConnected,
     isLoggedIn,
-    checkAppVersion,
-    initMeetings,
-    initUsers,
-    initAttendance
+    // checkAppVersion,
+    // initMeetings,
+    // initUsers,
+    // initAttendance
   ]);
 
   function navigateAway() {
