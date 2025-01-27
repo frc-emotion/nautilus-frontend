@@ -26,12 +26,11 @@ import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 const HomeScreen: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
     const { user, refreshUser } = useAuth();
-    const { userAttendanceHours, isLoading, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
+    const { userAttendanceHours, isLoading, currentYear, currentTerm, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
     const { openToast } = useGlobalToast();
-
     const [refreshing, setRefreshing] = useState(false);
-    const [selectedYear, setSelectedYear] = useState<string>('All Years');
-    const [selectedTerm, setSelectedTerm] = useState<string>('All Terms');
+    const [selectedYear, setSelectedYear] = useState<string>('All Years');// (currentYear); // ('All Years');
+    const [selectedTerm, setSelectedTerm] = useState<string>('All Terms');//(currentTerm.toString()); // ('All Terms');
     const [availableYears, setAvailableYears] = useState<string[]>([]);
     const [termsByYear, setTermsByYear] = useState<{ [year: string]: string[] }>({});
     const [termOptions, setTermOptions] = useState<string[]>(['All Terms']);
@@ -60,20 +59,30 @@ const HomeScreen: React.FC = () => {
             termsObj[year] = Array.from(tempTermsByYear[year]).sort((a, b) => parseInt(a) - parseInt(b));
         });
         setTermsByYear(termsObj);
+        
+        setSelectedYear(currentYear);
+        setSelectedTerm(currentTerm.toString());
+
     }, [userAttendanceHours, schoolYears, schoolTerms]);
 
     useEffect(() => {
         // Update term options based on selected year
+
+        // If the current year is selected, default to the current term
         if (selectedYear !== 'All Years' && termsByYear[selectedYear]) {
             setTermOptions(['All Terms', ...termsByYear[selectedYear]]);
+            // If the current term is not in the list of terms for the selected year, default to 'All Terms'
             if (!termsByYear[selectedYear].includes(selectedTerm)) {
-                setSelectedTerm('All Terms');
+                // setSelectedTerm('All Terms');
+                setSelectedTerm(currentTerm.toString());
+                
             }
+        // If 'All Years' is selected, show all terms and default to 'All Terms'
         } else {
             setTermOptions(['All Terms']);
             setSelectedTerm('All Terms');
         }
-    }, [selectedYear, termsByYear, selectedTerm]);
+    }, [selectedYear, termsByYear]); //, selectedTerm]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -195,6 +204,7 @@ const HomeScreen: React.FC = () => {
                                         <Select
                                             selectedValue={selectedTerm}
                                             onValueChange={setSelectedTerm}
+                                            
                                         >
                                             <SelectTrigger variant="outline" size="md" className="rounded justify-between">
                                                 <SelectInput
