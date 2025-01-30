@@ -43,6 +43,7 @@ import {
     AccordionContent,
     AccordionIcon,
 } from "@/components/ui/accordion";
+import { getSystemAvailableFeatures } from 'react-native-device-info';
 
 interface EditHoursFormData {
     hours: string;
@@ -222,12 +223,25 @@ const AttendanceManagementScreen: React.FC = () => {
     });
 
     const handleExport = async () => {
-        let csvContent = 'First Name,Last Name,Meeting,Date,Term,Year,Hours\n';
+        // let csvContent = 'First Name,Last Name,Meeting,Date,Term,Year,Hours\n';
+        // filteredUsers.forEach(({ user, attendanceLogs }) => {
+        //     attendanceLogs.forEach(log => {
+        //         const date = log.meetingDate ? log.meetingDate.toLocaleDateString() : 'No Date';
+        //         csvContent += `${user.first_name},${user.last_name},${log.meetingTitle},${date},${log.term},${log.year},${log.hours}\n`;
+        //     });
+        // });
+        // let csvContent = 'First Name,Last Name,Total Hours\n';
+
+        // filteredUsers.forEach(({ user, attendanceLogs }) => {
+        //     const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
+        //     csvContent += `${user.first_name},${user.last_name},${totalHours}\n`;
+        // });
+        let csvContent = 'Student ID,First Name,Last Name,Total Hours\n';
+
         filteredUsers.forEach(({ user, attendanceLogs }) => {
-            attendanceLogs.forEach(log => {
-                const date = log.meetingDate ? log.meetingDate.toLocaleDateString() : 'No Date';
-                csvContent += `${user.first_name},${user.last_name},${log.meetingTitle},${date},${log.term},${log.year},${log.hours}\n`;
-            });
+            const studentId = user.student_id ? user.student_id : 'N/A'; // Fallback for missing IDs
+            const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
+            csvContent += `${studentId},${user.first_name},${user.last_name},${totalHours}\n`;
         });
 
         const filename = `attendance_data_${selectedYear}_${selectedTerm}.csv`;
