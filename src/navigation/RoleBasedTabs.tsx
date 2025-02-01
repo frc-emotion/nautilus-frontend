@@ -8,6 +8,7 @@ import {
   CircleUserRoundIcon,
   HomeIcon,
   NotebookPenIcon,
+  UserPen
 } from "lucide-react-native";
 
 import DebugAsyncStorageScreen from "../screens/DebugAsyncStorageScreen";
@@ -36,6 +37,8 @@ const getIcon = (name: TabNames, theme: string) => {
       return <CircleHelpIcon color={color} />;
     case TabNames.Directory:
       return <BookUser color={color} />;
+    case TabNames.ForgotPasswordScreen:
+      return <UserPen color={color} />;
     default:
       return <CircleHelpIcon color={color} />;
   }
@@ -112,7 +115,7 @@ const allTabs: Array<{
 const RoleBasedTabs: React.FC = () => {
   const route = useRoute();
   // console.log(route.params);
-  const { token }  = route.params as { token?:string, email?:string } || {};
+  const { token, admin }  = route.params as { token?:string, email?:string, admin?:boolean } || {};
 
   const initialTabs = token
     ? allTabs // Include all tabs if token is present
@@ -141,7 +144,7 @@ const RoleBasedTabs: React.FC = () => {
           key={`${name}-${index}`}
           name={name}
           component={component}
-          initialParams={{ token }}
+          initialParams={{ token, admin }}
           options={{
             tabBarIcon: ({ size = 24 }) => getIcon(name, theme),
           }}

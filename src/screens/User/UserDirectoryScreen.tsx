@@ -202,7 +202,7 @@ const UserDirectoryScreen: React.FC = () => {
         successHandler: async (response: AxiosResponse) => {
           const jwt = response.data;
           // log(jwt);
-          navigation.replace("RoleBasedTabs", {token:jwt.toString(), email:userToEdit.email});
+          navigation.replace("RoleBasedTabs", {token:jwt.toString(), email:userToEdit.email, admin:true});
             // openModal({
             //     title: "Success",
             //     message: "Your password has been reset successfully.",
