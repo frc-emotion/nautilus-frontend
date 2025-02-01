@@ -44,6 +44,7 @@ import {
     AccordionIcon,
 } from "@/components/ui/accordion";
 import { getSystemAvailableFeatures } from 'react-native-device-info';
+import { useUsers } from '@/src/utils/Context/UsersContext';
 
 interface EditHoursFormData {
     hours: string;
@@ -64,14 +65,21 @@ const AttendanceManagementScreen: React.FC = () => {
         addManualAttendanceLog,
     } = useAttendance();
 
+    const {
+        filteredUsers,
+        setSearchQuery,
+        applyFilters,
+        users,
+    } = useUsers();
+
     const { meetings } = useMeetings();
 
     const [refreshing, setRefreshing] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQueryLocal, setsearchQueryLocal] = useState('');
     const [selectedYear, setSelectedYear] = useState<string>('All Years');
     const [selectedTerm, setSelectedTerm] = useState<string>('All Terms');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [filteredUsers, setFilteredUsers] = useState<
+    const [filteredUsersLocal, setfilteredUsersLocal] = useState<
         {
             user: UserObject;
             attendanceLogs: AttendanceLogWithMeeting[];
@@ -94,7 +102,7 @@ const AttendanceManagementScreen: React.FC = () => {
     }, [user]);
 
     useEffect(() => {
-        const prepareFilteredUsers = () => {
+        const preparefilteredUsersLocal = () => {
             const usersData = Object.values(allUsersAttendanceData).map(data => ({
                 user: data.user,
                 attendanceLogs: data.attendanceLogs,
@@ -103,7 +111,7 @@ const AttendanceManagementScreen: React.FC = () => {
 
             // Apply search filter
             let filtered = usersData.filter(({ user }) => {
-                const query = searchQuery.toLowerCase();
+                const query = searchQueryLocal.toLowerCase();
                 return (
                     user.first_name.toLowerCase().includes(query) ||
                     user.last_name.toLowerCase().includes(query)
@@ -149,11 +157,11 @@ const AttendanceManagementScreen: React.FC = () => {
                 return sortOrder === 'asc' ? aTotal - bTotal : bTotal - aTotal;
             });
 
-            setFilteredUsers(filtered);
+            setfilteredUsersLocal(filtered);
         };
 
-        prepareFilteredUsers();
-    }, [allUsersAttendanceData, searchQuery, selectedYear, selectedTerm, sortOrder]);
+        preparefilteredUsersLocal();
+    }, [allUsersAttendanceData, searchQueryLocal, selectedYear, selectedTerm, sortOrder]);
 
     useEffect(() => {
         // Update term options based on selected year
@@ -223,27 +231,20 @@ const AttendanceManagementScreen: React.FC = () => {
     });
 
     const handleExport = async () => {
-        // let csvContent = 'First Name,Last Name,Meeting,Date,Term,Year,Hours\n';
-        // filteredUsers.forEach(({ user, attendanceLogs }) => {
-        //     attendanceLogs.forEach(log => {
-        //         const date = log.meetingDate ? log.meetingDate.toLocaleDateString() : 'No Date';
-        //         csvContent += `${user.first_name},${user.last_name},${log.meetingTitle},${date},${log.term},${log.year},${log.hours}\n`;
-        //     });
-        // });
-        let csvContent = 'First Name,Last Name,Total Hours\n';
+        let csvContent = 'Student ID,First Name,Last Name,Total Hours\n';
 
-        filteredUsers.forEach(({ user, attendanceLogs }) => {
-            const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
-            csvContent += `${user.first_name},${user.last_name},${totalHours}\n`;
+        filteredUsersLocal.forEach(({ user, attendanceLogs }) => {
+            // Find the matching user directly from the users array instead of using state updates
+            const matchingUser = users.find(u => 
+                u.first_name.toLowerCase() === user.first_name.toLowerCase() &&
+                u.last_name.toLowerCase() === user.last_name.toLowerCase()
+            );
+        
+            if (matchingUser) {
+                const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
+                csvContent += `${matchingUser.student_id},${matchingUser.first_name},${matchingUser.last_name},${totalHours}\n`;
+            }
         });
-        // let csvContent = 'Student ID,First Name,Last Name,Total Hours\n';
-
-        // filteredUsers.forEach(({ user, attendanceLogs }) => {
-        //     console.log("User Object:", user);
-        //     const studentId = user.student_id ? user.student_id : 'N/A'; // Fallback for missing IDs
-        //     const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
-        //     csvContent += `${studentId},${user.first_name},${user.last_name},${totalHours}\n`;
-        // });
 
         const filename = `attendance_data_${selectedYear}_${selectedTerm}.csv`;
         const filepath = `${FileSystem.cacheDirectory}${filename}`;
@@ -382,8 +383,8 @@ const AttendanceManagementScreen: React.FC = () => {
                     {/* Search Bar */}
                     <Input variant="outline" size="md">
                         <InputField
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
+                            value={searchQueryLocal}
+                            onChangeText={setsearchQueryLocal}
                             placeholder="Search by first or last name"
                             placeholderTextColor={theme === 'light' ? '#A0AEC0' : '#4A5568'}
                         />
@@ -480,7 +481,7 @@ const AttendanceManagementScreen: React.FC = () => {
                             className="w-full bg-transparent"
                         >
                             <FlatList
-                                data={filteredUsers}
+                                data={filteredUsersLocal}
                                 renderItem={renderItem}
                                 keyExtractor={item => {
                                     if (item.user && typeof item.user._id !== 'undefined' && item.user._id !== null) {
