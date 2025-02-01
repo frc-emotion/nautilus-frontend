@@ -16,6 +16,9 @@ import AttendanceStackNavigator from "./AttendanceStackNavigator";
 import DirectoryStackNavigator from "./DirectoryStackNavigator";
 import { roleHierarchy, Roles, TabNames } from "../Constants";
 import ProfileStackNavigator from "./ProfileStackNavigator";
+import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
+import { useRoute } from "@react-navigation/native";
+
 
 const Tab = createBottomTabNavigator();
 
@@ -91,10 +94,30 @@ const allTabs: Array<{
       Roles.Admin,
     ],
   },
+  {
+    name: TabNames.ForgotPasswordScreen,
+    component: ForgotPasswordScreen,
+    roles: [
+      Roles.Unverified,
+      Roles.Member,
+      Roles.Leadership,
+      Roles.Executive,
+      Roles.Advisor,
+      Roles.Admin,
+    ],
+  },
 ];
 
 // Role-Based Tab Navigator Component
 const RoleBasedTabs: React.FC = () => {
+  const route = useRoute();
+  // console.log(route.params);
+  const { token }  = route.params as { token?:string, email?:string } || {};
+
+  const initialTabs = token
+    ? allTabs // Include all tabs if token is present
+    : allTabs.filter(tab => tab.name !== TabNames.ForgotPasswordScreen);
+
   const { user } = useAuth();
   const role = (user?.role as Roles) || Roles.Unverified;
   const { theme } = useTheme();
@@ -103,7 +126,7 @@ const RoleBasedTabs: React.FC = () => {
   const allowedRoles = roleHierarchy[role] || [Roles.Unverified];
 
   // Filter tabs where any of the allowedRoles are included
-  const filteredTabs = allTabs.filter(tab =>
+  const filteredTabs = initialTabs.filter(tab =>
     tab.roles.some(tabRole => allowedRoles.includes(tabRole))
   );
 
@@ -118,6 +141,7 @@ const RoleBasedTabs: React.FC = () => {
           key={`${name}-${index}`}
           name={name}
           component={component}
+          initialParams={{ token }}
           options={{
             tabBarIcon: ({ size = 24 }) => getIcon(name, theme),
           }}

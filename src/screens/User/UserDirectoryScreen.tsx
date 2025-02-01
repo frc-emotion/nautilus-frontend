@@ -20,7 +20,7 @@ import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '../../utils/Context/AuthContext';
-import { GRADES, ROLES, UserObject } from '../../Constants';
+import { GRADES, QueuedRequest, ROLES, UserObject } from '../../Constants';
 import { useGlobalToast } from '../../utils/UI/CustomToastProvider';
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, EllipsisVertical } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
@@ -50,6 +50,10 @@ import { useUsers } from '@/src/utils/Context/UsersContext';
 import { Input, InputField } from '@/components/ui/input';
 import { useForm, Controller, FieldErrors } from 'react-hook-form';
 import { HStack } from '@/components/ui/hstack';
+import { useNavigation } from '@react-navigation/native'; 
+import { StackNavigationProp } from '@react-navigation/stack';
+import { AxiosError, AxiosResponse } from 'axios';
+import { useNetworking } from '@/src/utils/Context/NetworkingContext';
 
 const SUBTEAMS = ["build", "software", "marketing", "electrical", "design"];
 
@@ -71,9 +75,11 @@ interface SortConfig {
 }
 
 const UserDirectoryScreen: React.FC = () => {
+  const { handleRequest } = useNetworking();
   const { user } = useAuth();
   const { openToast } = useGlobalToast();
   const { theme } = useTheme();
+  const navigation = useNavigation<StackNavigationProp<any>>();
   const {
     users,
     isLoading,
@@ -173,6 +179,76 @@ const UserDirectoryScreen: React.FC = () => {
     });
     setShowEditDialog(true);
   };
+
+  const handleChangePassword = async (userToEdit: UserObject) => {
+    log('handleChangePassword called', userToEdit._id);
+    // navigation.navigate('ForgotPasswordScreen', { token: 'hi' });
+    // log(userToEdit.token);
+    const payload = userToEdit;
+    //                {
+    //             // "user" : {
+    //             //   "_id":userToEdit._id,
+    //             //   "role":userToEdit.role,
+    //             // },
+    //         };
+    
+    console.log("Payload for API:", payload);
+    
+    const request: QueuedRequest = {
+        url: "/api/auth/jwt",
+        method: "post",
+        data: payload,
+        retryCount: 0,
+        successHandler: async (response: AxiosResponse) => {
+          const jwt = response.data;
+          // log(jwt);
+          navigation.replace("RoleBasedTabs", {token:jwt.toString(), email:userToEdit.email});
+            // openModal({
+            //     title: "Success",
+            //     message: "Your password has been reset successfully.",
+            //     type: "success",
+            // });
+
+            // navigation.replace("NotLoggedInTabs", {});
+        },
+        errorHandler: async (error: AxiosError) => {
+            console.error("Token creation failed:", error);
+
+            // handleErrorWithModalOrToast({
+            //     actionName: "Update password",
+            //     error,
+            //     showModal: true,
+            //     showToast: true,
+            //     openModal,
+            //     openToast,
+            // });
+        },
+        offlineHandler: async () => {
+            openToast({
+                title: "Offline",
+                description: "Password request saved. It will be processed when you're back online.",
+                type: "info",
+            });
+
+            // openModal({
+            //     title: "Offline",
+            //     message: "Reset request saved. It will be processed when you're back online.",
+            //     type: "info",
+            // });
+        }
+    };
+
+    try {
+        await handleRequest(request);
+    } catch (error: any) {
+        console.error("Error during change:", error);
+        openToast({
+            title: "Error",
+            description: "An error occurred while attempting to change the password. Please report this.",
+            type: "error",
+        });
+    }
+  }
 
   const handleDeleteUser = (userId: number) => {
     log('handleDeleteUser called', userId);
@@ -499,6 +575,14 @@ const UserDirectoryScreen: React.FC = () => {
                           }}
                         >
                           <MenuItemLabel>Edit</MenuItemLabel>
+                        </MenuItem>
+                        <MenuItem
+                          onPress={() => {
+                            log('Change password pressed', userItem._id);
+                            handleChangePassword(userItem);
+                          }}
+                        >
+                          <MenuItemLabel>Password</MenuItemLabel>
                         </MenuItem>
                         <MenuItem
                           onPress={() => {

@@ -230,19 +230,20 @@ const AttendanceManagementScreen: React.FC = () => {
         //         csvContent += `${user.first_name},${user.last_name},${log.meetingTitle},${date},${log.term},${log.year},${log.hours}\n`;
         //     });
         // });
-        // let csvContent = 'First Name,Last Name,Total Hours\n';
-
-        // filteredUsers.forEach(({ user, attendanceLogs }) => {
-        //     const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
-        //     csvContent += `${user.first_name},${user.last_name},${totalHours}\n`;
-        // });
-        let csvContent = 'Student ID,First Name,Last Name,Total Hours\n';
+        let csvContent = 'First Name,Last Name,Total Hours\n';
 
         filteredUsers.forEach(({ user, attendanceLogs }) => {
-            const studentId = user.student_id ? user.student_id : 'N/A'; // Fallback for missing IDs
             const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
-            csvContent += `${studentId},${user.first_name},${user.last_name},${totalHours}\n`;
+            csvContent += `${user.first_name},${user.last_name},${totalHours}\n`;
         });
+        // let csvContent = 'Student ID,First Name,Last Name,Total Hours\n';
+
+        // filteredUsers.forEach(({ user, attendanceLogs }) => {
+        //     console.log("User Object:", user);
+        //     const studentId = user.student_id ? user.student_id : 'N/A'; // Fallback for missing IDs
+        //     const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
+        //     csvContent += `${studentId},${user.first_name},${user.last_name},${totalHours}\n`;
+        // });
 
         const filename = `attendance_data_${selectedYear}_${selectedTerm}.csv`;
         const filepath = `${FileSystem.cacheDirectory}${filename}`;
