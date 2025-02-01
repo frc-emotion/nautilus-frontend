@@ -324,13 +324,16 @@ const BroadcastAttendancePortal: React.FC = () => {
           {/* Start/Stop Broadcasting Button */}
           <Button
             onPress={toggleBroadcasting}
-            className="mt-4 rounded-lg justify-center"
+            // className="mt-4 rounded-lg justify-center"
+            className={`mt-4 rounded-lg justify-center ${loading || meetings.length === 0 || bluetoothState !== 'poweredOn' || locationStatus !== 'enabled' || !selectedMeeting ? 'bg-gray-500' : 'bg-blue-500'}`}
             size="lg"
             disabled={
               loading ||
               meetings.length === 0 ||
               bluetoothState !== 'poweredOn' ||
-              !selectedMeeting
+              !selectedMeeting ||
+              locationStatus !== 'enabled'
+
             }
             action={isBroadcasting ? 'secondary' : 'primary'}
           >
