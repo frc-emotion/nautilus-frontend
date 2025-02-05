@@ -18,7 +18,7 @@ import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 const ForgotPasswordScreen: React.FC = () => {
     const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
     const route = useRoute()
-    const { token } = route.params as { token: string; email: string };
+    const { token, admin } = route.params as { token: string; email: string; admin: boolean };
     const { openToast } = useGlobalToast();
     const { openModal } = useGlobalModal();
     const { handleRequest } = useNetworking();
@@ -64,7 +64,15 @@ const ForgotPasswordScreen: React.FC = () => {
                     type: "success",
                 });
 
-                navigation.replace("NotLoggedInTabs", {});
+                console.log(admin);
+
+                if (admin){
+                    navigation.replace("RoleBasedTabs");
+                }
+                else{
+                    navigation.replace("NotLoggedInTabs",{});
+                }
+
             },
             errorHandler: async (error: AxiosError) => {
                 console.error("Token validation failed:", error);
@@ -118,6 +126,10 @@ const ForgotPasswordScreen: React.FC = () => {
             });
         }
     };
+
+    const handleBack = () => {
+        navigation.replace("RoleBasedTabs");
+    }
 
     return (
         <KeyboardAvoidingView
@@ -224,6 +236,21 @@ const ForgotPasswordScreen: React.FC = () => {
                                 </ButtonText>
                             )}
                         </Button>
+                        {admin && (
+                        <Button
+                            onPress={handleBack}
+                            size="lg"
+                            className="mt-4 py-2 rounded-md"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <ActivityIndicator size="small" />
+                            ) : (
+                                <ButtonText className="font-semibold">
+                                    Back
+                                </ButtonText>
+                            )}
+                        </Button>)}
                     </VStack>
                 </ScrollView>
             </TouchableWithoutFeedback>

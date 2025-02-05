@@ -359,8 +359,9 @@ const LogAttendance: React.FC = () => {
 
         <Button
           onPress={toggleListening}
-          className="px-6 rounded-lg"
-          disabled={loading}
+          
+          className={`px-6 rounded-lg ${bluetoothState === 'unauthorized' || locationStatus !== 'enabled' ? 'bg-gray-500' : 'bg-blue-500'}`}
+          disabled={loading || locationStatus !== 'enabled' || bluetoothState === 'unauthorized'}
         >
           {loading ? (
             <Spinner />
