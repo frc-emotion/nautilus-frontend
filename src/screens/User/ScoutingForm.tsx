@@ -134,8 +134,7 @@ const ScoutingForm: React.FC = () => {
                 {/* Start General */}
 
                 <Text size="xl" className="self-center color-black"> General </Text>
-                <HStack space="2xl" className="w-full justify-center">
-                <VStack className="w-4/9">
+                <VStack className="w-1/1">
                 <Text className="mb-1">Competition</Text>
                 <Select className="">
                     <SelectTrigger variant="outline" size="md" >
@@ -154,6 +153,7 @@ const ScoutingForm: React.FC = () => {
                     </SelectPortal>
                 </Select>
                 </VStack>
+                <HStack space="2xl" className="w-full justify-center">
 
                 <VStack className="w-1/4">
                 <Text className="mb-1"> Team # </Text>
