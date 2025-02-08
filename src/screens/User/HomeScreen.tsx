@@ -66,6 +66,10 @@ const HomeScreen: React.FC = () => {
     }, [userAttendanceHours, schoolYears, schoolTerms]);
 
     useEffect(() => {
+        handleRefresh();
+    }, [user]);
+
+    useEffect(() => {
         // Update term options based on selected year
 
         // If the current year is selected, default to the current term
@@ -237,7 +241,7 @@ const HomeScreen: React.FC = () => {
                                         {selectedYear === 'All Years' ? 'All Years' : selectedYear} {selectedTerm !== 'All Terms' ? `Term ${selectedTerm}` : ''}
                                     </Text>
                                     <Text className="text-center mb-2">
-                                        You have completed {totalHours} out of 36 hours of attendance for this period.
+                                        You have completed {Math.round(totalHours)} out of 36 hours of attendance for this period.
                                     </Text>
                                     <HStack className="items-center justify-center">
                                         <Progress value={(totalHours / 36) * 100} className="w-80 h-2">
