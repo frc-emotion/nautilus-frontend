@@ -73,7 +73,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const fetchAttendancePolicy = async () => {
       console.log(`Fetching attendance policy.`);
       const request: QueuedRequest = {
-          url: '/api/attendance/policy',
+          url: '/attendance-policy',
           method: 'get',
           retryCount: 0,
           successHandler: async (response: AxiosResponse) => {
