@@ -33,6 +33,9 @@ import { GRADES, QueuedRequest, SUBTEAMS } from "../../Constants";
 import { useTheme } from "../../utils/UI/CustomThemeProvider";
 import { cleanPhoneNumber, formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Helpers";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
+import { Alert } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
+import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { openToast } = useGlobalToast();
@@ -41,7 +44,10 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [hidePassword, setHidePassword] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { theme } = useTheme();
-
+  const [ showAttendancePolicy, setShowAttendancePolicy] = useState(false);
+  const [acceptedPolicy, setAcceptedPolicy] = useState(false);
+  const [attendancePolicy, setAttendancePolicy] = useState<string>('');
+  
   const {
     control,
     handleSubmit,
@@ -64,7 +70,52 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const password = watch("password");
 
+  const fetchAttendancePolicy = async () => {
+      console.log(`Fetching attendance policy.`);
+      const request: QueuedRequest = {
+          url: '/api/attendance/policy',
+          method: 'get',
+          retryCount: 0,
+          successHandler: async (response: AxiosResponse) => {
+              const data = response.data;
+              console.log(`Received attendance policy:`, data);
+              setAttendancePolicy(data);
+          },
+          errorHandler: async (error: AxiosError) => {
+              console.error(`Error fetching attendance policy`, error);
+              handleErrorWithModalOrToast({
+                  actionName: 'Fetch Attendance Policy',
+                  error,
+                  showModal: false,
+                  showToast: true,
+                  openModal,
+                  openToast,
+              });
+          },
+          offlineHandler: async () => {
+              console.warn(`Offline while fetching attendance policy.`);
+              openToast({
+                  title: 'Offline',
+                  description: 'Cannot fetch attendance policy while offline.',
+                  type: 'warning',
+              });
+          },
+      };
+
+      try {
+          await handleRequest(request);
+      } catch (error) {
+        console.log("Error",error)
+      }
+  };
+
+
   const handleRegister = async (data: any) => {
+    if (!acceptedPolicy){
+      await fetchAttendancePolicy();
+      setShowAttendancePolicy(true);
+      return
+    }
     console.log("Register form submitted with data:", data);
     setIsSubmitting(true);
 
@@ -179,6 +230,42 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 paddingVertical: Platform.OS === "ios" ? 24 : 16,
               }}
             >
+              {showAttendancePolicy && (
+        <AlertDialog
+          isOpen={showAttendancePolicy}
+          // onClose={() => {
+          //   setShowAttendancePolicy(false);
+          // }}
+        >
+          <AlertDialogBackdrop />
+          <AlertDialogContent>
+            <AlertDialogHeader className="pb-4">
+              <Text className="text-lg font-semibold">Attendance Policy Agreement</Text>
+            </AlertDialogHeader>
+            <AlertDialogBody>
+            <VStack>
+            <Text className="font-large"> {attendancePolicy} </Text>
+            </VStack>
+            </AlertDialogBody>
+            <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+              <Button
+                variant="outline"
+                onPress={() => {
+                  setShowAttendancePolicy(false);
+                }}
+              >
+                <ButtonText>Cancel</ButtonText>
+              </Button>
+              <Button
+                onPress={() => {setShowAttendancePolicy(false);
+                              setAcceptedPolicy(true);}}
+              >
+                  <ButtonText>Accept</ButtonText>
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
               {/* First and Last Name */}
               <HStack space="sm">
                 <VStack space="xs" className="flex-1">
