@@ -156,6 +156,11 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
                 const data = response.data.data;
+                if (!data) {
+                    console.log(`${DEBUG_PREFIX} No attendance logs found for user.`);
+                    setUserAttendanceHours({});
+                    return;
+                }
                 const attendanceLogs = data.attendance?.logs;
                 if (attendanceLogs) {
                     const hoursData = computeAttendanceHours(attendanceLogs);
