@@ -150,6 +150,8 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           type: "success",
         });
 
+        setAcceptedPolicy(false);
+
         reset();
       },
       errorHandler: async (error: AxiosError) => {
