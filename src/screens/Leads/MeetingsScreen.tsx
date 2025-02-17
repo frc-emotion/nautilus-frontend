@@ -32,7 +32,7 @@ import { Card } from "@/components/ui/card";
 import { View } from "@/components/ui/view";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
-import { MeetingObject, FormData, QueuedRequest, UserObject } from "@/src/Constants";
+import { MeetingObject, FormData, QueuedRequest, UserObject, AttendanceLog } from "@/src/Constants";
 import { Spinner } from "@/components/ui/spinner";
 import { useUsers } from "@/src/utils/Context/UsersContext";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
@@ -49,7 +49,7 @@ const MeetingsScreen: React.FC = () => {
   const { users } = useUsers();
   const { meetings, isLoadingMeetings, fetchMeetings, init } = useMeetings();
   const { handleRequest } = useNetworking();
-  const { currentYear, currentTerm } = useAttendance();
+  const { currentYear, currentTerm, addManualAttendanceLog } = useAttendance();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -61,6 +61,10 @@ const MeetingsScreen: React.FC = () => {
   const [viewingUsers, setViewingUsers] = useState<UserObject[]>([]);
   const [showViewUsersDialog, setShowViewUsersDialog] = useState<boolean>(false);
   const [attendeesSearchQuery, setAttendeesSearchQuery] = useState("");
+
+  const [viewAddUsers, setViewAddUsers] = useState<boolean>(false);
+
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingObject>();
 
   const {
     control,
@@ -78,6 +82,20 @@ const MeetingsScreen: React.FC = () => {
       time_start: new Date(),
       time_end: new Date(),
       hours: 1.0,
+    },
+  });
+
+  const {
+    control: controlForm2,
+    handleSubmit: handleSubmitForm2,
+    reset: resetForm2,
+    setValue: setValueForm2,
+    watch: watchForm2,
+    getValues: getValuesForm2,
+    formState: { errors: errorsForm2 },
+  } = useForm({
+    defaultValues: {
+      user_id:1234567,
     },
   });
 
@@ -185,6 +203,120 @@ const MeetingsScreen: React.FC = () => {
     setShowEditDialog(true);
   };
 
+  const handleSubmitAddUsers = async(data) => {
+    let id = data.user_id
+    let meeting = selectedMeeting
+    console.log("Yurr",meeting?.members_logged);
+    const isStudentInList = users.some(user => user.student_id === id);
+    console.log(meeting?.members_logged)
+    const isStudentInMeeting = meeting?.members_logged.some(student_id => student_id===parseInt(id));
+    console.log(isStudentInMeeting, "variable");
+    if (!isStudentInList){
+      openToast({
+        title: "Add User Failed",
+        description: "User doesn't exist!",
+        type: "error",
+      });
+    
+    
+      return;
+    };
+
+    if (isStudentInMeeting){
+      openToast({
+        title: "Add User Failed",
+        description: "User already logged!",
+        type:"error",
+      });
+
+      return;
+    };
+
+    const attendanceLogManual: AttendanceLog = {
+                    meeting_id: -1,
+                    lead_id: user?._id || 1,
+                    time_received: Math.floor(Date.now() / 1000),
+                    flag: false,
+                    hours: meeting?.hours || 1,
+                    term: currentTerm,
+                    year: currentYear,
+                };
+    const attendanceLog: AttendanceLog = {
+                  meeting_id: meeting?._id || -1,
+                  lead_id: user?._id || 1,
+                  time_received: Math.floor(Date.now() / 1000),
+                  flag: false,
+                  hours: meeting?.hours || 1,
+                  term: currentTerm,
+                  year: currentYear,
+              };
+    const payload = {
+      user_id: id,
+      attendance_log: attendanceLog,
+    };
+
+    const request: QueuedRequest = {
+      url: '/api/meetings/add_user',
+      method: "post",
+      data: {
+        user_id: id,
+        attendanceLog,
+    },
+      retryCount: 0,
+      successHandler: async (response: AxiosResponse) => {
+        log("saveEditChanges successHandler", response.data);
+        openToast({
+          title: "Success",
+          description: "User added successfully!",
+          type: "success",
+        });
+        setViewAddUsers(false);
+        await addManualAttendanceLog(id, attendanceLogManual);
+        fetchMeetings();
+      },
+      errorHandler: async (error: AxiosError) => {
+        log("addUser errorHandler", error);
+
+        if (error.response?.status === 404) {
+          openToast({
+            title: "No change",
+            description: "You did not submit any new information!",
+            type: "warning",
+          });
+          setShowEditDialog(false);
+          reset();
+          return;
+        }
+
+        handleErrorWithModalOrToast({
+          actionName: "Add Users",
+          error,
+          showModal: false,
+          showToast: true,
+          openModal,
+          openToast,
+        });
+      },
+      offlineHandler: async () => {
+        log("addUsers offlineHandler");
+        openToast({
+          title: "Offline",
+          description: "You are offline!",
+          type: "error",
+        });
+      },
+    };
+
+    try {
+      await handleRequest(request);
+      log("addUsers request sent");
+    } catch (error) {
+      log("addUsers exception", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const saveEditChanges = async (data: FormData) => {
     log("saveEditChanges called", data);
     if (!editMeeting) {
@@ -267,6 +399,13 @@ const MeetingsScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleAddUsers = (meeting: MeetingObject) => {
+    log("handleAddUser called");
+    setViewAddUsers(true);
+    // handleSubmitAddUsers(addID,meeting);
+
   };
 
   const handleViewMeeting = (meeting: MeetingObject) => {
@@ -448,6 +587,16 @@ const MeetingsScreen: React.FC = () => {
                             >
                               <MenuItemLabel>Edit</MenuItemLabel>
                             </MenuItem>
+                            {user.role === "admin" && (
+                            <MenuItem
+                              onPress={() => {
+                                log("meeting", meeting);
+                                setSelectedMeeting(meeting);
+                                handleAddUsers(meeting);
+                              }}
+                            >
+                              <MenuItemLabel>Add User</MenuItemLabel>
+                            </MenuItem>)}
                             <MenuItem
                               onPress={() => {
                                 log("Delete meeting pressed", meeting._id);
@@ -789,6 +938,59 @@ const MeetingsScreen: React.FC = () => {
       <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
         <Button onPress={() => setShowViewUsersDialog(false)}>
           <ButtonText>Close</ButtonText>
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+)}
+
+{viewAddUsers && (
+  <AlertDialog
+    isOpen={viewAddUsers}
+    onClose={() => setViewAddUsers(false)}
+  >
+    <AlertDialogBackdrop />
+    <AlertDialogContent>
+      <AlertDialogHeader className="pb-4">
+        <Text className="text-lg font-semibold">Add User</Text>
+      </AlertDialogHeader>
+      <AlertDialogBody>
+        {/* Search bar for filtering attendees */}
+        <Text className="font-medium">Hours</Text>
+                  <Controller
+                    control={controlForm2}
+                    name="user_id"
+                    rules={{
+                      required: "User ID is required",
+                      pattern: {
+                        value: /^\d{7}$/,
+                        message: "Please enter a valid 7-digit id",
+                      },
+                    }}
+                    render={({ field: { onChange, value } }) => (
+                      <Input variant="outline" size="md">
+                        <InputField
+                          value={value.toString()}
+                          onChangeText={onChange}
+                          placeholder="Student ID"
+                          keyboardType="numeric"
+                          placeholderTextColor={
+                            theme === "light" ? "#A0AEC0" : "#4A5568"
+                          }
+                        />
+                      </Input>
+                    )}
+                  />
+                  {errorsForm2.user_id && (
+                    <Text className="text-red-500">{errorsForm2.user_id.message}</Text>
+                  )}
+      </AlertDialogBody>
+      <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+        <Button onPress={() => setViewAddUsers(false)}>
+          <ButtonText>Close</ButtonText>
+        </Button>
+        <Button onPress={handleSubmitForm2(handleSubmitAddUsers)}>
+          <ButtonText>Add</ButtonText>
         </Button>
       </AlertDialogFooter>
     </AlertDialogContent>
