@@ -20,23 +20,14 @@ export const checkAndRequestPermissions = async (): Promise<boolean> => {
     // Android 12 (API 31) and above
     if (Platform.Version >= 31) {
       // These permissions exist only on Android 12+
-      if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN) {
-        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
-      }
       if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT) {
         permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
       }
       if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE) {
         permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE);
       }
-
       // Location permissions are still needed
-      if (PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION) {
-        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-      }
-      if (PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION) {
-        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
-      }
+      
     } else {
       // Below Android 12
       // Request traditional BLE/Location perms
@@ -46,12 +37,23 @@ export const checkAndRequestPermissions = async (): Promise<boolean> => {
       if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN) {
         permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN);
       }
-      if (PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION) {
-        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-      }
-      if (PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION) {
-        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
-      }
+    }
+
+    if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN) {
+      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
+    }
+
+    if (PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION) {
+      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    }
+    if (PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION) {
+      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
+    }
+    if (PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION) {
+      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION);
+    }
+    if (PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE) {
+      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE);
     }
     
     // If no permissions to request, just return true
@@ -141,6 +143,7 @@ const BLEHelper: BLEHelperType = {
       }
 
       const hasPermissions = await checkAndRequestPermissions();
+      
       if (!hasPermissions) {
         throw new Error('Bluetooth permissions not granted.');
       }

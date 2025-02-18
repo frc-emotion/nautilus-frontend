@@ -18,6 +18,7 @@ import { formatPhoneNumber, handleErrorWithModalOrToast } from "@/src/utils/Help
 import { useGlobalModal } from "@/src/utils/UI/CustomModalProvider";
 import { CLEAN_API_URL, useNetworking } from "@/src/utils/Context/NetworkingContext";
 import * as Application from 'expo-application';
+import { captureException } from '@sentry/react-native';
 
 const icon = require("@/src/assets/icon.png");
 
@@ -124,6 +125,26 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
+  const forceCrash = async () => {
+    openToast({
+      title: "Crash Triggered",
+      description: "Uploading logs...",
+      type: "info",
+    });
+    try {
+      throw new Error("User uploading logs.");
+      
+    } catch (error) {
+      captureException(error);
+    }
+
+    openToast({
+      title: "Crash Triggered",
+      description: "Logs uploaded.",
+      type: "success",
+    });
+  }
+
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -214,6 +235,14 @@ const ProfileScreen: React.FC = () => {
           className="mt-4 py-2 rounded-md bg-red-600"
         >
           <ButtonText className="font-semibold">Logout</ButtonText>
+        </Button>
+
+        <Button
+          onPress={forceCrash}
+          size="lg"
+          className="mt-4 py-2 rounded-md bg-gray-600"
+        >
+          <ButtonText className="font-semibold">Upload Logs</ButtonText>
         </Button>
       </VStack>
     </ScrollView>

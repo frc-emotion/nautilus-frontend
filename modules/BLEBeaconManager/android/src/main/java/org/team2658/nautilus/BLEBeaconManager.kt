@@ -300,7 +300,7 @@ class BLEBeaconManager : Module() {
                     else -> "Unknown error."
                 }
                 Log.e(TAG, "Advertising failed for UUID: $uuid with error: $errorMessage")
-                // Optionally, you can throw an exception or handle the failure as needed
+                
             }
         }
 
@@ -442,7 +442,7 @@ class BLEBeaconManager : Module() {
 
             override fun onScanFailed(errorCode: Int) {
                 Log.e(TAG, "BLE Scan failed with error code $errorCode")
-                // Optionally, emit an event or handle the failure as needed
+                throw Exception("BLE Scan failed with error code $errorCode")
             }
         }
 
