@@ -28,6 +28,7 @@ import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from "@/components/ui/select";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
+import { Box } from "@/components/ui/box";
 
 
 const ScoutingForm: React.FC = () => {
@@ -134,12 +135,12 @@ const ScoutingForm: React.FC = () => {
                 {/* Start General */}
 
                 <Text size="xl" className="self-center color-black"> General </Text>
-                <VStack className="w-1/1">
+                <VStack className="w-1/1 pl-0.8 pr-0.8">
                 <Text className="mb-1">Competition</Text>
                 <Select className="">
                     <SelectTrigger variant="outline" size="md" >
                     <SelectInput placeholder="Select option" />
-                    <SelectIcon className="" as={ChevronDownIcon} />
+                    <SelectIcon className="ml-auto" as={ChevronDownIcon} />
                     </SelectTrigger>
                     <SelectPortal>
                     <SelectBackdrop/>
@@ -153,9 +154,9 @@ const ScoutingForm: React.FC = () => {
                     </SelectPortal>
                 </Select>
                 </VStack>
-                <HStack space="2xl" className="w-full justify-center">
+                <HStack space="2xl" className="w-full justify-center pr-2 pl-2">
 
-                <VStack className="w-1/4">
+                <VStack className="w-1/2">
                 <Text className="mb-1"> Team # </Text>
                 <Controller
                     control={control}
@@ -187,7 +188,7 @@ const ScoutingForm: React.FC = () => {
                 )}
                 </VStack>
 
-                <VStack className="w-1/6">
+                <VStack className="w-1/2">
                 <Text className="mb-1"> Match # </Text>
                 <Controller
                     control={control}
@@ -222,7 +223,7 @@ const ScoutingForm: React.FC = () => {
 
                 {/* Second Row of General*/}
 
-                <HStack space="4xl" className="w-full justify-center">
+                {/* <HStack space="4xl" className="w-full justify-center">
                 <VStack space="lg" className="w-1/4 justify-center">
                         <VStack className="">
                         <Text className="">Score</Text>
@@ -318,19 +319,22 @@ const ScoutingForm: React.FC = () => {
                 </Pressable>
                 </VStack>
                 </VStack>
-                </HStack>
+                </HStack> */}
 
                 {/* End General */}
 
                 {/* Start Auto */}
 
-                <Text size="xl" className="self-center color-black"> Auto </Text>
+                <HStack className="w-full items-center justify-center">
 
-                <HStack space="4xl" className="w-full justify-center">
+
+                <VStack space="4xl" className="flex-1 justify-center">
+
+                <Text size="xl" className="self-center color-black"> Auto </Text>
                 
 
-                <VStack space="lg" className="w-1/4 justify-center">
-                        <VStack className="">
+                <VStack space="lg" className="w-full mr-3 justify-center">
+                        <VStack className="w-full">
                         <Text className="">Coral</Text>
                         <Controller
                             control={control}
@@ -358,7 +362,7 @@ const ScoutingForm: React.FC = () => {
                             )}
                         />
                     
-                        <HStack className="">
+                        <HStack className="w-full">
                             <Pressable
                                 onPress={() => {
                                     handleIncrease("auto.coral");
@@ -367,7 +371,7 @@ const ScoutingForm: React.FC = () => {
                                     }
                                 }
                                 }
-                                className="flex rounded items-center justify-center bg-primary-500"
+                                className="flex rounded items-center flex-1 justify-center bg-primary-500"
                                 style={{ height: 40, width: 45.5 }}
                             >
                                 <Text className="text-typography-0">+</Text>
@@ -379,7 +383,7 @@ const ScoutingForm: React.FC = () => {
                                                 }
 
                                 }}
-                                className="flex rounded items-center justify-center bg-primary-500"
+                                className="flex rounded items-center justify-center flex-1 bg-primary-500"
                                 style={{ height: 40, width: 45.5 }}
                             >
                                 <Text className="text-typography-0">-</Text>
@@ -388,7 +392,7 @@ const ScoutingForm: React.FC = () => {
                     </VStack>
                 </VStack>
 
-                <VStack space="lg" className="w-1/4 justify-center">
+                <VStack space="lg" className="w-full mr-3 justify-center">
                         <VStack className="">
                         <Text className="">Algae</Text>
                         <Controller
@@ -417,17 +421,17 @@ const ScoutingForm: React.FC = () => {
                             )}
                         />
                     
-                        <HStack className="">
+                        <HStack className="w-full">
                             <Pressable
                                 onPress={() => handleIncrease("auto.algae")}
-                                className="flex rounded items-center justify-center bg-primary-500"
+                                className="flex rounded items-center justify-center flex-1 bg-primary-500"
                                 style={{ height: 40, width: 45.5 }}
                             >
                                 <Text className="text-typography-0">+</Text>
                             </Pressable>
                             <Pressable
                                 onPress={() => handleDecrease("auto.algae")}
-                                className="flex rounded items-center justify-center bg-primary-500"
+                                className="flex rounded items-center justify-center flex-1 bg-primary-500"
                                 style={{ height: 40, width: 45.5 }}
                             >
                                 <Text className="text-typography-0">-</Text>
@@ -436,9 +440,172 @@ const ScoutingForm: React.FC = () => {
                     </VStack>
                 </VStack>
 
+                {/* <VStack className="items-center"> */}
                 <VStack>
+                <Text>Human Player</Text>
+                <HStack>
+                <Pressable
+                    onPress={()=>setValue("auto.humanPlayer",true)}
+                    className={`flex rounded items-center justify-center ${!watch("auto.humanPlayer") ? 'bg-gray-500' : 'bg-primary-500'}`}
+                    style={{ height: 40, width: 80 }}
+                >
+                    <Text className="text-typography-0">Feed</Text>
+                </Pressable>
+                <Pressable
+                    onPress={()=>setValue("auto.humanPlayer",false)}
+                    className={`flex rounded items-center justify-center ${watch("auto.humanPlayer") ? 'bg-gray-500' : 'bg-primary-500'}`}
+                    style={{ height: 40, width: 80 }}
+                >
+                    <Text className="text-typography-0">No Feed</Text>
+                </Pressable>
+                </HStack>
+                </VStack>
+                </VStack>
+
+
+
+                <Box
+        style={{
+          borderLeftWidth: 2,
+          borderColor: "gray",
+          height: "100%",
+          marginLeft:4,
+        }}
+      ></Box>
+
+
+
+                <VStack space="4xl" className="flex-1 ml-1 justify-center">
+
+                <Text size="xl" className="self-center color-black"> Teleop </Text>
+                
+
+                <VStack space="lg" className="w-full justify-center">
+                        <VStack className="w-full">
+                        <Text className="">Coral</Text>
+                        <Controller
+                            control={control}
+                            name="teleop.coral"
+                            rules={{
+                                required: "Required",
+                                pattern: {
+                                    value: /^\d+$/,
+                                    message: "The num must be numeric.",
+                                },
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputField
+                                        inputMode="numeric"
+                                        placeholder="0"
+                                        value={String(value || 0)} // Ensure value is a string for InputField
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10) || 0;
+                                            onChange(numericValue); // Update React Hook Form's state
+                                        }}
+                                        autoCorrect={false}
+                                    />
+                                </Input>
+                            )}
+                        />
+                    
+                        <HStack className="w-full">
+                            <Pressable
+                                onPress={() => {
+                                    handleIncrease("teleop.coral");
+                                    if (watch("teleop.coral") >= 1){
+                                    setValue("auto.leave",true);
+                                    }
+                                }
+                                }
+                                className="flex rounded items-center flex-1 justify-center bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">+</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => {handleDecrease("teleop.coral");
+                                                if (watch("auto.coral") >= 0){
+                                                    setValue("auto.leave",false);
+                                                }
+
+                                }}
+                                className="flex rounded items-center justify-center flex-1 bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">-</Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
+                </VStack>
+
+                <VStack space="lg" className="w-full ml-1 justify-center">
+                        <VStack className="">
+                        <Text className="">Algae</Text>
+                        <Controller
+                            control={control}
+                            name="teleop.algae"
+                            rules={{
+                                required: "Required",
+                                pattern: {
+                                    value: /^\d+$/,
+                                    message: "The num must be numeric.",
+                                },
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                                <Input size="md" className="rounded">
+                                    <InputField
+                                        inputMode="numeric"
+                                        placeholder="0"
+                                        value={String(value || 0)} // Ensure value is a string for InputField
+                                        onChangeText={(text) => {
+                                            const numericValue = parseInt(text, 10) || 0;
+                                            onChange(numericValue); // Update React Hook Form's state
+                                        }}
+                                        autoCorrect={false}
+                                    />
+                                </Input>
+                            )}
+                        />
+                    
+                        <HStack className="w-full">
+                            <Pressable
+                                onPress={() => handleIncrease("teleop.algae")}
+                                className="flex rounded items-center justify-center flex-1 bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">+</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => handleDecrease("teleop.algae")}
+                                className="flex rounded items-center justify-center flex-1 bg-primary-500"
+                                style={{ height: 40, width: 45.5 }}
+                            >
+                                <Text className="text-typography-0">-</Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
+                    
+                </VStack>
 
                 <VStack className="items-center">
+                <Text>Human Player</Text>
+                <Pressable
+                    onPress={()=>toggleField("teleop.humanPlayer")}
+                    className="flex rounded items-center justify-center bg-primary-500"
+                    style={{ height: 40, width: 80 }}
+                >
+                    <Text className="text-typography-0">{watch("telop.humanPlayer") ? "Feed" : "No Feed"}</Text>
+                </Pressable>
+                </VStack>
+
+                </VStack>
+
+                </HStack>
+
+                <VStack>
+
+                { /* <VStack className="items-center">
                 <Text>Left</Text>
                 <Pressable
                     onPress={()=>toggleField("auto.leave")}
@@ -459,19 +626,17 @@ const ScoutingForm: React.FC = () => {
                 >
                     <Text className="text-typography-0">{watch("auto.humanPlayer") ? "Feed" : "No Feed"}</Text>
                 </Pressable>
-                </VStack>
+                </VStack> */}
 
-                </VStack>
-
-                </HStack> 
+                </VStack> 
 
                 {/* End Auto */}
 
                 {/* Start Teleop */}
 
-                <Text size="xl" className="self-center color-black"> Teleop </Text>
+                {/* <Text size="xl" className="self-center color-black"> Teleop </Text>
 
-                <HStack space="4xl" className="w-full justify-center">
+                <VStack space="4xl" className="w-full justify-center">
                 
 
                 <VStack space="lg" className="w-1/4 justify-center">
@@ -596,7 +761,7 @@ const ScoutingForm: React.FC = () => {
 
                 </VStack>
 
-                </HStack> 
+                </VStack>  */}
 
                 {/* End Teleop */}
                 
