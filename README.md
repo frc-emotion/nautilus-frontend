@@ -40,3 +40,8 @@ Command for building
 ```sh
 npx eas build --platform android --profile production --local
 ```
+
+Command for getting public key hash for ssl pinning
+```sh
+openssl s_client -connect api.team2658.org:443 -servername api.team2658.org < /dev/null 2>/dev/null | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64
+```

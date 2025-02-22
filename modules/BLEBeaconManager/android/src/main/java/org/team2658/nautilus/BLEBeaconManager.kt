@@ -111,9 +111,9 @@ class BLEBeaconManager : Module() {
             }
         }
 
-        AsyncFunction("startListening") { uuid: String ->
+        AsyncFunction("startListening") { uuid: String, mode: Int ->
             runBlocking {
-                startListening(uuid)
+                startListening(uuid, mode)
             }
         }
 
@@ -393,7 +393,7 @@ class BLEBeaconManager : Module() {
      * @return Confirmation message upon successful initiation of scanning.
      */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private suspend fun startListening(uuid: String): String = withContext(Dispatchers.IO) {
+    private suspend fun startListening(uuid: String, mode: Int): String = withContext(Dispatchers.IO) {
         if (bluetoothAdapter == null) {
             Log.w(TAG, "Bluetooth adapter is null. Cannot start scanning.")
             throw Exception("Bluetooth adapter is null. Cannot start scanning.")
@@ -425,8 +425,19 @@ class BLEBeaconManager : Module() {
             )
             .build()
 
+        Log.w(TAG, "Scan mode: $mode")
+
+        val scanMode = when (mode) {
+            1 -> ScanSettings.SCAN_MODE_LOW_LATENCY
+            2 -> ScanSettings.SCAN_MODE_BALANCED
+            3 -> ScanSettings.SCAN_MODE_LOW_POWER
+            else -> ScanSettings.SCAN_MODE_LOW_LATENCY
+        }
+
+        Log.w(TAG, "Scan mode2: $scanMode")
+
         val scanSettings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setScanMode(scanMode)
             .build()
 
         scanCallback = object : ScanCallback() {

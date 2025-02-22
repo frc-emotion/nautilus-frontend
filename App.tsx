@@ -22,6 +22,17 @@ import { UpdateProvider } from "./src/utils/Context/UpdateContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 // import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
 import { NetworkingProvider } from "./src/utils/Context/NetworkingContext";
+// import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
+
+// initializeSslPinning({
+//   'team2658.org': {
+//     includeSubdomains: true,
+//     publicKeyHashes: [
+//       'sytXqBD3xvBMkAsZW3vUfRtiB9kLenreRrUDHv3/t0o=',
+//       '0Bbh/jEZSKymTy3kTOhsmlHKBB32EDu1KojrP3YfV9c='
+//     ],
+//   },
+// });
 
 const prefix = Linking.createURL('/');
 

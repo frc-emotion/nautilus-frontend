@@ -29,6 +29,14 @@ import { useNetworking } from '@/src/utils/Context/NetworkingContext';
 import * as Sentry from '@sentry/react-native';
 import PermissionStatusPopup from '@/src/components/PermissionStatusPopup';
 import { Pressable } from '@/components/ui/pressable';
+import {
+  Radio,
+  RadioGroup,
+  RadioIndicator,
+  RadioLabel,
+  RadioIcon,
+} from "@/components/ui/radio"
+import { CircleIcon } from "@/components/ui/icon"
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
@@ -55,6 +63,7 @@ const LogAttendance: React.FC = () => {
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingObject | null>(null);
   const [loggingBeacons, setLoggingBeacons] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [listeningStrength, setStrength] = useState<string>("1");
 
   const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
 
@@ -108,8 +117,8 @@ const LogAttendance: React.FC = () => {
         log('Attempting to stop listening');
         await stopListening();
       } else {
-        log('Attempting to start listening');
-        await startListening();
+        log('Attempting to start listening, listening strength:', listeningStrength);
+        await startListening(parseInt(listeningStrength));
       }
     } catch (error: any) {
       Sentry.captureException(error);
@@ -204,7 +213,7 @@ const LogAttendance: React.FC = () => {
           error,
           showModal: false,
           showToast: true,
-          openModal: () => {},
+          openModal: () => { },
           openToast,
         });
       },
@@ -250,7 +259,7 @@ const LogAttendance: React.FC = () => {
           error,
           showModal: false,
           showToast: true,
-          openModal: () => {},
+          openModal: () => { },
           openToast,
         });
       },
@@ -357,9 +366,39 @@ const LogAttendance: React.FC = () => {
           {isListening ? 'Listening for Attendance' : 'Not Listening'}
         </Text>
 
+        <VStack space="sm">
+
+        <Text size="lg" className="text-center">
+          Listening Strength
+        </Text>
+
+        <RadioGroup value={listeningStrength}>
+          <HStack space="md" className="items-center justify-center">
+          <Radio isDisabled={isListening} onPress={()=>setStrength("1")} value="1" size="md" isInvalid={false}>
+            <RadioIndicator>
+              <RadioIcon as={CircleIcon} />
+            </RadioIndicator>
+            <RadioLabel>High Power</RadioLabel>
+          </Radio>
+          <Radio isDisabled={isListening} onPress={()=>setStrength("2")} value="2" size="md" isInvalid={false}>
+            <RadioIndicator>
+              <RadioIcon as={CircleIcon} />
+            </RadioIndicator>
+            <RadioLabel>Balanced</RadioLabel>
+          </Radio>
+          <Radio isDisabled={isListening} onPress={()=>setStrength("3")} value="3" size="md" isInvalid={false}>
+            <RadioIndicator>
+              <RadioIcon as={CircleIcon} />
+            </RadioIndicator>
+            <RadioLabel>Efficiency</RadioLabel>
+          </Radio>
+          </HStack>
+        </RadioGroup>
+        </VStack>
+
         <Button
           onPress={toggleListening}
-          
+
           className={`px-6 rounded-lg ${bluetoothState === 'unauthorized' || locationStatus !== 'enabled' ? 'bg-gray-500' : 'bg-blue-500'}`}
           disabled={loading || locationStatus !== 'enabled' || bluetoothState === 'unauthorized'}
         >
@@ -384,9 +423,8 @@ const LogAttendance: React.FC = () => {
                 <Card
                   key={beaconId}
                   variant={isLogging ? 'filled' : 'outline'}
-                  className={`p-4 rounded-lg border ${
-                    isLogging ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300'
-                  }`}
+                  className={`p-4 rounded-lg border ${isLogging ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300'
+                    }`}
                 >
                   <VStack space="sm">
                     <HStack className="justify-between items-center">
@@ -401,9 +439,8 @@ const LogAttendance: React.FC = () => {
                     </HStack>
                     <Button
                       onPress={() => initiateLogAttendance(beacon)}
-                      className={`mt-4 py-2 rounded-lg ${
-                        isLogging ? 'bg-yellow-300' : 'bg-green-500'
-                      }`}
+                      className={`mt-4 py-2 rounded-lg ${isLogging ? 'bg-yellow-300' : 'bg-green-500'
+                        }`}
                       disabled={isLogging}
                     >
                       {isLogging ? (

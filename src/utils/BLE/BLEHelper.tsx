@@ -17,20 +17,22 @@ export const checkAndRequestPermissions = async (): Promise<boolean> => {
   try {
     const permissionsToRequest: Permission[] = [];
     
-    // Android 12 (API 31) and above
     if (Platform.Version >= 31) {
-      // These permissions exist only on Android 12+
+      // Android 12+ (API 31 and above)
       if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT) {
         permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
       }
       if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE) {
         permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE);
       }
-      // Location permissions are still needed
-      
+      if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN) {
+        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
+      }
+      if (PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE_LOCATION) {
+        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE_LOCATION);
+      }
     } else {
-      // Below Android 12
-      // Request traditional BLE/Location perms
+      // Android 11 and below (API < 31)
       if (PermissionsAndroid.PERMISSIONS.BLUETOOTH) {
         permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH);
       }
@@ -39,31 +41,39 @@ export const checkAndRequestPermissions = async (): Promise<boolean> => {
       }
     }
 
-    if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN) {
-      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
-    }
-
+    // Location permissions (needed for BLE scanning on older versions)
     if (PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION) {
       permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-    }
-    if (PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION) {
-      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
     }
     if (PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION) {
       permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION);
     }
-    if (PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE) {
-      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE);
+
+    // ACCESS_BACKGROUND_LOCATION is needed only for API 29+
+    // Foreground service permission (added in API 29+)
+    if (Platform.Version >= 29) {
+      if (PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION) {
+        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
+      }
+
+      if (PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE) {
+        permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.FOREGROUND_SERVICE);
+      }
     }
-    
-    // If no permissions to request, just return true
+
+    // If no permissions to request, return true
     if (permissionsToRequest.length === 0) {
       return true;
     }
 
-    const granted: { [key: string]: string } = await PermissionsAndroid.requestMultiple(permissionsToRequest);
-    
+    let granted: { [key: string]: string } = {};
     let allGranted = true;
+
+    for (const permission of permissionsToRequest) {
+      const status = await PermissionsAndroid.request(permission);
+      granted[permission] = status;
+    }
+
     for (const permission of permissionsToRequest) {
       if (granted[permission] !== PermissionsAndroid.RESULTS.GRANTED) {
         allGranted = false;
@@ -74,7 +84,7 @@ export const checkAndRequestPermissions = async (): Promise<boolean> => {
     if (!allGranted) {
       Alert.alert(
         'Permissions Required',
-        'Please grant all Bluetooth permissions to use this feature.',
+        'Please grant all required permissions to use this feature.',
         [{ text: 'OK' }],
         { cancelable: false }
       );
@@ -87,7 +97,6 @@ export const checkAndRequestPermissions = async (): Promise<boolean> => {
     return false;
   }
 };
-
 const BLEHelper: BLEHelperType = {
   startBroadcasting: async (uuid: string, major: number, minor: number): Promise<void> => {
     if (Platform.OS === 'ios') {
@@ -131,7 +140,7 @@ const BLEHelper: BLEHelperType = {
       throw new Error('Unsupported platform');
     }
   },
-  startListening: async (uuid: string): Promise<void> => {
+  startListening: async (uuid: string, mode: number = 1): Promise<void> => {
     if (Platform.OS === 'ios') {
       if (!NativeModules.BeaconBroadcaster || !NativeModules.BeaconBroadcaster.startListening) {
         throw new Error('BeaconBroadcaster native module is not available for startListening');
@@ -148,7 +157,7 @@ const BLEHelper: BLEHelperType = {
         throw new Error('Bluetooth permissions not granted.');
       }
 
-      await BLEBeaconManager.startListening(uuid);
+      await BLEBeaconManager.startListening(uuid, mode);
     } else {
       throw new Error('Unsupported platform');
     }

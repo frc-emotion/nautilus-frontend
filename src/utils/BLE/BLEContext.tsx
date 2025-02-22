@@ -212,7 +212,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  const startListening = async () => {
+  const startListening = async (mode:number) => {
     if (bluetoothState !== 'poweredOn') {
       openToast({
         title: 'Bluetooth Required',
@@ -228,7 +228,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     try {
-      await BLEHelper.startListening(APP_UUID);
+      await BLEHelper.startListening(APP_UUID, mode);
       setIsListening(true);
       logMessage(`Started listening for UUID: ${APP_UUID}`);
       openToast({
