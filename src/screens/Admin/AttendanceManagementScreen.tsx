@@ -242,7 +242,7 @@ const AttendanceManagementScreen: React.FC = () => {
         
             if (matchingUser) {
                 const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
-                csvContent += `${matchingUser.student_id},${matchingUser.first_name},${matchingUser.last_name},${totalHours}\n`;
+                csvContent += `${matchingUser.student_id},${matchingUser.first_name},${matchingUser.last_name},${Math.trunc(totalHours)}\n`;
             }
         });
 
