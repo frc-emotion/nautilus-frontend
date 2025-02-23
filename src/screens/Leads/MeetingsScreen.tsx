@@ -956,7 +956,7 @@ const MeetingsScreen: React.FC = () => {
       </AlertDialogHeader>
       <AlertDialogBody>
         {/* Search bar for filtering attendees */}
-        <Text className="font-medium">Hours</Text>
+        <Text className="font-medium">Student ID</Text>
                   <Controller
                     control={controlForm2}
                     name="user_id"
