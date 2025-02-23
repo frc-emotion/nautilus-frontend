@@ -1,5 +1,6 @@
 /ios
 /android
+modules/BLEBeaconManager/android/build
 
 *.ipa
 *.aab

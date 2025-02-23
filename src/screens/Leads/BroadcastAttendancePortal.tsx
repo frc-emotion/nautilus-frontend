@@ -64,7 +64,7 @@ const BroadcastAttendancePortal: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
   const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
-  const [broadcastingType, setBroadcastingType] = useState<number>(1); // 0 for low power, 1 for balanced, 2 for high power
+  const [broadcastingType, setBroadcastingType] = useState<number>(2); // 0 for low power, 1 for balanced, 2 for high power
 
 
   useEffect(() => {
