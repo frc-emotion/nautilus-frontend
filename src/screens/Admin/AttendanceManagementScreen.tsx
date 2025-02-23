@@ -331,7 +331,7 @@ const AttendanceManagementScreen: React.FC = () => {
                         {({ isExpanded }) => (
                             <HStack className="justify-between items-center w-full">
                                 <AccordionTitleText>
-                                    {user.first_name} {user.last_name} - Total Hours: {Object.values(item.attendanceByTerm).reduce((sum, h) => sum + h, 0)}
+                                    {user.first_name} {user.last_name} - Total Hours: {Math.trunc(Object.values(item.attendanceByTerm).reduce((sum, h) => sum + h, 0))}
                                 </AccordionTitleText>
                                 <AccordionIcon as={isExpanded ? MinusIcon : PlusIcon} />
                             </HStack>
@@ -347,7 +347,7 @@ const AttendanceManagementScreen: React.FC = () => {
                                         <Text>
                                             {log.meetingTitle} ({log.meetingDate ? log.meetingDate.toLocaleDateString() : 'No Date'})
                                         </Text>
-                                        <Text>{log.hours} hours</Text>
+                                        <Text>{Math.trunc(log.hours)} hours</Text>
                                     </HStack>
                                     <Text>Term {log.term}, {log.year}</Text>
                                 </VStack>

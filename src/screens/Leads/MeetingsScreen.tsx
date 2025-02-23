@@ -204,13 +204,10 @@ const MeetingsScreen: React.FC = () => {
   };
 
   const handleSubmitAddUsers = async(data) => {
-    let id = data.user_id
+    let initial_id = data.user_id
     let meeting = selectedMeeting
     console.log("Yurr",meeting?.members_logged);
-    const isStudentInList = users.some(user => user.student_id === id);
-    console.log(meeting?.members_logged)
-    const isStudentInMeeting = meeting?.members_logged.some(student_id => student_id===parseInt(id));
-    console.log(isStudentInMeeting, "variable");
+    const isStudentInList = users.some(user => user.student_id === initial_id);
     if (!isStudentInList){
       openToast({
         title: "Add User Failed",
@@ -221,6 +218,12 @@ const MeetingsScreen: React.FC = () => {
     
       return;
     };
+
+    console.log(meeting?.members_logged)
+    let cur_user = users.find(user => user.student_id === initial_id);
+    let id = cur_user._id;
+    const isStudentInMeeting = meeting?.members_logged.some(_id => _id===id);
+    console.log(isStudentInMeeting, "variable");
 
     if (isStudentInMeeting){
       openToast({
