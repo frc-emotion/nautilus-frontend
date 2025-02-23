@@ -1,21 +1,21 @@
 package org.team2658
 
+import android.app.*
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.*
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.core.os.bundleOf
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.altbeacon.beacon.*
 import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -34,23 +34,27 @@ const val BEACON_DETECTED_EVENT = "BeaconDetected"
 const val BLUETOOTH_CHANGE_EVENT = "BluetoothStateChanged"
 
 // BLEBeaconManager Module
-class BLEBeaconManager : Module() {
+// Implement BeaconConsumer so we can use AltBeacon callbacks
+class BLEBeaconManager : Module(), BeaconConsumer {
 
     private val TAG = "BLEBeaconManager"
 
-    // Apple’s Company ID in little endian
+    // Apple’s company ID (0x004C) for iBeacon
     private val companyId: Int = 0x004C
 
+    // System BLE references (used for iBeacon broadcasting only)
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
-    private var bluetoothLeScanner: BluetoothLeScanner? = null
 
-    // Maps to manage advertisers and their callbacks
+    // Maps to manage advertisers/callbacks
     private val advertiserMap: MutableMap<String, AdvertiseCallback> = ConcurrentHashMap()
 
-    // Variables for scanning
-    private var scanCallback: ScanCallback? = null
-    private var isScanning: Boolean = false
+    // AltBeacon references
+    private var beaconManager: BeaconManager? = null
+    private var region: Region? = null
+    private var isAltBeaconScanning = false
+
+    // The "UUID we care about" (or all if empty)
     private var scanUUID: String? = null
 
     // Thread-safe list to store detected beacons
@@ -77,10 +81,10 @@ class BLEBeaconManager : Module() {
     override fun definition() = ModuleDefinition {
         Name("BLEBeaconManager")
 
-        // Register events
         Events(BEACON_DETECTED_EVENT, BLUETOOTH_CHANGE_EVENT)
 
-        // Define exported functions
+        // --- Exposed JS/TS Functions ---
+
         AsyncFunction("broadcast") { uuid: String, major: Int, minor: Int ->
             runBlocking {
                 broadcastBeacon(uuid, major, minor)
@@ -111,15 +115,17 @@ class BLEBeaconManager : Module() {
             }
         }
 
-        AsyncFunction("startListening") { uuid: String, mode: Int ->
+        // Start iBeacon scanning with AltBeacon
+        AsyncFunction("startListening") { uuid: String, _mode: Int ->
             runBlocking {
-                startListening(uuid, mode)
+                startAltBeaconScanning(uuid)
             }
         }
 
+        // Stop iBeacon scanning
         AsyncFunction("stopListening") {
             runBlocking {
-                stopListening()
+                stopAltBeaconScanning()
             }
         }
 
@@ -131,48 +137,50 @@ class BLEBeaconManager : Module() {
 
         AsyncFunction("testBeaconEvent") {
             Log.i(TAG, "Sending test beacon event")
-            sendEvent(BEACON_DETECTED_EVENT, bundleOf(
-                "uuid" to "00000000-0000-0000-0000-000000000000",
-                "major" to 0,
-                "minor" to 0,
-                "rssi" to -50,
-                "timestamp" to System.currentTimeMillis()
-            ))
+            sendEvent(
+                BEACON_DETECTED_EVENT, bundleOf(
+                    "uuid" to "00000000-0000-0000-0000-000000000000",
+                    "major" to 0,
+                    "minor" to 0,
+                    "rssi" to -50,
+                    "timestamp" to System.currentTimeMillis()
+                )
+            )
         }
 
         OnCreate {
             initializeBluetooth()
-
         }
 
         OnDestroy {
+            // Clean up
             appContext.reactContext?.unregisterReceiver(bluetoothStateReceiver)
-            // Ensure that broadcasting and scanning are stopped when the module is destroyed
             runBlocking {
                 stopAllBroadcasts()
-                stopListening()
+                stopAltBeaconScanning()
             }
         }
     }
 
-    /**
-     * Initializes Bluetooth adapter and registers the Bluetooth state receiver.
-     */
-    private fun initializeBluetooth() {
-        val bluetoothManager = appContext.reactContext?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-        bluetoothAdapter = bluetoothManager?.adapter
+    // ----------------------------------------------------------------------------
+    //                       Initialize Bluetooth / State Receiver
+    // ----------------------------------------------------------------------------
 
+    private fun initializeBluetooth() {
+        val manager = appContext.reactContext
+            ?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        bluetoothAdapter = manager?.adapter
         if (bluetoothAdapter == null) {
             Log.e(TAG, "Bluetooth adapter is null. Device may not support Bluetooth.")
             sendEvent(BLUETOOTH_CHANGE_EVENT, mapOf("state" to "unsupported"))
             return
         }
 
-        // Register the BroadcastReceiver for Bluetooth state changes
+        // Register BT state receiver
         val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
         appContext.reactContext?.registerReceiver(bluetoothStateReceiver, filter)
 
-        // Emit the current Bluetooth state
+        // Emit current Bluetooth state
         val currentState = bluetoothAdapter?.state ?: BluetoothAdapter.STATE_OFF
         val stateString = when (currentState) {
             BluetoothAdapter.STATE_OFF -> "poweredOff"
@@ -185,52 +193,36 @@ class BLEBeaconManager : Module() {
         sendEvent(BLUETOOTH_CHANGE_EVENT, mapOf("state" to stateString))
     }
 
-    /**
-     * Enables Bluetooth if it is not already enabled.
-     * @return Confirmation message upon successful enabling.
-     */
     private suspend fun enableBluetooth(): String = withContext(Dispatchers.Main) {
         if (bluetoothAdapter == null) {
             throw Exception("Bluetooth adapter not available.")
         }
-
         if (!bluetoothAdapter!!.isEnabled) {
-            val enabled = bluetoothAdapter!!.enable()
-            if (enabled) {
+            if (bluetoothAdapter!!.enable()) {
                 "Bluetooth enabling initiated."
             } else {
-                throw Exception("Failed to initiate Bluetooth enabling.")
+                throw Exception("Failed to enable Bluetooth.")
             }
         } else {
             "Bluetooth is already enabled."
         }
     }
 
-    /**
-     * Disables Bluetooth if it is currently enabled.
-     * @return Confirmation message upon successful disabling.
-     */
     private suspend fun disableBluetooth(): String = withContext(Dispatchers.Main) {
         if (bluetoothAdapter == null) {
             throw Exception("Bluetooth adapter not available.")
         }
-
         if (bluetoothAdapter!!.isEnabled) {
-            val disabled = bluetoothAdapter!!.disable()
-            if (disabled) {
+            if (bluetoothAdapter!!.disable()) {
                 "Bluetooth disabling initiated."
             } else {
-                throw Exception("Failed to initiate Bluetooth disabling.")
+                throw Exception("Failed to disable Bluetooth.")
             }
         } else {
             "Bluetooth is already disabled."
         }
     }
 
-    /**
-     * Retrieves the current Bluetooth state.
-     * @return Current Bluetooth state as a string.
-     */
     private suspend fun getBluetoothState(): String = withContext(Dispatchers.IO) {
         val currentState = bluetoothAdapter?.state ?: BluetoothAdapter.STATE_OFF
         when (currentState) {
@@ -242,78 +234,68 @@ class BLEBeaconManager : Module() {
         }
     }
 
-    /**
-     * Starts broadcasting a BLE beacon with the specified UUID, major, and minor values.
-     * @param uuid UUID string.
-     * @param major Major value.
-     * @param minor Minor value.
-     * @return Confirmation message upon successful broadcasting.
-     */
+    // ----------------------------------------------------------------------------
+    //                         iBeacon BROADCASTING
+    // ----------------------------------------------------------------------------
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private suspend fun broadcastBeacon(uuid: String, major: Int, minor: Int): String = withContext(Dispatchers.IO) {
-        if (bluetoothAdapter == null) {
-            Log.w(TAG, "Device does not support Bluetooth. Adapter is null.")
-            throw Exception("Device does not support Bluetooth.")
-        }
-
-        if (!bluetoothAdapter!!.isEnabled) {
-            Log.w(TAG, "Bluetooth is disabled.")
-            throw Exception("Bluetooth is disabled.")
-        }
-
-        bluetoothLeAdvertiser = bluetoothAdapter!!.bluetoothLeAdvertiser
-
-        if (bluetoothLeAdvertiser == null) {
-            Log.w(TAG, "BluetoothLeAdvertiser is unavailable on this device.")
-            throw Exception("BluetoothLeAdvertiser is unavailable.")
-        }
-
-        // Stop existing advertising with the same UUID if any
-        advertiserMap[uuid]?.let { existingCallback ->
-            bluetoothLeAdvertiser?.stopAdvertising(existingCallback)
-            advertiserMap.remove(uuid)
-            Log.i(TAG, "Stopped existing advertising for UUID: $uuid")
-        }
-
-        val advertiseSettings = AdvertiseSettings.Builder()
-            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
-            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-            .setConnectable(false)
-            .build()
-
-        val advertiseData = buildAdvertiseData(uuid, major, minor)
-
-        val callback = object : AdvertiseCallback() {
-            override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
-                super.onStartSuccess(settingsInEffect)
-                Log.i(TAG, "Advertising started successfully for UUID: $uuid")
+    private suspend fun broadcastBeacon(uuid: String, major: Int, minor: Int): String =
+        withContext(Dispatchers.IO) {
+            if (bluetoothAdapter == null) {
+                throw Exception("Device does not support Bluetooth.")
+            }
+            if (!bluetoothAdapter!!.isEnabled) {
+                throw Exception("Bluetooth is disabled.")
             }
 
-            override fun onStartFailure(errorCode: Int) {
-                super.onStartFailure(errorCode)
-                val errorMessage = when (errorCode) {
-                    AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED -> "Advertising already started."
-                    AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE -> "Data too large."
-                    AdvertiseCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "Too many advertisers."
-                    AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR -> "Internal error."
-                    AdvertiseCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "Feature unsupported."
-                    else -> "Unknown error."
+            bluetoothLeAdvertiser = bluetoothAdapter!!.bluetoothLeAdvertiser
+            if (bluetoothLeAdvertiser == null) {
+                throw Exception("BluetoothLeAdvertiser is unavailable.")
+            }
+
+            // Stop existing advertising with the same UUID if any
+            advertiserMap[uuid]?.let { existingCallback ->
+                bluetoothLeAdvertiser?.stopAdvertising(existingCallback)
+                advertiserMap.remove(uuid)
+                Log.i(TAG, "Stopped existing advertising for UUID: $uuid")
+            }
+
+            val advertiseSettings = AdvertiseSettings.Builder()
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                .setConnectable(false)
+                .build()
+
+            val advertiseData = buildAdvertiseData(uuid, major, minor)
+
+            val callback = object : AdvertiseCallback() {
+                override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
+                    super.onStartSuccess(settingsInEffect)
+                    Log.i(TAG, "Advertising started successfully for UUID: $uuid")
                 }
-                Log.e(TAG, "Advertising failed for UUID: $uuid with error: $errorMessage")
-                
+
+                override fun onStartFailure(errorCode: Int) {
+                    super.onStartFailure(errorCode)
+                    val errorMessage = when (errorCode) {
+                        AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED ->
+                            "Advertising already started."
+                        AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE -> "Data too large."
+                        AdvertiseCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS ->
+                            "Too many advertisers."
+                        AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR -> "Internal error."
+                        AdvertiseCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED ->
+                            "Feature unsupported."
+                        else -> "Unknown error."
+                    }
+                    Log.e(TAG, "Advertising failed for UUID: $uuid: $errorMessage")
+                }
             }
+
+            bluetoothLeAdvertiser!!.startAdvertising(advertiseSettings, advertiseData, callback)
+            advertiserMap[uuid] = callback
+            Log.i(TAG, "Started advertising for UUID: $uuid")
+            "Advertising started for UUID: $uuid"
         }
 
-        bluetoothLeAdvertiser!!.startAdvertising(advertiseSettings, advertiseData, callback)
-        advertiserMap[uuid] = callback
-        Log.i(TAG, "Started advertising for UUID: $uuid")
-        "Advertising started for UUID: $uuid"
-    }
-
-    /**
-     * Stops all ongoing BLE beacon broadcasts.
-     * @return Confirmation message upon successful stoppage.
-     */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private suspend fun stopAllBroadcasts(): String = withContext(Dispatchers.IO) {
         try {
@@ -329,19 +311,12 @@ class BLEBeaconManager : Module() {
         }
     }
 
-    /**
-     * Builds the AdvertiseData for BLE broadcasting in iBeacon format.
-     * @param uuid UUID string.
-     * @param major Major value.
-     * @param minor Minor value.
-     * @return AdvertiseData instance.
-     */
     private fun buildAdvertiseData(uuid: String, major: Int, minor: Int): AdvertiseData {
         val uuidBytes = uuidToBytes(uuid)
         val majorBytes = intToByteArray(major)
         val minorBytes = intToByteArray(minor)
-        val txPower: Byte = 0xC7.toByte()
-
+        val txPower: Byte = 0xC7.toByte() // just a default
+        // 23-byte iBeacon manufacturer data
         val manufacturerData = ByteArray(23).apply {
             // iBeacon prefix
             this[0] = 0x02
@@ -355,18 +330,12 @@ class BLEBeaconManager : Module() {
             // Tx Power
             this[22] = txPower
         }
-
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .addManufacturerData(companyId, manufacturerData)
             .build()
     }
 
-    /**
-     * Converts a UUID string to a byte array.
-     * @param uuid UUID string.
-     * @return Byte array representation of the UUID.
-     */
     private fun uuidToBytes(uuid: String): ByteArray {
         val parsedUUID = UUID.fromString(uuid)
         val byteBuffer = ByteBuffer.wrap(ByteArray(16))
@@ -375,11 +344,6 @@ class BLEBeaconManager : Module() {
         return byteBuffer.array()
     }
 
-    /**
-     * Converts an integer to a two-byte array.
-     * @param value Integer value.
-     * @return Byte array.
-     */
     private fun intToByteArray(value: Int): ByteArray {
         return byteArrayOf(
             ((value shr 8) and 0xFF).toByte(),
@@ -387,202 +351,191 @@ class BLEBeaconManager : Module() {
         )
     }
 
-    /**
-     * Starts listening for BLE beacons with the specified UUID.
-     * @param uuid UUID string to listen for.
-     * @return Confirmation message upon successful initiation of scanning.
-     */
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private suspend fun startListening(uuid: String, mode: Int): String = withContext(Dispatchers.IO) {
-        if (bluetoothAdapter == null) {
-            Log.w(TAG, "Bluetooth adapter is null. Cannot start scanning.")
-            throw Exception("Bluetooth adapter is null. Cannot start scanning.")
-        }
+    // ----------------------------------------------------------------------------
+    //                          ALTBEACON SCANNING
+    // ----------------------------------------------------------------------------
 
-        if (isScanning) {
-            Log.w(TAG, "Already scanning.")
+    /**
+     * Start scanning for iBeacons using the Android Beacon Library (AltBeacon).
+     * @param uuid The specific Proximity UUID to filter on. If null or empty => detect all iBeacons.
+     */
+    private suspend fun startAltBeaconScanning(uuid: String) = withContext(Dispatchers.Main) {
+        if (isAltBeaconScanning) {
+            Log.w(TAG, "Already scanning via AltBeacon.")
             throw Exception("Already scanning.")
         }
-
-        if (!bluetoothAdapter!!.isEnabled) {
-            Log.w(TAG, "Bluetooth is disabled. Cannot start scanning.")
-            throw Exception("Bluetooth is disabled. Cannot start scanning.")
+        if (bluetoothAdapter == null || (bluetoothAdapter?.isEnabled != true)) {
+            throw Exception("Bluetooth is disabled or unavailable.")
         }
 
-        bluetoothLeScanner = bluetoothAdapter!!.bluetoothLeScanner
-        if (bluetoothLeScanner == null) {
-            Log.w(TAG, "BluetoothLeScanner is unavailable.")
-            throw Exception("BluetoothLeScanner is unavailable.")
+        scanUUID = uuid.uppercase(Locale.ROOT)
+        Log.i(TAG, "startAltBeaconScanning: $scanUUID")
+
+        // If not initialized, do so.
+        if (beaconManager == null) {
+            beaconManager = BeaconManager.getInstanceForApplication(appContext.reactContext!!)
+
+            BeaconManager.setDebug(true)
+
+            // Clear default layouts if you only want iBeacons. If you want multi-protocol, remove clear().
+            beaconManager!!.beaconParsers.clear()
+
+            val parser = BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24")
+            parser.setHardwareAssistManufacturerCodes(arrayOf(0x004c).toIntArray())
+
+            beaconManager!!.getBeaconParsers().add(parser)
+
+            // If you want real-time scanning in the foreground, disable jobs:
+            beaconManager!!.setEnableScheduledScanJobs(false)
+
+            // Set short scan intervals in the foreground
+            beaconManager!!.foregroundScanPeriod = 1100L
+            beaconManager!!.foregroundBetweenScanPeriod = 0L
+
+            // If you want to run scanning in the background continuously on Android 8+,
+            // you must do a foreground service. For example:
+            // enableForegroundService()
         }
 
-        scanUUID = uuid
-
-        // Define ScanFilter for iBeacon
-        val scanFilter = ScanFilter.Builder()
-            .setManufacturerData(
-                companyId,
-                byteArrayOf(0x02, 0x15) // iBeacon prefix
-            )
-            .build()
-
-        Log.w(TAG, "Scan mode: $mode")
-
-        val scanMode = when (mode) {
-            1 -> ScanSettings.SCAN_MODE_LOW_LATENCY
-            2 -> ScanSettings.SCAN_MODE_BALANCED
-            3 -> ScanSettings.SCAN_MODE_LOW_POWER
-            else -> ScanSettings.SCAN_MODE_LOW_LATENCY
+        // Build region with the provided UUID or wildcard
+        val localScanUUID = scanUUID
+        region = if (!localScanUUID.isNullOrEmpty() &&
+            localScanUUID != "00000000-0000-0000-0000-000000000000"
+        ) {
+            Region("all-beacons", Identifier.parse(localScanUUID), null, null)
+        } else {
+            // detect all iBeacons
+            Region("all-beacons", null, null, null)
         }
 
-        Log.w(TAG, "Scan mode2: $scanMode")
-
-        val scanSettings = ScanSettings.Builder()
-            .setScanMode(scanMode)
-            .build()
-
-        scanCallback = object : ScanCallback() {
-            override fun onScanResult(callbackType: Int, result: ScanResult) {
-                handleScanResult(result)
-            }
-
-            override fun onBatchScanResults(results: List<ScanResult>) {
-                results.forEach { result ->
-                    handleScanResult(result)
-                }
-            }
-
-            override fun onScanFailed(errorCode: Int) {
-                Log.e(TAG, "BLE Scan failed with error code $errorCode")
-                throw Exception("BLE Scan failed with error code $errorCode")
-            }
-        }
-
-        bluetoothLeScanner!!.startScan(listOf(scanFilter), scanSettings, scanCallback)
-        isScanning = true
-        Log.i(TAG, "Started BLE scanning for UUID: $uuid")
-        "Started scanning for UUID: $uuid"
+        // Bind so onBeaconServiceConnect() is called
+        beaconManager!!.bind(this@BLEBeaconManager)
     }
 
     /**
-     * Stops listening for BLE beacons.
-     * @return Confirmation message upon successful stoppage of scanning.
+     * (Optional) If you want a foreground service for scanning in background on Android 8+.
      */
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private suspend fun stopListening(): String = withContext(Dispatchers.IO) {
+    private fun enableForegroundService() {
+        // Build a persistent notification
+        val channelId = "BeaconReferenceChannel"
+        val channelName = "Beacon Scanning"
+        val nm = appContext.reactContext!!.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
+            nm.createNotificationChannel(channel)
+        }
+
+        val builder = NotificationCompat.Builder(appContext.reactContext!!, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_search)
+            .setContentTitle("Scanning for iBeacons")
+            .setContentText("Background scanning active")
+
+        // Start foreground scanning
+        beaconManager?.enableForegroundServiceScanning(builder.build(), 456)
+    }
+
+    private suspend fun stopAltBeaconScanning() = withContext(Dispatchers.Main) {
+        if (!isAltBeaconScanning) {
+            Log.w(TAG, "Not currently scanning via AltBeacon.")
+            return@withContext
+        }
         try {
-            if (!isScanning) {
-                Log.w(TAG, "Not currently scanning.")
-                return@withContext "Not currently scanning."
+            region?.let { r ->
+                beaconManager?.stopRangingBeaconsInRegion(r)
             }
-
-            bluetoothLeScanner?.stopScan(scanCallback)
-            scanCallback = null
-            scanUUID = null
-            isScanning = false
-            Log.i(TAG, "Stopped BLE scanning.")
-            "Stopped scanning successfully."
         } catch (e: Exception) {
-            Log.e(TAG, "Error stopping scanning: ${e.message}", e)
-            throw e
+            Log.e(TAG, "Error stopping ranging: ${e.message}", e)
+        }
+        beaconManager?.unbind(this@BLEBeaconManager)
+        isAltBeaconScanning = false
+        Log.i(TAG, "Stopped AltBeacon scanning.")
+    }
+
+    override fun onBeaconServiceConnect() {
+        Log.i(TAG, "AltBeacon onBeaconServiceConnect triggered.")
+        beaconManager?.addRangeNotifier { beacons, _ ->
+            if (beacons.isNotEmpty()) {
+                for (beacon in beacons) {
+                    val uuidStr = beacon.id1.toString().uppercase(Locale.ROOT)
+                    val major = beacon.id2.toInt()
+                    val minor = beacon.id3.toInt()
+                    val rssi = beacon.rssi
+                    val timeStamp = System.currentTimeMillis()
+
+                    Log.d(TAG, "Detected AltBeacon: $uuidStr, $major, $minor, $rssi")
+
+                    // Copy scanUUID so it doesn't change mid-loop
+                    val currentScanUUID = scanUUID
+                    if (
+                        currentScanUUID.isNullOrEmpty() ||
+                        currentScanUUID == "00000000-0000-0000-0000-000000000000" ||
+                        uuidStr == currentScanUUID
+                    ) {
+                        handleDetectedIBeacon(uuidStr, major, minor, rssi, timeStamp)
+                    }
+                }
+            }
+        }
+        try {
+            region?.let {
+                beaconManager?.startRangingBeaconsInRegion(it)
+                isAltBeaconScanning = true
+                Log.i(TAG, "startRangingBeaconsInRegion: $it")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting region ranging: ${e.message}", e)
         }
     }
 
-    /**
-     * Handles a scan result and adds it to the detectedBeacons list if it matches the UUID.
-     * @param result ScanResult object.
-     */
-    private fun handleScanResult(result: ScanResult) {
-        val scanRecord = result.scanRecord ?: return
-        val beacon = parseIBeacon(scanRecord, result.rssi) ?: return
-
-        Log.i(TAG, "Scan result: $beacon")
-
-        if (beacon.uuid.equals(scanUUID, ignoreCase = true)) {
-            synchronized(detectedBeacons) {
-                // Update existing beacon or add new one
-                val index = detectedBeacons.indexOfFirst {
-                    it.uuid == beacon.uuid && it.major == beacon.major && it.minor == beacon.minor
-                }
-                if (index != -1) {
-                    detectedBeacons[index] = beacon
-                } else {
-                    Log.i(TAG, "Detected beacon: $beacon")
-                    // Wrap beacon data inside a 'beacon' key
-                    this@BLEBeaconManager.sendEvent(
-                        BEACON_DETECTED_EVENT,
-                        bundleOf(
-                                "uuid" to beacon.uuid,
-                                "major" to beacon.major,
-                                "minor" to beacon.minor,
-                                //"rssi" to beacon.rssi,
-                                "timestamp" to beacon.timestamp
-                            
-                        )
+    private fun handleDetectedIBeacon(
+        uuid: String,
+        major: Int,
+        minor: Int,
+        rssi: Int,
+        timestamp: Long
+    ) {
+        val foundBeacon = Beacon(uuid, major, minor, rssi, timestamp)
+        synchronized(detectedBeacons) {
+            val index = detectedBeacons.indexOfFirst {
+                it.uuid == uuid && it.major == major && it.minor == minor
+            }
+            if (index != -1) {
+                detectedBeacons[index] = foundBeacon
+            } else {
+                Log.i(TAG, "Detected iBeacon via AltBeacon: $foundBeacon")
+                sendEvent(
+                    BEACON_DETECTED_EVENT,
+                    bundleOf(
+                        "uuid" to foundBeacon.uuid,
+                        "major" to foundBeacon.major,
+                        "minor" to foundBeacon.minor,
+                        "timestamp" to foundBeacon.timestamp
                     )
-                    detectedBeacons.add(beacon)
-                }
+                )
+                detectedBeacons.add(foundBeacon)
             }
         }
     }
-    /**
-     * Parses the scan record to extract iBeacon information.
-     * @param scanRecord ScanRecord object.
-     * @param rssi RSSI value from the ScanResult.
-     * @return Beacon object if parsing is successful, null otherwise.
-     */
-    private fun parseIBeacon(scanRecord: ScanRecord, rssi: Int): Beacon? {
-        val manufacturerData = scanRecord.getManufacturerSpecificData(companyId) ?: return null
 
-        if (manufacturerData.size < 23) { // iBeacon data length
-            return null
+    // BeaconConsumer interface
+    override fun getApplicationContext(): Context {
+        return appContext.reactContext!!
+    }
+
+    override fun bindService(intent: Intent?, conn: ServiceConnection, flags: Int): Boolean {
+        if (intent == null) {
+            Log.e(TAG, "bindService called with null Intent!")
+            return false
         }
+        return appContext.reactContext!!.bindService(intent, conn, flags)
+    }
 
-        // Check iBeacon prefix
-        if (manufacturerData[0].toInt() != 0x02 || manufacturerData[1].toInt() != 0x15) {
-            return null
-        }
-
-        // Extract UUID
-        val uuidBytes = manufacturerData.copyOfRange(2, 18)
-        val uuid = bytesToUuid(uuidBytes) ?: return null
-
-        // Extract Major
-        val major = ((manufacturerData[18].toInt() and 0xFF) shl 8) or (manufacturerData[19].toInt() and 0xFF)
-
-        // Extract Minor
-        val minor = ((manufacturerData[20].toInt() and 0xFF) shl 8) or (manufacturerData[21].toInt() and 0xFF)
-
-        val timestamp = System.currentTimeMillis()
-
-        return Beacon(
-            uuid = uuid.toString(),
-            major = major,
-            minor = minor,
-            rssi = rssi,
-            timestamp = timestamp
-        )
+    override fun unbindService(conn: ServiceConnection) {
+        appContext.reactContext!!.unbindService(conn)
     }
 
     /**
-     * Converts a byte array to a UUID.
-     * @param bytes Byte array.
-     * @return UUID object or null if conversion fails.
-     */
-    private fun bytesToUuid(bytes: ByteArray): UUID? {
-        return try {
-            val byteBuffer = ByteBuffer.wrap(bytes)
-            val high = byteBuffer.long
-            val low = byteBuffer.long
-            UUID(high, low)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error converting bytes to UUID: ${e.message}", e)
-            null
-        }
-    }
-
-    /**
-     * Returns the list of detected beacons.
-     * @return List of beacons as a list of maps.
+     * Returns the list of detected beacons (now detected by AltBeacon).
      */
     private suspend fun getDetectedBeacons(): List<Map<String, Any>> = withContext(Dispatchers.IO) {
         synchronized(detectedBeacons) {
