@@ -145,7 +145,7 @@ export type SingleScreenStackProps = {
 };
 
 export interface BLEHelperType {
-    startBroadcasting: (uuid: string, major: number, minor: number) => Promise<void>;
+    startBroadcasting: (uuid: string, major: number, minor: number, advertiseMode?: number, txPowerLevel?: number) => Promise<void>;
     stopBroadcasting: () => Promise<void>;
     startListening: (uuid: string, mode: number) => Promise<void>;
     stopListening: () => Promise<void>;
@@ -167,7 +167,7 @@ export interface BLEContextProps {
     isBroadcasting: boolean;
     startListening: (mode:number) => Promise<void>;
     stopListening: () => Promise<void>;
-    startBroadcasting: (uuid: string, major: number, minor: number, title: string) => Promise<void>;
+    startBroadcasting: (uuid: string, major: number, minor: number, title: string, advertiseMode: number, txPowerLevel: number ) => Promise<void>;
     stopBroadcasting: () => Promise<void>;
     getDetectedBeacons: () => Promise<void>;
     testEvent: () => Promise<void>;

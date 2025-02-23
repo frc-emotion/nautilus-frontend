@@ -71,7 +71,9 @@ const BLEHelper: BLEHelperType = {
   startBroadcasting: async (
     uuid: string,
     major: number,
-    minor: number
+    minor: number,
+    advertiseMode: number = 0,  // e.g. AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY
+    txPowerLevel: number = 0    // e.g. AdvertiseSettings.ADVERTISE_TX_POWER_HIGH
   ): Promise<void> => {
     if (Platform.OS === "ios") {
       if (
@@ -99,7 +101,7 @@ const BLEHelper: BLEHelperType = {
         throw new Error("Bluetooth permissions not granted.");
       }
 
-      BLEBeaconManager.broadcast(uuid, major, minor);
+      BLEBeaconManager.broadcast(uuid, major, minor, advertiseMode, txPowerLevel);
     } else {
       throw new Error("Unsupported platform");
     }
@@ -132,7 +134,7 @@ const BLEHelper: BLEHelperType = {
       throw new Error("Unsupported platform");
     }
   },
-  startListening: async (uuid: string, mode: number = 1): Promise<void> => {
+  startListening: async (uuid: string, mode: number = 0): Promise<void> => {
     if (Platform.OS === "ios") {
       if (
         !NativeModules.BeaconBroadcaster ||

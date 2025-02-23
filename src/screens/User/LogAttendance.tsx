@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Linking, RefreshControl } from 'react-native';
+import { ScrollView, Linking, RefreshControl, Platform } from 'react-native';
 import { View } from '@/components/ui/view';
 import {
   AlertDialog,
@@ -36,7 +36,9 @@ import {
   RadioLabel,
   RadioIcon,
 } from "@/components/ui/radio"
-import { CircleIcon } from "@/components/ui/icon"
+import { ChevronDownIcon, ChevronUpIcon, CircleIcon } from "@/components/ui/icon"
+import { Accordion, AccordionItem, AccordionHeader, AccordionTrigger, AccordionTitleText, AccordionIcon, AccordionContent, AccordionContentText } from '@/components/ui/accordion';
+import { Divider } from '@/components/ui/divider';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
@@ -63,7 +65,7 @@ const LogAttendance: React.FC = () => {
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingObject | null>(null);
   const [loggingBeacons, setLoggingBeacons] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [listeningStrength, setStrength] = useState<string>("1");
+  const [listeningType, setType] = useState<number>(0);
 
   const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
 
@@ -117,8 +119,8 @@ const LogAttendance: React.FC = () => {
         log('Attempting to stop listening');
         await stopListening();
       } else {
-        log('Attempting to start listening, listening strength:', listeningStrength);
-        await startListening(parseInt(listeningStrength));
+        log('Attempting to start listening, listening type:', listeningType);
+        await startListening(listeningType);
       }
     } catch (error: any) {
       Sentry.captureException(error);
@@ -366,36 +368,6 @@ const LogAttendance: React.FC = () => {
           {isListening ? 'Listening for Attendance' : 'Not Listening'}
         </Text>
 
-        <VStack space="sm">
-
-        <Text size="lg" className="text-center">
-          Listening Strength
-        </Text>
-
-        <RadioGroup value={listeningStrength}>
-          <HStack space="md" className="items-center justify-center">
-          <Radio isDisabled={isListening} onPress={()=>setStrength("1")} value="1" size="md" isInvalid={false}>
-            <RadioIndicator>
-              <RadioIcon as={CircleIcon} />
-            </RadioIndicator>
-            <RadioLabel>High Power</RadioLabel>
-          </Radio>
-          <Radio isDisabled={isListening} onPress={()=>setStrength("2")} value="2" size="md" isInvalid={false}>
-            <RadioIndicator>
-              <RadioIcon as={CircleIcon} />
-            </RadioIndicator>
-            <RadioLabel>Balanced</RadioLabel>
-          </Radio>
-          <Radio isDisabled={isListening} onPress={()=>setStrength("3")} value="3" size="md" isInvalid={false}>
-            <RadioIndicator>
-              <RadioIcon as={CircleIcon} />
-            </RadioIndicator>
-            <RadioLabel>Efficiency</RadioLabel>
-          </Radio>
-          </HStack>
-        </RadioGroup>
-        </VStack>
-
         <Button
           onPress={toggleListening}
 
@@ -505,9 +477,72 @@ const LogAttendance: React.FC = () => {
           </AlertDialog>
         )}
 
+{Platform.OS === 'android' && (
+          
+            <Accordion
+              size="md"
+              variant="filled"
+              type="single"
+              isCollapsible={true}
+              isDisabled={false}
+              className="m-5 w-[90%] border border-outline-200"
+            >
+              <AccordionItem value="a">
+                <AccordionHeader>
+                  <AccordionTrigger>
+                    {({ isExpanded }) => {
+                      return (
+                        <>
+                          <AccordionTitleText>
+                            Having trouble detecting meetings?
+                          </AccordionTitleText>
+                          {isExpanded ? (
+                            <AccordionIcon as={ChevronUpIcon} className="ml-3" />
+                          ) : (
+                            <AccordionIcon as={ChevronDownIcon} className="ml-3" />
+                          )}
+                        </>
+                      )
+                    }}
+                  </AccordionTrigger>
+                </AccordionHeader>
+                <AccordionContent>
+                  <Text size="lg" className="text-center">
+                    Try changing the listening mode.
+                  </Text>
+                  <Text size="sm" className="text-center">
+                    Main is the most reliable option, but if you're having trouble, try Alternative.
+                  </Text>
+
+                  <RadioGroup value={listeningType.toString()}>
+                    <HStack space="md" className="items-center justify-center">
+                      <Radio isDisabled={isListening} onPress={() => setType(0)} value="0" size="md" isInvalid={false}>
+                        <RadioIndicator>
+                          <RadioIcon as={CircleIcon} />
+                        </RadioIndicator>
+                        <RadioLabel>Main</RadioLabel>
+                      </Radio>
+                      <Radio isDisabled={isListening} onPress={() => setType(1)} value="1" size="md" isInvalid={false}>
+                        <RadioIndicator>
+                          <RadioIcon as={CircleIcon} />
+                        </RadioIndicator>
+                        <RadioLabel>Alternative</RadioLabel>
+                      </Radio>
+                    </HStack>
+                  </RadioGroup>
+                </AccordionContent>
+              </AccordionItem>
+              <Divider />
+            </Accordion>
+          
+
+        )}
+
         {/* Permission Status Popup */}
         <PermissionStatusPopup visible={isPopupVisible} onClose={closePermissionPopup} />
       </VStack>
+
+      
     </ScrollView>
   );
 };

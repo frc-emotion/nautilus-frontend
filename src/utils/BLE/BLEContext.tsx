@@ -212,7 +212,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  const startListening = async (mode:number) => {
+  const startListening = async (mode : number) => {
     if (bluetoothState !== 'poweredOn') {
       openToast({
         title: 'Bluetooth Required',
@@ -262,7 +262,7 @@ export const BLEProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const startBroadcasting = async (uuid: string, major: number, minor: number, title: string) => {
+  const startBroadcasting = async (uuid: string, major: number, minor: number, title: string, advertiseMode: number = 2, txPowerLevel: number = 3) => {
     if (bluetoothState !== 'poweredOn') {
       openToast({
         title: 'Bluetooth Required',

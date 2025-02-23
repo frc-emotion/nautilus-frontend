@@ -26,6 +26,11 @@ import { Pressable } from '@/components/ui/pressable';
 import { View } from '@/components/ui/view';
 import * as Sentry from '@sentry/react-native';
 import PermissionStatusPopup from '@/src/components/PermissionStatusPopup';
+import { HStack } from '@/components/ui/hstack';
+import { Radio, RadioGroup, RadioIcon, RadioIndicator, RadioLabel } from '@/components/ui/radio';
+import { ChevronDownIcon, ChevronUpIcon, CircleIcon } from '@/components/ui/icon';
+import { Accordion, AccordionItem, AccordionHeader, AccordionTrigger, AccordionTitleText, AccordionIcon, AccordionContent } from '@/components/ui/accordion';
+import { Divider } from '@/components/ui/divider';
 
 const DEBUG_PREFIX = '[BroadcastAttendancePortal]';
 
@@ -59,6 +64,7 @@ const BroadcastAttendancePortal: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
   const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
+  const [broadcastingType, setBroadcastingType] = useState<number>(1); // 0 for low power, 1 for balanced, 2 for high power
 
 
   useEffect(() => {
@@ -163,7 +169,24 @@ const BroadcastAttendancePortal: React.FC = () => {
 
         log('Starting broadcasting', { APP_UUID, majorValue, minorValue });
 
-        await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeeting.title);
+        if (broadcastingType === 0) { 
+          // Low Power
+          // ADVERTISE_MODE_LOW_POWER = 0
+          // ADVERTISE_TX_POWER_LOW = 1
+          await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeeting.title, 0, 1);
+        } else if (broadcastingType === 1) {
+          // Balanced
+          // ADVERTISE_MODE_BALANCED = 1
+          // ADVERTISE_TX_POWER_MEDIUM = 2
+          await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeeting.title, 1, 2);
+        } else {
+          // High Power
+          // ADVERTISE_MODE_LOW_LATENCY = 2
+          // ADVERTISE_TX_POWER_HIGH = 3
+          await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeeting.title, 2, 3);
+        }
+        
+
       }
     } catch (error: any) {
       Sentry.captureException(error);
@@ -263,11 +286,70 @@ const BroadcastAttendancePortal: React.FC = () => {
           )}
 
           {/* Broadcasting Status */}
-          <Text className="font-bold text-xl text-center mt-4">
+          <Text className="font-bold text-xl text-center mt-2">
             {isBroadcasting
               ? `Broadcasting: ${selectedMeeting?.title}`
               : 'Not Broadcasting'}
           </Text>
+
+          {/* Broadcasting Type */}
+          {Platform.OS === 'android' && (
+          
+          <Accordion
+            size="md"
+            variant="filled"
+            type="single"
+            isCollapsible={true}
+            isDisabled={false}
+            className="m-5 mt-1 mb-1 w-[90%] border border-outline-200"
+          >
+            <AccordionItem value="a" className='rounded-lg'>
+              <AccordionHeader>
+                <AccordionTrigger>
+                  {({ isExpanded }) => {
+                    return (
+                      <>
+                        <AccordionTitleText>
+                          Broadcasting Strength
+                        </AccordionTitleText>
+                        {isExpanded ? (
+                          <AccordionIcon as={ChevronUpIcon} className="ml-3" />
+                        ) : (
+                          <AccordionIcon as={ChevronDownIcon} className="ml-3" />
+                        )}
+                      </>
+                    )
+                  }}
+                </AccordionTrigger>
+              </AccordionHeader>
+              <AccordionContent>
+          <RadioGroup value={broadcastingType.toString()}>
+                    <HStack space="md" className="items-center justify-center">
+                      <Radio isDisabled={isBroadcasting} onPress={() => setBroadcastingType(0)} value="0" size="md" isInvalid={false}>
+                        <RadioIndicator>
+                          <RadioIcon as={CircleIcon} />
+                        </RadioIndicator>
+                        <RadioLabel>Low Power</RadioLabel>
+                      </Radio>
+                      <Radio isDisabled={isBroadcasting} onPress={() => setBroadcastingType(1)} value="1" size="md" isInvalid={false}>
+                        <RadioIndicator>
+                          <RadioIcon as={CircleIcon} />
+                        </RadioIndicator>
+                        <RadioLabel>Balanced</RadioLabel>
+                      </Radio>
+                      <Radio isDisabled={isBroadcasting} onPress={() => setBroadcastingType(2)} value="2" size="md" isInvalid={false}>
+                        <RadioIndicator>
+                          <RadioIcon as={CircleIcon} />
+                        </RadioIndicator>
+                        <RadioLabel>High Power</RadioLabel>
+                      </Radio>
+                    </HStack>
+                  </RadioGroup>
+                  </AccordionContent>
+              </AccordionItem>
+              <Divider />
+            </Accordion>
+          )}
 
           {/* Search Input */}
           <Input variant="outline" size="md" className="mt-4">

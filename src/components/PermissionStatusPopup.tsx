@@ -143,7 +143,7 @@ const PermissionStatusPopup: React.FC<PermissionStatusPopupProps> = ({ visible, 
             </View>
           )}
         </AlertDialogBody>
-        <AlertDialogFooter className="flex-row justify-end space-x-2">
+        <AlertDialogFooter className="flex-row flex-wrap justify-end space-x-2">
           <Button variant="outline" onPress={onClose} className="px-4 py-2">
             <Text>Close</Text>
           </Button>
