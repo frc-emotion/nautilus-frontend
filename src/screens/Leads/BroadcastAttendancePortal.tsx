@@ -240,8 +240,12 @@ const BroadcastAttendancePortal: React.FC = () => {
     const eligibleMeetings = meetings.filter(
       (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
     );
-    setValidMeetings(eligibleMeetings);
-    setFilteredMeetings(eligibleMeetings); // Update filteredMeetings when validMeetings change
+    // Dont show meetings with field 'parent' as non null
+
+    const filteredMeetings = eligibleMeetings.filter((meeting) => !meeting.parent);
+
+    setValidMeetings(filteredMeetings);
+    setFilteredMeetings(filteredMeetings); // Update filteredMeetings when validMeetings change
   }, [meetings]);
 
   const openPermissionPopup = () => {
@@ -386,6 +390,7 @@ const BroadcastAttendancePortal: React.FC = () => {
                   <Pressable
                     key={meeting._id}
                     onPress={() => setSelectedMeeting(meeting)}
+                    disabled={isBroadcasting}
                   >
                     <Card
                       variant={selectedMeeting?._id === meeting._id ? 'filled' : 'outline'}
@@ -406,16 +411,18 @@ const BroadcastAttendancePortal: React.FC = () => {
                         {selectedMeeting && selectedMeeting === meeting && (
                           <View className="flex flex-col items-end ml-4">
                             <Button
+                              isDisabled={isBroadcasting}
                               onPress={() => setBroadcastMeetingMode('full')}
-                              className={`px-4 py-2 mb-2 rounded-lg ${broadcastMeetingMode === 'full' ? 'bg-blue-500' : 'bg-gray-300'
+                              className={`px-4 py-2 mb-2 rounded-lg ${broadcastMeetingMode === 'full' ? 'bg-blue-500' : 'bg-gray-400'
                                 }`}
                             >
                               <ButtonText>Full</ButtonText>
                             </Button>
 
                             <Button
+                              isDisabled={isBroadcasting}
                               onPress={() => setBroadcastMeetingMode('half')}
-                              className={`px-4 py-2 rounded-lg ${broadcastMeetingMode === 'half' ? 'bg-blue-500' : 'bg-gray-300'
+                              className={`px-4 py-2 rounded-lg ${broadcastMeetingMode === 'half' ? 'bg-blue-500' : 'bg-gray-400'
                                 }`}
                             >
                               <ButtonText>Half</ButtonText>

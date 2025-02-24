@@ -305,6 +305,7 @@ export interface MeetingObject {
     time_end: number;
     time_start: number;
     title: string;
+    parent: number | null;
 }
 
 export interface AuthContextType {

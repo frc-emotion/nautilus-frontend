@@ -241,7 +241,7 @@ const HomeScreen: React.FC = () => {
                                         {selectedYear === 'All Years' ? 'All Years' : selectedYear} {selectedTerm !== 'All Terms' ? `Term ${selectedTerm}` : ''}
                                     </Text>
                                     <Text className="text-center mb-2">
-                                        You have completed {Math.trunc(totalHours)} out of 36 hours of attendance for this period.
+                                        You have completed {Math.round(totalHours)} out of 36 hours of attendance for this period.
                                     </Text>
                                     <HStack className="items-center justify-center">
                                         <Progress value={(totalHours / 36) * 100} className="w-80 h-2">
