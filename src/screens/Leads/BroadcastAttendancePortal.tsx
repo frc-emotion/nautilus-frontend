@@ -394,41 +394,40 @@ const BroadcastAttendancePortal: React.FC = () => {
                   >
                     <Card
                       variant={selectedMeeting?._id === meeting._id ? 'filled' : 'outline'}
-                      className={`p-4 mb-3 rounded-lg border`}
+                      className="p-4 mb-3 rounded-lg border"
                     >
-                      {/* Row container for details on the left, buttons on the right */}
-                      <View className="flex flex-row justify-between items-center">
-                        {/* Meeting details (left side) */}
-                        <View className="flex flex-col">
+                      {/* Container for all details */}
+                      <View className="flex flex-col">
+                        {/* Row: Title on the left, Buttons on the right */}
+                        <View className="flex flex-row justify-between items-center">
                           <Text className="text-lg font-semibold">{meeting.title}</Text>
-                          <Text className="text-sm mt-1">{meeting.location}</Text>
-                          <Text className="text-sm mt-1">
-                            {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
-                          </Text>
+
+                          {selectedMeeting && selectedMeeting === meeting && (
+                            <View className="flex flex-row space-x-2 ml-4 gap-2">
+                              <Button
+                                isDisabled={isBroadcasting}
+                                onPress={() => setBroadcastMeetingMode('full')}
+                                className={`px-3 py-2 ${broadcastMeetingMode === 'full' ? 'bg-blue-500' : 'bg-gray-400'}`}
+                              >
+                                <ButtonText>Full</ButtonText>
+                              </Button>
+
+                              <Button
+                                isDisabled={isBroadcasting}
+                                onPress={() => setBroadcastMeetingMode('half')}
+                                className={`px-3 py-2 ${broadcastMeetingMode === 'half' ? 'bg-blue-500' : 'bg-gray-400'}`}
+                              >
+                                <ButtonText>Half</ButtonText>
+                              </Button>
+                            </View>
+                          )}
                         </View>
 
-                        {/* Show Full/Half buttons only if this card is the selected meeting */}
-                        {selectedMeeting && selectedMeeting === meeting && (
-                          <View className="flex flex-col items-end ml-4">
-                            <Button
-                              isDisabled={isBroadcasting}
-                              onPress={() => setBroadcastMeetingMode('full')}
-                              className={`px-4 py-2 mb-2 rounded-lg ${broadcastMeetingMode === 'full' ? 'bg-blue-500' : 'bg-gray-400'
-                                }`}
-                            >
-                              <ButtonText>Full</ButtonText>
-                            </Button>
-
-                            <Button
-                              isDisabled={isBroadcasting}
-                              onPress={() => setBroadcastMeetingMode('half')}
-                              className={`px-4 py-2 rounded-lg ${broadcastMeetingMode === 'half' ? 'bg-blue-500' : 'bg-gray-400'
-                                }`}
-                            >
-                              <ButtonText>Half</ButtonText>
-                            </Button>
-                          </View>
-                        )}
+                        {/* Location & Time below */}
+                        <Text className="text-sm mt-2">{meeting.location}</Text>
+                        <Text className="text-sm mt-1">
+                          {formatDateTime(meeting.time_start)} - {formatDateTime(meeting.time_end)}
+                        </Text>
                       </View>
                     </Card>
                   </Pressable>

@@ -30,7 +30,6 @@
         },
         "android": {
             "package": "org.team2658.nautilus",
-            "minSdkVersion": 26,
             "permissions": [
                 "android.permission.INTERNET",
                 "android.permission.ACCESS_COARSE_LOCATION",

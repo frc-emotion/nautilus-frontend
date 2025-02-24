@@ -140,7 +140,7 @@ function AppContent() {
 }
 
 function App() {
-  return AppState.currentState === 'active' && <ThemeProvider><AppContent /></ThemeProvider>;
+  return <ThemeProvider><AppContent /></ThemeProvider>;
 }
 
 export default Sentry.wrap(App);
