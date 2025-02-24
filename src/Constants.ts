@@ -186,6 +186,7 @@ export interface MeetingsContextProps {
     selectedMeeting: MeetingObject | null;
     setSelectedMeeting: (meeting: MeetingObject | null) => void;
     init: () => Promise<void>;
+    getChildMeeting: (parentId: number) => MeetingObject | undefined;
 }
 
 export interface LocationContextProps {

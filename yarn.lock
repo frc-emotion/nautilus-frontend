@@ -8875,11 +8875,6 @@ react-native-screens@3.31.1:
     react-freeze "^1.0.0"
     warn-once "^0.1.0"
 
-react-native-ssl-public-key-pinning@^1.2.5:
-  version "1.2.5"
-  resolved "https://registry.yarnpkg.com/react-native-ssl-public-key-pinning/-/react-native-ssl-public-key-pinning-1.2.5.tgz#06d142c4016e6600da1464838d5907289586712b"
-  integrity sha512-P0JSaSOPBNtYLoXopCkbRUJTQ09VdeorLgGgM4Z7WxOHH0UmtjuLdDl3USWV6hszQujoyPgnIInPZsSRu+yS9w==
-
 react-native-svg@15.2.0:
   version "15.2.0"
   resolved "https://registry.yarnpkg.com/react-native-svg/-/react-native-svg-15.2.0.tgz#9561a6b3bd6b44689f437ba13182afee33bd5557"

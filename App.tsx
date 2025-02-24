@@ -22,6 +22,7 @@ import { UpdateProvider } from "./src/utils/Context/UpdateContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 // import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
 import { NetworkingProvider } from "./src/utils/Context/NetworkingContext";
+import { AppState } from "react-native";
 // import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
 
 // initializeSslPinning({
@@ -139,13 +140,7 @@ function AppContent() {
 }
 
 function App() {
-  return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
-
-  );
+  return AppState.currentState === 'active' && <ThemeProvider><AppContent /></ThemeProvider>;
 }
-
 
 export default Sentry.wrap(App);

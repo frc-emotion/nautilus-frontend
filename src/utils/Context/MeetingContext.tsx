@@ -138,6 +138,11 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user, fetchMeetings, openToast]);
 
+  // Helper to get a child (half) meeting for a given parent meeting ID
+  const getChildMeeting = useCallback((parentId: number): MeetingObject | undefined => {
+    return meetings.find((meeting) => meeting.parent === parentId);
+  }, [meetings]);
+
   const value = useMemo(() => ({
     meetings,
     isLoadingMeetings,
@@ -145,7 +150,8 @@ export const MeetingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     selectedMeeting,
     setSelectedMeeting,
     init,
-  }), [meetings, isLoadingMeetings, fetchMeetings, selectedMeeting, init]);
+    getChildMeeting, // <-- Expose the helper
+  }), [meetings, isLoadingMeetings, fetchMeetings, selectedMeeting, init, getChildMeeting]);
 
   return (
     <MeetingsContext.Provider value={value}>
