@@ -61,6 +61,7 @@
     "eas-cli": "^14.3.0",
     "expo": "~51.0.39",
     "expo-application": "~5.9.1",
+    "expo-build-properties": "~0.12.5",
     "expo-constants": "~16.0.2",
     "expo-dev-client": "~4.0.29",
     "expo-device": "~6.0.2",

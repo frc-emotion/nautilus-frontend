@@ -3,7 +3,7 @@
         "name": "Nautilus",
         "slug": "nautilus",
         "scheme": "nautilus",
-        "version": "3.0.1",
+        "version": "3.0.2",
         "platforms": [
             "ios",
             "android"
@@ -54,8 +54,15 @@
                     "project": "nautilus-app",
                     "url": "https://sentry.io/"
                 }
+            ],
+            [
+                "expo-build-properties",
+                {
+                  "android": {
+                    "minSdkVersion": 26
+                  }
+                }
             ]
-        
         ]
     }
 }
