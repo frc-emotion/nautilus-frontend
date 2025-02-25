@@ -38,8 +38,10 @@ import { Divider } from "@/components/ui/divider";
 
 const ScoutingForm: React.FC = () => {
     const { colorMode } = useThemeContext();
+    const { openToast } = useGlobalToast();
     const [selectedCoralLevel, setSelectedCoralLevel] = useState<number>(1);
     const [selectedAlgaePickup, setSelectedAlgaePickup] = useState<number>(1);
+    const [isSubmitting, setSubmitting] = useState<boolean>(false);
 
     type FormValues = {
         competition: string;
@@ -47,8 +49,7 @@ const ScoutingForm: React.FC = () => {
         matchNumber: number;
         score: number;
         penaltyPointsEarned: number;
-        won: boolean;
-        tied: boolean;
+        won: number;
         comments: string;
         defensive: boolean;
         brokeDown: boolean;
@@ -67,10 +68,7 @@ const ScoutingForm: React.FC = () => {
           humanPlayer: boolean;
           coralLevel:string[];
         };
-        climb: {
-          shallowCage: boolean;
-          deepCage: boolean;
-        };
+        climb: string;
       };
     const {
         control,
@@ -86,42 +84,41 @@ const ScoutingForm: React.FC = () => {
                 "teamNumber": 0,
                 "matchNumber": 0,
                 "score": 0,
-                "penaltyPointsEarned": 0,
-                "won": false,
-                "tied": false, 
+                "won": 0, // 0 = tied, -1 = lost, 1 = won
                 "comments": "",
                 "defensive": false,
                 "brokeDown": false,
                 "rankingPoints": 0,
                 "auto": {
                     "leave": false,
-                    "coral": [0,0,0,0], // l1,l2,l3,l4
+                    "coral": [0,0,0,0], // [l1, l2, l3, l4]
                     "algae": [0,0], // [human player, ground intake]
                     "humanPlayer": false, // did the human player interact during auto
                     "coralLevel": [], //1,2,3,4
                 },
                 "teleop": {
                     "leave":false,
-                    "coral":[0,0,0,0], // l1,l2,l3,l4
+                    "coral":[0,0,0,0], // [l1, l2, l3, l4]
                     "algae": [0,0], // [human player, ground intake]
                     "humanPlayer": false,
-                    "coralLevel": [],
+                    "coralLevel": [], //1,2,3,4
                 },
-                "climb":{
-                    "shallowCage":false,
-                    "deepCage":false,
-                }
-                // "stage": {
-                //     "state": "NOT_PARKED", //"NOT_PARKED" | "PARKED" | "ONSTAGE" | "ONSTAGE_SPOTLIT"
-                //     "harmony": 0,
-                //     "trapNotes": 0,
-                // },
-            //     "ranking": {
-            //         "melody": false,
-            //         "ensemble": false              
-            // }
+                "climb": "N/A", // "SHALLOW_CAGE, DEEP_CAGE, PARK, N/A
         },
       });
+
+
+    const onError = (errors: FieldErrors) => {
+        console.error("Validation errors:", errors);
+        const firstError = Object.values(errors)[0];
+        if (firstError && "message" in firstError) {
+            openToast({
+            title: "Validation Error",
+            description: (firstError as { message: string }).message,
+            type: "error",
+            });
+        }
+        };
 
     
     const handleIncrease = (field: string, selected: number) => {
@@ -143,37 +140,6 @@ const ScoutingForm: React.FC = () => {
         // }
         console.log(getValues(field));
     };
-    const toggleField = (field: string) => {
-        const currentValue=watch(field);
-        if (typeof currentValue === "boolean"){
-            setValue(field, !currentValue);
-        }
-        console.log(getValues(field));
-    };
-
-
-
-    const handleCoralLevelChange = (time: string, level: string)=>{
-        if (time==="auto"){
-            let levels = getValues("auto.coralLevel") || []
-            if (levels.includes(level)){
-                setValue("auto.coralLevel",levels.filter((lvl) => lvl !== level));
-            }
-            else{
-                setValue("auto.coralLevel",[...levels,level]);
-            }
-        }
-        else{
-            let levels = getValues("teleop.coralLevel") || []
-            if (levels.includes(level)){
-                setValue("teleop.coralLevel",levels.filter((lvl) => lvl !== level));
-            }
-            else{
-                setValue("teleop.coralLevel",[...levels,level]);
-            }
-        }
-
-    }
 
     return (
     <KeyboardAvoidingView
@@ -205,7 +171,7 @@ const ScoutingForm: React.FC = () => {
                     isCollapsible={true}
                     isDisabled={false}
                     className="w-[100%] border border-outline-50"
-                    defaultValue={["a","b","c"]}
+                    defaultValue={["a","b","c","d"]}
                 >
 
                 
@@ -271,7 +237,7 @@ const ScoutingForm: React.FC = () => {
                             <InputField
                                 inputMode="numeric"                                
                                 placeholder="2658"
-                                value={value}
+                                value={value.toString()}
                                 onChangeText={onChange}
                                 autoCorrect={false}
                             />
@@ -303,7 +269,7 @@ const ScoutingForm: React.FC = () => {
                             <InputField
                                 inputMode="numeric"                                
                                 placeholder="0"
-                                value={value}
+                                value={value.toString()}
                                 onChangeText={onChange}
                                 autoCorrect={false}
                             />
@@ -502,94 +468,6 @@ const ScoutingForm: React.FC = () => {
                 </AccordionContent>
       </AccordionItem>
       <Divider />
-                {/* <HStack space="xl">
-
-                <VStack space="lg" className="w-1/2 items-center">
-                <Text size="xl" className="">Human Player</Text>
-
-                <VStack space="sm" className="w-2/3">
-                <Pressable
-                    onPress={()=>setValue("auto.humanPlayer",true)}
-                    className={`rounded items-center justify-center ${!watch("auto.humanPlayer") ? 'bg-gray-500' : 'bg-blue-500'}`}
-                    style={{ height: 50, width: 150 }}
-                >
-                    <Text className="text-typography-0">Feed</Text>
-                </Pressable>
-                <Pressable
-                    onPress={()=>setValue("auto.humanPlayer",false)}
-                    className={`rounded items-center justify-center ${watch("auto.humanPlayer") ? 'bg-gray-500' : 'bg-blue-500'}`}
-                    style={{ height: 50, width: 150 }}
-                >
-                    <Text className="text-typography-0">No Feed</Text>
-                </Pressable>
-                </VStack>
-                </VStack>
-                
-                <VStack space="sm" className="w-1/2 items-center">
-
-                <Text size="xl" className="self-center">Coral Scoring</Text>
-                
-                {/* <CheckboxGroup value={[]}> */}
-                    {/* <HStack space="sm"> */}
-
-                    {/* <VStack space="sm">
-                        
-                        <Checkbox value="1"
-                                onChange={(isSelected)=>handleCoralLevelChange("auto","1")}
-                                size="lg">
-                        <CheckboxIndicator>
-                        <CheckboxIcon as={CheckIcon}/>
-                            {/* {watch("auto.coralLevel")?.includes("1") && (<CheckIcon />)} */}
-                        {/* </CheckboxIndicator>
-                        <CheckboxLabel><Text size="xl">Level 1</Text></CheckboxLabel>
-                        </Checkbox>
-
-                        <Checkbox value="2"
-                        size="lg"
-                            onChange={(isSelected)=>{handleCoralLevelChange("auto","2");
-                            }}>
-                        <CheckboxIndicator>
-                            <CheckboxIcon as={CheckIcon}/>
-                            {/* {watch("auto.coralLevel")?.includes("2") && (<CheckIcon />)} */}
-                        {/* </CheckboxIndicator>
-                        <CheckboxLabel><Text size="xl">Level 2</Text></CheckboxLabel>
-                        </Checkbox> */}
-                    {/* </VStack>
-
-                    <VStack space="sm"> */}
-
-                        {/* <Checkbox value="3"
-                        size="lg"
-                                onChange={(isSelected) => handleCoralLevelChange("auto","3")}>
-                        <CheckboxIndicator>
-                        <CheckboxIcon as={CheckIcon}/>
-                            {/* {watch("auto.coralLevel")?.includes("3") && (<CheckIcon />)} */}
-                        {/* </CheckboxIndicator>
-                        <CheckboxLabel><Text size="xl">Level 3</Text></CheckboxLabel>
-                        </Checkbox>
-
-                        <Checkbox value="4"
-                        size="lg"
-                                onChange={(isSelected)=>handleCoralLevelChange("auto","4")}
-                                >
-                        <CheckboxIndicator>
-                        <CheckboxIcon as={CheckIcon}/>
-                            {/* {watch("auto.coralLevel")?.includes("4") && (<CheckIcon />)} */}
-                        {/* </CheckboxIndicator>
-                        <CheckboxLabel><Text size="xl">Level 4</Text></CheckboxLabel>
-                        </Checkbox>
-
-                    </VStack> */}
-
-                    {/* </HStack> */}
-                {/* </CheckboxGroup> */}
-                {/*</VStack>
-
-                </HStack> */}
-
-                {/* End Auto */}
-
-
 
                 {/* Start Teleop */}
                 <AccordionItem value="b">
@@ -763,13 +641,13 @@ const ScoutingForm: React.FC = () => {
                 <RadioGroup>
                     <HStack space="3xl">
                     <VStack space="md">
-                    <Radio value="a" size="lg" isInvalid={false} isDisabled={false}>
+                    <Radio onPress={() => setValue("climb", "SHALLOW_CAGE")} value="a" size="lg" isInvalid={false} isDisabled={false}>
                         <RadioIndicator>
                         <RadioIcon as={CircleIcon} />
                         </RadioIndicator>
                         <RadioLabel><Text size="xl">Shallow Cage</Text></RadioLabel>
                     </Radio>
-                    <Radio value="b" size="lg" isInvalid={false} isDisabled={false}>
+                    <Radio onPress={() => setValue("climb", "DEEP_CAGE")} value="b" size="lg" isInvalid={false} isDisabled={false}>
                         <RadioIndicator>
                         <RadioIcon as={CircleIcon} />
                         </RadioIndicator>
@@ -777,13 +655,13 @@ const ScoutingForm: React.FC = () => {
                     </Radio>
                     </VStack>
                     <VStack space="md">
-                    <Radio value="c" size="lg" isInvalid={false} isDisabled={false}>
+                    <Radio onPress={() => setValue ("climb", "PARK")} value="c" size="lg" isInvalid={false} isDisabled={false}>
                         <RadioIndicator>
                         <RadioIcon as={CircleIcon} />
                         </RadioIndicator>
                         <RadioLabel><Text size="xl">Park</Text></RadioLabel>
                     </Radio>
-                    <Radio value="d" size="lg" isInvalid={false} isDisabled={false}>
+                    <Radio onPress={() => setValue("climb","N/A")} value="d" size="lg" isInvalid={false} isDisabled={false}>
                         <RadioIndicator>
                         <RadioIcon as={CircleIcon} />
                         </RadioIndicator>
@@ -805,7 +683,7 @@ const ScoutingForm: React.FC = () => {
 
 
 
-                <AccordionItem value="e">
+                <AccordionItem value="d">
                     <AccordionHeader>
                     <AccordionTrigger>
                         {({ isExpanded }) => {
@@ -826,12 +704,95 @@ const ScoutingForm: React.FC = () => {
                     </AccordionHeader>
                     <AccordionContent>
 
+                        <VStack className="items-center" space="sm">
+                        <Text size="3xl" className="self-center color-black">Postmatch</Text>
+                        <HStack className="w-full">
+                        <VStack className="w-1/2" space="sm">
+                        <Text size="xl">Playstyle (optional)</Text>
+                            <CheckboxGroup>
+                                <VStack className="justify-center" space="lg">                                    
+                                    <Checkbox value="1"
+                                            onChange={(isSelected)=>setValue("defensive",!getValues("defensive"))}
+                                            size="lg">
+                                    <CheckboxIndicator>
+                                        <CheckboxIcon as={CheckIcon} />
+                                    </CheckboxIndicator>
+                                    <CheckboxLabel>Defensive</CheckboxLabel>
+                                    </Checkbox>
+
+                                    <Checkbox value="2"
+                                    size="lg"
+                                        onChange={(isSelected)=>setValue("defensive",!getValues("defensive"))}>
+                                    <CheckboxIndicator>
+                                        <CheckboxIcon as={CheckIcon} />
+                                    </CheckboxIndicator>
+                                    <CheckboxLabel>Broke Down</CheckboxLabel>
+                                    </Checkbox>
+                            </VStack>
+                            </CheckboxGroup>
+                        </VStack>
+                        <VStack className="w-1/2 h-full" space="sm">
+                        <Text size="xl">Ranking Points</Text>
+                            <Controller
+                                control={control}
+                                name="rankingPoints"
+                                rules={{
+                                    required: "Ranking points are required",
+                                    pattern: {
+                                        value: /^(100|[1-9]?[0-9])$/,
+                                        message: "The ranking points must be numeric.",
+                                    },
+                                }}
+                                render={({ field: { onChange, value } }) => (
+                                    <Input size="md" className="rounded">
+                                        <InputField
+                                            inputMode="numeric"                                
+                                            placeholder="0"
+                                            value={value.toString()}
+                                            onChangeText={onChange}
+                                            autoCorrect={false}
+                                        />
+                                    </Input>
+                                )}
+                            />
+                        </VStack>
+                        </HStack>
+
+                        <Text size="xl">Outcome</Text>
+
+                        <HStack space="md">
+                            <Pressable onPress={() => setValue("won",1)} className={`items-center justify-center w-1/4 bg-green-500 rounded ${watch("won") === 1 ? "border-2" : "" }`}>
+                                <Text className="p-4">Win</Text>
+                            </Pressable>
+                            <Pressable onPress={() => setValue("won",0)} className={`items-center justify-center w-1/4 bg-gray-300 rounded ${watch("won") === 0 ? "border-2" : "" }`}>
+                                <Text className="p-4">Draw</Text>
+                            </Pressable>
+                            <Pressable onPress={() => setValue("won",-1)} className={`items-center justify-center w-1/4 bg-red-500 rounded ${watch("won") === -1 ? "border-2" : "" }`}>
+                                <Text className="p-4">Loss</Text>
+                            </Pressable>
+                        </HStack>
+
+                        </VStack>
+
+
                     </AccordionContent>
                 </AccordionItem>
 
                 </Accordion>
-                
 
+                <Button
+                    onPress={handleSubmit(()=>{})}
+                    size="lg"
+                    className="mt-4 py-2 rounded-md w-1/2 max-w-md self-center"
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? (
+                    <ActivityIndicator size="small" />
+                    ) : (
+                    <ButtonText className="font-semibold text-lg">Submit</ButtonText>
+                    )}
+                </Button>
+                
                 
 
               </VStack>
