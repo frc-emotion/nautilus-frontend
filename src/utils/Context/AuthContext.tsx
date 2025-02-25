@@ -10,6 +10,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { validateToken } = useNetworking();
   const [user, setUser] = useState<UserObject | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  const refreshInProgress = useRef(false);
 
   const hasInitializedAuth = useRef(false);
 
@@ -26,6 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const initializeAuth = useCallback(async () => {
+    console.log("AuthProvider: Initializing...");
     if (hasInitializedAuth.current) return; 
     hasInitializedAuth.current = true;
     try {
@@ -72,12 +75,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [clearAuthData]);
 
   const refreshUser = useCallback(async () => {
+    if (refreshInProgress.current) {
+      // A refresh is already in progress—exit early.
+      return;
+    }
+    refreshInProgress.current = true;
+    console.log("AuthProvider: Refreshing user...");
+  
+    // Check if there's a token to refresh
     if (!user?.token) {
       console.warn("AuthProvider: No token available for refreshing user.");
       await clearAuthData();
+      refreshInProgress.current = false;
       return;
     }
-
+  
     try {
       const updatedUser = await validateToken(user.token);
       if (updatedUser) {
@@ -91,9 +103,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       Sentry.captureException(error);
       console.error("AuthProvider: Error refreshing user:", error);
       await clearAuthData();
+    } finally {
+      refreshInProgress.current = false;
     }
-  }, [user, validateToken, clearAuthData]);
-
+  }, [user?.token, validateToken, clearAuthData]);
   const value = useMemo(() => ({
     user,
     isLoggedIn: !!user?.token,

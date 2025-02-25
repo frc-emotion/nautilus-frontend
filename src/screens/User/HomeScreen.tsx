@@ -67,7 +67,7 @@ const HomeScreen: React.FC = () => {
 
     useEffect(() => {
         handleRefresh();
-    }, [user]);
+    }, []);
 
     useEffect(() => {
         // Update term options based on selected year
