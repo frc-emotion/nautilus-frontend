@@ -2,6 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screens/User/HomeScreen";
 import AttendanceHistoryScreen from "../screens/User/AttendanceHistoryScreen";
+import ScoutingForm from "../screens/User/ScoutingForm";
 import { Roles } from "../Constants";
 import RoleBasedHeaderButton from "../components/RoleBasedHeaderButton";
 import { useTheme } from "../utils/UI/CustomThemeProvider";
@@ -30,6 +31,14 @@ const HomeStackNavigator: React.FC = () => {
                 style={{color: theme === "light" ? "black" : "white" }}
               />
             ),
+            headerLeft: () => (
+              <RoleBasedHeaderButton
+                onPress={() => navigation.navigate("ScoutingForm")}
+                title="Scouting Form"
+                requiredRoles={[Roles.Member, Roles.Leadership, Roles.Executive, Roles.Admin]}
+                style={{color: theme === "light" ? "black" : "white" }}
+              />
+            ),
           })}
         />
       )}
@@ -53,6 +62,16 @@ const HomeStackNavigator: React.FC = () => {
           title: "Attendance History",
         }}
       />
+
+      <Stack.Screen
+        name="ScoutingForm"
+        component={ScoutingForm}
+        options={{
+          headerTitleAlign: "center",
+          title: "Scouting Form",
+        }}
+      />
+
     </Stack.Navigator>
   );
 };
