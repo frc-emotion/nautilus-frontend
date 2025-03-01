@@ -34,16 +34,80 @@ import { CheckCircleIcon, CheckIcon, ChevronUpIcon, CircleIcon } from "@/compone
 import { Radio, RadioGroup, RadioIcon, RadioIndicator, RadioLabel } from "@/components/ui/radio";
 import { Accordion, AccordionContent, AccordionHeader, AccordionIcon, AccordionItem, AccordionTitleText, AccordionTrigger } from "@/components/ui/accordion";
 import { Divider } from "@/components/ui/divider";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 
 const ScoutingForm: React.FC = () => {
-    const {theme} = useTheme()
+    const {theme} = useTheme();
+    const navigation = useNavigation<StackNavigationProp<any>>();
     const { openModal } = useGlobalModal();
     const { openToast } = useGlobalToast();
     const { handleRequest } = useNetworking();
     const [selectedCoralLevel, setSelectedCoralLevel] = useState<number>(1);
     const [selectedAlgaePickup, setSelectedAlgaePickup] = useState<number>(1);
     const [isSubmitting, setSubmitting] = useState<boolean>(false);
+    const [allCompetitions, setAllCompetitions] = useState<any[]>([]);
+
+
+    const getCompetitions = async() => {
+        const request: QueuedRequest = {
+            url: "/api/scouting/competitions",
+            method: "get",
+            retryCount: 0,
+            successHandler: async (response: AxiosResponse) => {
+                const data = response.data;
+                // let formattedCompetitions = data.map((comp) => ({
+                //     label: comp.replace(/-/g, " ").replace(/\d{4}/, "").trim(),
+                //     value: comp,
+                // }));
+                setAllCompetitions(data);
+                console.log("YURRRRRR",allCompetitions);
+            },
+            errorHandler: async (error: AxiosError) => {
+                console.error("Competitions didn't fetch:", error);
+
+                handleErrorWithModalOrToast({
+                    actionName: "Fetch Competitions",
+                    error,
+                    showModal: true,
+                    showToast: true,
+                    openModal,
+                    openToast,
+                });
+            },
+            offlineHandler: async () => {
+                openToast({
+                    title: "Offline",
+                    description: "Get competitions request saved. It will be processed when you're back online.",
+                    type: "info",
+                });
+
+                openModal({
+                    title: "Offline",
+                    message: "Get competitions request saved. It will be processed when you're back online.",
+                    type: "info",
+                });
+            }
+        };
+
+        try {
+            await handleRequest(request);
+        } catch (error: any) {
+            console.error("Error during get competitions:", error);
+            openToast({
+                title: "Error",
+                description: "An error occurred while getting competitions. Please report this.",
+                type: "error",
+            });
+        } finally {
+        }
+    };
+
+    useEffect(() => {
+        getCompetitions();
+      }, []);
+    
 
     type FormValues = {
         competition: string;
@@ -75,6 +139,7 @@ const ScoutingForm: React.FC = () => {
     const {
         control,
         handleSubmit,
+        trigger,
         watch,
         reset,
         setValue,
@@ -160,6 +225,8 @@ const ScoutingForm: React.FC = () => {
                 description: "Your scouting form is submitted successfully.",
                 type: "success",
             });
+
+            navigation.replace("RoleBasedTabs", {});
 
             },
             errorHandler: async (error: AxiosError) => {
@@ -283,7 +350,7 @@ const ScoutingForm: React.FC = () => {
                 <Text size="3xl" className="self-center color-black"> General </Text>
                 <VStack className="w-1/1 pl-0.8 pr-0.8">
                 <Text className="mb-1">Competition</Text>
-                <Select className="" onValueChange={(value) => setValue("competition", value)}>
+                <Select className="" onValueChange={(value) => {setValue("competition", value); trigger("competition");}}>
                     <SelectTrigger variant="outline" size="md" >
                     <SelectInput placeholder="Select option" />
                     <SelectIcon className="ml-auto" as={ChevronDownIcon} />
@@ -294,7 +361,9 @@ const ScoutingForm: React.FC = () => {
                         <SelectDragIndicatorWrapper>
                         <SelectDragIndicator />
                         </SelectDragIndicatorWrapper>
-                        <SelectItem label="Port Hueneme Week 1 2025" value="port-hueneme-2025" isDisabled={false}/>
+                        {allCompetitions?.map((comp) => (
+  <SelectItem label={comp.label} value={comp.value} />
+))}
                     </SelectContent>
                     </SelectPortal>
                 </Select>
