@@ -70,7 +70,7 @@ export const UpdateProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const currentVersion = DeviceInfo.getVersion();
     console.log(`${DEBUG_PREFIX} Current app version: ${currentVersion}`);
 
-    const request: QueuedRequest = {
+    const request: QueuedRequest = { 
       url: '/version',
       method: 'get',
       retryCount: 0,
