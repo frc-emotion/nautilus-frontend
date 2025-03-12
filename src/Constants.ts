@@ -215,6 +215,7 @@ export interface UserObject {
     role: "unverified" | "member" | "leadership" | "executive" | "advisor" | "admin";
     created_at: string;
     flags?: UserFlag[];
+    fourpointfive?: boolean;
 };
 
 export enum TabNames {

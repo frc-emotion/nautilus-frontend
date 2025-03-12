@@ -964,6 +964,17 @@ const UserDirectoryScreen: React.FC = () => {
                   </View>
                 </View>
 
+                {['leadership', 'advisor', 'admin', 'executive'].includes(user?.role ?? '') && (
+                    <>
+                    <View className="flex flex-row justify-between mb-2">
+                      <View className="flex-1 mr-1">
+                        <Text className="font-medium">4.5 Class:</Text>
+                        <Text>{viewUser?.fourpointfive}</Text>
+                      </View>
+                      </View>
+                    </>
+                  )}
+
                 {['admin', 'executive'].includes(user?.role ?? '') && (
                   <>
                     <View className="flex flex-row justify-between mb-2">

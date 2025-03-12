@@ -215,14 +215,19 @@ const ProfileScreen: React.FC = () => {
           </HStack>
 
           <HStack className="justify-between">
-            <Text>Push Notifications</Text>
-            {/* <Text className="font-semibold">{backendHasToken}</Text> */}
-            <Text className="font-semibold">Disabled</Text>
+            <Text>Enrolled in 4.5 Class</Text>
+            <Text className="font-semibold">{displayUser?.fourpointfive}</Text>
           </HStack>
+          {/* <HStack className="justify-between">
+            <Text>Push Notifications</Text>
+            <Text className="font-semibold">Disabled</Text>
+          </HStack> */}
+
           <HStack className="justify-between">
             <Text>API</Text>
             <Text className="font-semibold">{CLEAN_API_URL}</Text>
           </HStack>
+          
           <HStack className="justify-between">
             <Text>Version</Text>
             <Text className="font-semibold">{Application.nativeApplicationVersion}</Text>
