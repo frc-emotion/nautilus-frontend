@@ -3,7 +3,7 @@
         "name": "Nautilus",
         "slug": "nautilus",
         "scheme": "nautilus",
-        "version": "3.0.4",
+        "version": "3.0.5",
         "platforms": [
             "ios",
             "android"
