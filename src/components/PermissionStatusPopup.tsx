@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useBLE } from "@/src/utils/BLE/BLEContext";
 import { useLocation } from "@/src/utils/Context/LocationContext";
 import { AndroidPermission, getRequiredPermissions } from "../utils/BLE/permissionHelper";
+import { HStack } from "@/components/ui/hstack";
 
 interface PermissionStatusPopupProps {
   visible: boolean;
@@ -128,7 +129,7 @@ const PermissionStatusPopup: React.FC<PermissionStatusPopupProps> = ({ visible, 
   );
 
   return (
-    <AlertDialog isOpen={visible} onClose={onClose} size="md">
+    <AlertDialog isOpen={visible} onClose={onClose} size="lg">
       <AlertDialogBackdrop />
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -143,16 +144,18 @@ const PermissionStatusPopup: React.FC<PermissionStatusPopupProps> = ({ visible, 
             </View>
           )}
         </AlertDialogBody>
-        <AlertDialogFooter className="flex-row flex-wrap justify-end space-x-2">
-          <Button variant="outline" onPress={onClose} className="px-4 py-2">
+        <AlertDialogFooter className="flex flex-col items-center justify-center">
+          <HStack space="md">
+          <Button variant="outline" onPress={onClose} className="">
             <Text>Close</Text>
           </Button>
-          <Button onPress={() => Linking.openSettings()} className="px-4 py-2 bg-gray-500">
+          <Button onPress={() => Linking.openSettings()} className="bg-gray-500">
             <Text className="text-white">Open Settings</Text>
           </Button>
-          <Button onPress={handleRecheck} className="px-4 py-2 bg-green-500">
+          <Button onPress={handleRecheck} className="bg-green-500">
             <Text className="text-white">Recheck</Text>
           </Button>
+          </HStack>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
