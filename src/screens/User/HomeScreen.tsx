@@ -22,6 +22,7 @@ import { MoonIcon, SunIcon, ChevronDownIcon } from 'lucide-react-native';
 import { Fab, FabIcon } from '@/components/ui/fab';
 import UpdateRibbon from '@/src/components/UpdateRibbon';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
+import { Box } from '@/components/ui/box';
 
 const HomeScreen: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
@@ -34,6 +35,44 @@ const HomeScreen: React.FC = () => {
     const [availableYears, setAvailableYears] = useState<string[]>([]);
     const [termsByYear, setTermsByYear] = useState<{ [year: string]: string[] }>({});
     const [termOptions, setTermOptions] = useState<string[]>(['All Terms']);
+
+    const [timeLeft, setTimeLeft] = useState('');
+    const [semesterEndDate, setSemesterEndDate] = useState<Date | null>(null);
+
+    useEffect(() => {
+        if (currentYear && currentTerm && schoolTerms[currentYear]?.[currentTerm]) {
+            const endTimestamp = schoolTerms[currentYear][currentTerm]?.end;
+            if (endTimestamp) {
+                setSemesterEndDate(new Date(endTimestamp * 1000)); // Convert UNIX timestamp to Date
+            }
+        }
+    }, [currentYear, currentTerm, schoolTerms]);
+
+    useEffect(() => {
+        if (!semesterEndDate) return;
+
+        const updateCountdown = () => {
+            const now = new Date();
+            const difference = semesterEndDate.getTime() - now.getTime();
+
+            if (difference <= 0) {
+                setTimeLeft('Semester has ended!');
+                return;
+            }
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((difference / (1000 * 60)) % 60);
+            const seconds = Math.floor((difference / 1000) % 60);
+
+            setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+        };
+
+        const interval = setInterval(updateCountdown, 1000);
+        updateCountdown(); // Initial call to prevent 1-second delay
+
+        return () => clearInterval(interval); // Cleanup on unmount
+    }, [semesterEndDate]);
 
     useEffect(() => {
         // Extract available years and terms from attendance data
@@ -261,7 +300,18 @@ const HomeScreen: React.FC = () => {
                             <ButtonText className="font-semibold">Refresh</ButtonText>
                         )}
                     </Button>
+                    {semesterEndDate ? (
+                    <Box className={`w-full rounded ${theme === 'light' ? 'bg-gray-300' : 'bg-black'}`}>
+                        <VStack className="w-full max-w-[600px] p-5">
+                            <Text className="text-center font-semibold text-lg">Countdown to End of Term {currentTerm}:</Text>
+                            <Text className="text-center text-xl font-bold">{timeLeft}</Text>
+                        </VStack>
+                    </Box>
+                    ) : (
+                        <Text className="text-center text-md">Loading countdown...</Text>
+                    )}
                 </VStack>
+
                 <Fab size="md" placement="bottom right" onPress={toggleTheme}>
                     <FabIcon as={theme === 'light' ? MoonIcon : SunIcon} />
                 </Fab>
