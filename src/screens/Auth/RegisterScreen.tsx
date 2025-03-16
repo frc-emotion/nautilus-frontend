@@ -24,7 +24,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { EyeIcon, EyeOffIcon, ChevronDownIcon } from "lucide-react-native";
+import { EyeIcon, EyeOffIcon, ChevronDownIcon, Regex } from "lucide-react-native";
 import { useGlobalModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
 import { useForm, Controller, FieldErrors } from "react-hook-form";
@@ -47,6 +47,16 @@ import {
   AlertDialogHeader,
 } from "@/components/ui/alert-dialog";
 import { useAttendance } from "@/src/utils/Context/AttendanceContext";
+import {
+  FormControl,
+  FormControlError,
+  FormControlErrorText,
+  FormControlErrorIcon,
+  FormControlLabel,
+  FormControlLabelText,
+  FormControlHelper,
+  FormControlHelperText,
+} from "@/components/ui/form-control";
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { openToast } = useGlobalToast();
@@ -266,9 +276,9 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               {showAttendancePolicy && (
                 <AlertDialog
                   isOpen={showAttendancePolicy}
-                  // onClose={() => {
-                  //   setShowAttendancePolicy(false);
-                  // }}
+                // onClose={() => {
+                //   setShowAttendancePolicy(false);
+                // }}
                 >
                   <AlertDialogBackdrop />
                   <AlertDialogContent>
@@ -506,28 +516,45 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     value: 8,
                     message: "Password must be at least 8 characters long",
                   },
-                  pattern: {
-                    value: /^(?=.*\d)(?=.*[^a-zA-Z\d])[A-Za-z\d\S]+$/,
-                    message:
-                      "Password must contain at least one number and one special character",
+                  validate: (value) => {
+                    if (!value.split("").some((char) => !isNaN(Number(char)))) {
+                      return "Password must contain at least one number";
+                    }
+                    if (!value.split("").some((char) => char >= "A" && char <= "Z")) {
+                      return ("Password must contain one capital")
+                    }
+                    return true
+                    // if (!value.split("").some((char) => character_capital.includes(char))){
+                    //   return("Password must contain one capital")
+                    // }
+                    // return true
                   },
                 }}
                 render={({ field: { onChange, value } }) => (
-                  <Input size="md" className="rounded">
-                    <InputField
-                      placeholder="Enter Password"
-                      secureTextEntry={hidePassword}
-                      value={value}
-                      onChangeText={onChange}
-                      autoCorrect={false}
-                    />
-                    <InputSlot
-                      className="pr-3"
-                      onPress={() => setHidePassword(!hidePassword)}
-                    >
-                      <InputIcon as={hidePassword ? EyeOffIcon : EyeIcon} />
-                    </InputSlot>
-                  </Input>
+                  <VStack space="xs">
+                    <Input size="md" className="mb-0 pb-0 rounded">
+                      <InputField
+                        placeholder="Enter Password"
+                        secureTextEntry={hidePassword}
+                        value={value}
+                        onChangeText={onChange}
+                        autoCorrect={false}
+                      />
+                      <InputSlot
+                        className="pr-3"
+                        onPress={() => setHidePassword(!hidePassword)}
+                      >
+                        <InputIcon as={hidePassword ? EyeOffIcon : EyeIcon} />
+                      </InputSlot>
+                    </Input>
+                    <FormControl size="md">
+                      <FormControlHelper className="pt-0 mt-0">
+                        <FormControlHelperText size="md" className="text-md">
+                          Must contain 8 characters, 1 number, 1 uppercase.
+                        </FormControlHelperText>
+                      </FormControlHelper>
+                    </FormControl>
+                  </VStack>
                 )}
               />
 
