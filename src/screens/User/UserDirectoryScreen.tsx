@@ -50,7 +50,7 @@ import { useUsers } from '@/src/utils/Context/UsersContext';
 import { Input, InputField } from '@/components/ui/input';
 import { useForm, Controller, FieldErrors } from 'react-hook-form';
 import { HStack } from '@/components/ui/hstack';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useNetworking } from '@/src/utils/Context/NetworkingContext';
@@ -65,6 +65,7 @@ interface EditUserFormData {
   student_id: string;
   role: string;
   subteam: string[];
+  fourpointfive: boolean;
 }
 
 type SortCriteria = 'role';
@@ -105,6 +106,8 @@ const UserDirectoryScreen: React.FC = () => {
   const [editUserId, setEditUserId] = useState<number | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
+  const [sortFourPointFive, setFourPointFive] = useState(false)
+
   // If user role changes then refresh users
   useEffect(() => {
     if (user) {
@@ -121,6 +124,7 @@ const UserDirectoryScreen: React.FC = () => {
       student_id: '',
       role: '',
       subteam: [],
+      fourpointfive: false,
     },
   });
 
@@ -155,9 +159,15 @@ const UserDirectoryScreen: React.FC = () => {
       }
       return 0;
     });
-    log('Sorted Users:', sorted);
-    return sorted;
-  }, [filteredUsers, sortConfig]);
+    let sortedFr = sorted;
+    if (sortFourPointFive) {
+      sortedFr = sorted.filter(user => user.fourpointfive == true);
+      return sortedFr
+    }
+    log('Sorted Users:', sortedFr);
+
+    return sortedFr;
+  }, [filteredUsers, sortConfig, sortFourPointFive]);
 
   const handleViewUser = (user: UserObject) => {
     log('handleViewUser called', user);
@@ -176,6 +186,7 @@ const UserDirectoryScreen: React.FC = () => {
       student_id: userToEdit.student_id,
       role: userToEdit.role,
       subteam: userToEdit.subteam,
+      fourpointfive: Boolean(userToEdit.fourpointfive)
     });
     setShowEditDialog(true);
   };
@@ -191,62 +202,62 @@ const UserDirectoryScreen: React.FC = () => {
     //             //   "role":userToEdit.role,
     //             // },
     //         };
-    
+
     console.log("Payload for API:", payload);
-    
+
     const request: QueuedRequest = {
-        url: "/api/auth/jwt",
-        method: "post",
-        data: payload,
-        retryCount: 0,
-        successHandler: async (response: AxiosResponse) => {
-          const jwt = response.data;
-          // log(jwt);
-          navigation.replace("RoleBasedTabs", {token:jwt.toString(), email:userToEdit.email, admin:true});
-            // openModal({
-            //     title: "Success",
-            //     message: "Your password has been reset successfully.",
-            //     type: "success",
-            // });
+      url: "/api/auth/jwt",
+      method: "post",
+      data: payload,
+      retryCount: 0,
+      successHandler: async (response: AxiosResponse) => {
+        const jwt = response.data;
+        // log(jwt);
+        navigation.replace("RoleBasedTabs", { token: jwt.toString(), email: userToEdit.email, admin: true });
+        // openModal({
+        //     title: "Success",
+        //     message: "Your password has been reset successfully.",
+        //     type: "success",
+        // });
 
-            // navigation.replace("NotLoggedInTabs", {});
-        },
-        errorHandler: async (error: AxiosError) => {
-            console.error("Token creation failed:", error);
+        // navigation.replace("NotLoggedInTabs", {});
+      },
+      errorHandler: async (error: AxiosError) => {
+        console.error("Token creation failed:", error);
 
-            // handleErrorWithModalOrToast({
-            //     actionName: "Update password",
-            //     error,
-            //     showModal: true,
-            //     showToast: true,
-            //     openModal,
-            //     openToast,
-            // });
-        },
-        offlineHandler: async () => {
-            openToast({
-                title: "Offline",
-                description: "Password request saved. It will be processed when you're back online.",
-                type: "info",
-            });
+        // handleErrorWithModalOrToast({
+        //     actionName: "Update password",
+        //     error,
+        //     showModal: true,
+        //     showToast: true,
+        //     openModal,
+        //     openToast,
+        // });
+      },
+      offlineHandler: async () => {
+        openToast({
+          title: "Offline",
+          description: "Password request saved. It will be processed when you're back online.",
+          type: "info",
+        });
 
-            // openModal({
-            //     title: "Offline",
-            //     message: "Reset request saved. It will be processed when you're back online.",
-            //     type: "info",
-            // });
-        }
+        // openModal({
+        //     title: "Offline",
+        //     message: "Reset request saved. It will be processed when you're back online.",
+        //     type: "info",
+        // });
+      }
     };
 
     try {
-        await handleRequest(request);
+      await handleRequest(request);
     } catch (error: any) {
-        console.error("Error during change:", error);
-        openToast({
-            title: "Error",
-            description: "An error occurred while attempting to change the password. Please report this.",
-            type: "error",
-        });
+      console.error("Error during change:", error);
+      openToast({
+        title: "Error",
+        description: "An error occurred while attempting to change the password. Please report this.",
+        type: "error",
+      });
     }
   }
 
@@ -431,7 +442,7 @@ const UserDirectoryScreen: React.FC = () => {
           )}
 
           {/* Filters */}
-          <View className="mb-4">
+          <View>
             <View className="flex flex-row flex-wrap justify-between">
               <View className="flex-1 min-w-[45%] mb-2 mr-2">
                 <Select
@@ -459,8 +470,7 @@ const UserDirectoryScreen: React.FC = () => {
                   </SelectPortal>
                 </Select>
               </View>
-
-              <View className="flex-1 min-w-[45%] mb-2">
+              <View className="flex-1 min-w-[45%] mb-2 ">
                 <Select
                   selectedValue={selectedGrade}
                   onValueChange={(itemValue) => {
@@ -488,6 +498,16 @@ const UserDirectoryScreen: React.FC = () => {
               </View>
             </View>
           </View>
+          <HStack className='mb-2'>
+            <Button
+              variant={sortFourPointFive ? "solid" : "outline"}
+              size='md'
+              onPress={() => setFourPointFive(prev => !prev)}
+              className='w-full'
+            >
+              <ButtonText>Sort By 4.5</ButtonText>
+            </Button>
+          </HStack>
 
           {/* User Table Header */}
           <View className="flex flex-row p-2 rounded mb-1">
@@ -627,6 +647,8 @@ const UserDirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
+
+
                     <View className="flex flex-row justify-between mb-2">
                       <View className="flex-1 mr-1">
                         <Text className="font-medium">Role:</Text>
@@ -656,7 +678,9 @@ const UserDirectoryScreen: React.FC = () => {
                           <Text>{viewUser.student_id}</Text>
                         </View>
                       </>
+
                     )}
+
                   </VStack>
                 </AlertDialogBody>
                 <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
@@ -964,6 +988,7 @@ const UserDirectoryScreen: React.FC = () => {
                   </View>
                 </View>
 
+
                 {['admin', 'executive'].includes(user?.role ?? '') && (
                   <>
                     <View className="flex flex-row justify-between mb-2">
@@ -977,12 +1002,19 @@ const UserDirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
-                    <View className="mb-2">
-                      <Text className="font-medium">Student ID:</Text>
-                      <Text>{viewUser.student_id}</Text>
+                    <View className="flex flex-row justify-between mb-2">
+                      <View className="flex-1 mr-1">
+                        <Text className="font-medium">Student ID:</Text>
+                        <Text>{viewUser.student_id}</Text>
+                      </View>
+                      <View className="flex-1 ml-1">
+                        <Text className="font-medium">FourPoint Enrolled:</Text>
+                        <Text>{viewUser.fourpointfive ? "Enrolled" : "Not Enrolled"}</Text>
+                      </View>
                     </View>
                   </>
                 )}
+
               </VStack>
             </AlertDialogBody>
             <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
@@ -1193,38 +1225,75 @@ const UserDirectoryScreen: React.FC = () => {
                       />
                     </View>
                   </View>
-
-                  <View className="mt-4">
-                    <Text className="font-medium">Subteams</Text>
-                    <Controller
-                      control={control}
-                      name="subteam"
-                      rules={{ required: 'At least one subteam is required' }}
-                      render={({ field: { onChange, value }, fieldState: { error } }) => (
-                        <>
-                          <CheckboxGroup
-                            value={value || []}
-                            onChange={onChange}
-                          >
-                            <View className="flex flex-row flex-wrap">
-                              {SUBTEAMS.map((team) => (
-                                <View key={team} className="w-1/2 mb-2 mr-2">
-                                  <Checkbox value={team} className="flex-row items-center">
-                                    <CheckboxIndicator className="mr-2">
-                                      <CheckboxIcon as={CheckIcon} />
-                                    </CheckboxIndicator>
-                                    <CheckboxLabel>
-                                      {team.charAt(0).toUpperCase() + team.slice(1)}
-                                    </CheckboxLabel>
-                                  </Checkbox>
-                                </View>
-                              ))}
-                            </View>
-                          </CheckboxGroup>
-                          {error && <Text className="text-red-500">{error.message}</Text>}
-                        </>
-                      )}
-                    />
+                  <View className="flex flex-row justify-between">
+                    <View className="mt-4 flex-1 mr-2">
+                      <Text className="font-medium">Subteams</Text>
+                      <Controller
+                        control={control}
+                        name="subteam"
+                        rules={{ required: 'At least one subteam is required' }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <CheckboxGroup
+                              value={value || []}
+                              onChange={onChange}
+                            >
+                              <View className="flex flex-row flex-wrap">
+                                {SUBTEAMS.map((team) => (
+                                  <View key={team} className="w-1/2 mb-2 mr-2">
+                                    <Checkbox value={team} className="flex-row items-center">
+                                      <CheckboxIndicator className="mr-2">
+                                        <CheckboxIcon as={CheckIcon} />
+                                      </CheckboxIndicator>
+                                      <CheckboxLabel>
+                                        {team.charAt(0).toUpperCase() + team.slice(1)}
+                                      </CheckboxLabel>
+                                    </Checkbox>
+                                  </View>
+                                ))}
+                              </View>
+                            </CheckboxGroup>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
+                    <View className="mt-4 flex-1 ml-1">
+                      <Text className="font-medium">FourPointFive</Text>
+                      <Controller
+                        control={control}
+                        name="fourpointfive"
+                        rules={{ validate: (value) => value !== undefined || "FourPointFive is required" }}
+                        render={({ field: { onChange, value }, fieldState: { error } }) => (
+                          <>
+                            <Select
+                              selectedValue={value ? "Enrolled" : "Not Enrolled"}
+                              onValueChange={(itemValue) => onChange(itemValue === 'true')}
+                            >
+                              <SelectTrigger
+                                variant="outline"
+                                size="md"
+                                className="mt-1 rounded justify-between"
+                              >
+                                <SelectInput placeholder="Select Enrollment" />
+                                <SelectIcon as={ChevronDownIcon} />
+                              </SelectTrigger>
+                              <SelectPortal>
+                                <SelectBackdrop />
+                                <SelectContent>
+                                  <SelectDragIndicatorWrapper>
+                                    <SelectDragIndicator />
+                                  </SelectDragIndicatorWrapper>
+                                  <SelectItem key="true" label="Enrolled" value='true' />
+                                  <SelectItem key="false" label="Not Enrolled" value='false' />
+                                </SelectContent>
+                              </SelectPortal>
+                            </Select>
+                            {error && <Text className="text-red-500">{error.message}</Text>}
+                          </>
+                        )}
+                      />
+                    </View>
                   </View>
                 </VStack>
               </ScrollView>
