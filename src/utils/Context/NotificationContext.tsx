@@ -1,24 +1,29 @@
-// // NotificationsProvider.tsx
-// import React, { ReactNode, useState, useEffect, createContext, useContext } from "react";
-// import { AppState, AppStateStatus } from "react-native";
-// import { useGlobalModal } from "../UI/CustomModalProvider";
-// import { useGlobalToast } from "../UI/CustomToastProvider";
+// NotificationsProvider.tsx
+import React, { ReactNode, useState, useEffect, createContext, useContext, useCallback } from "react";
+import { AppState, AppStateStatus } from "react-native";
+import { useGlobalModal } from "../UI/CustomModalProvider";
+import { useGlobalToast } from "../UI/CustomToastProvider";
 // import * as Notifications from "expo-notifications";
-// import Constants from 'expo-constants';
-// import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 // import { NotificationsContextProps } from "@/src/Constants";
-// import { useAuth } from "./AuthContext";
-// import { QueuedRequest } from "../../Constants";
-// import { AxiosError, AxiosResponse } from "axios";
-// import { handleErrorWithModalOrToast } from "../Helpers";
+import { useAuth } from "./AuthContext";
+import { QueuedRequest } from "../../Constants";
+import { AxiosError, AxiosResponse } from "axios";
+import { handleErrorWithModalOrToast } from "../Helpers";
+import { useNetworking } from "./NetworkingContext";
+import { set } from "react-hook-form";
 
-// const DEBUG_PREFIX = "[NotificationsProvider]";
-// const NotificationsContext = createContext<NotificationsContextProps | undefined>(undefined);
+const DEBUG_PREFIX = "[NotificationsProvider]";
+// const NotificationsContext = createContext<NotificationsContextProps | undefined>(undefined)
+const NotificationsContext = createContext(undefined);
 
-// export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-//     const { user } = useAuth(); // Assuming 'token' is part of user
-//     const { openToast } = useGlobalToast();
-//     const { openModal } = useGlobalModal();
+export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const { user } = useAuth(); // Assuming 'token' is part of user
+    const [updates, setUpdates] = useState<String[]>([]);
+    const { handleRequest } = useNetworking();
+    const { openToast } = useGlobalToast();
+    const { openModal } = useGlobalModal();
 //     const [hasPermission, setHasPermission] = useState<boolean>(false);
 //     const [isPermissionChecked, setIsPermissionChecked] = useState<boolean>(false);
 //     const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
@@ -390,6 +395,173 @@
 //         requestPermission();
 //       }
 //     }, [hasPermission, isPermissionChecked]);
+    // set the updates using the api:
+
+    const addUpdate = useCallback(async (updatefr: string) => {
+        const request: QueuedRequest = {
+            url: '/api/notifications/add_noti',
+            method: 'post',
+            data: { update: updatefr,
+                active:"1",
+                created_by: user._id,
+             },
+            retryCount: 1,
+            successHandler: async (response: AxiosResponse) => {
+                fetchUpdates();
+            },
+            errorHandler: async (error: AxiosError) => {
+                console.error(`${DEBUG_PREFIX} Error updating news and updates:`, error);
+                handleErrorWithModalOrToast({
+                    actionName: 'Update News and Updates',
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
+                });
+            },
+            offlineHandler: async () => {
+                console.warn(`${DEBUG_PREFIX} Offline while updating news updates.`);
+                openToast({
+                    title: 'Offline',
+                    description: 'Cannot update news and updates.',
+                    type: 'warning',
+                });
+                setUpdates(["You can only update updates when you're online!"]);
+            },
+        };
+
+        try {
+            await handleRequest(request);
+        } catch (error) {
+            console.error(`${DEBUG_PREFIX} Unexpected error during addNoti:`, error);
+        }
+    }, []);
+
+    const updateUpdate = useCallback(async (updatefr: string, idfr: number) => {
+        const request: QueuedRequest = {
+            url: '/api/notifications/update_noti',
+            method: 'put',
+            data: { id: idfr,
+                update:updatefr,
+                edited_by: user._id,
+             },
+            retryCount: 1,
+            successHandler: async (response: AxiosResponse) => {
+                fetchUpdates();
+            },
+            errorHandler: async (error: AxiosError) => {
+                console.error(`${DEBUG_PREFIX} Error updating news and updates:`, error);
+                handleErrorWithModalOrToast({
+                    actionName: 'Update News and Updates',
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
+                });
+            },
+            offlineHandler: async () => {
+                console.warn(`${DEBUG_PREFIX} Offline while updating news updates.`);
+                openToast({
+                    title: 'Offline',
+                    description: 'Cannot update news and updates.',
+                    type: 'warning',
+                });
+                setUpdates(["You can only update updates when you're online!"]);
+            },
+        };
+
+        try {
+            await handleRequest(request);
+        } catch (error) {
+            console.error(`${DEBUG_PREFIX} Unexpected error during updateNoti:`, error);
+        }
+    }, []);
+
+    const removeUpdate = useCallback(async (id:number) => {
+            const request: QueuedRequest = {
+                url: '/api/notifications/delete_noti',
+                method: 'delete',
+                data: {
+                    id: id,
+                    removed_by: user._id,
+                },
+                
+                retryCount: 1,
+            
+            successHandler: async (response: AxiosResponse) => {
+                fetchUpdates();
+            },
+            errorHandler: async (error: AxiosError) => {
+                handleErrorWithModalOrToast({
+                    actionName: 'Delete Update',
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
+                });
+            },
+            offlineHandler: async () => {
+                console.warn(`${DEBUG_PREFIX} Offline while deleteing news updates.`);
+                openToast({
+                    title: 'Offline',
+                    description: 'Cannot delete news updates when offline.',
+                    type: 'warning',
+                });
+            },
+        };
+
+        try {
+            await handleRequest(request);
+        } catch (error) {
+            console.error(`${DEBUG_PREFIX} Unexpected error during deleteUpdates:`, error);
+        }
+    }, []);
+
+
+    const fetchUpdates = useCallback(async () => {
+        console.log(`${DEBUG_PREFIX} Fetching updates.`);
+        const request: QueuedRequest = {
+            url: '/api/notifications/updates',
+            method: 'get',
+            retryCount: 3,
+            successHandler: async (response: AxiosResponse) => {
+                console.log("yurrrr");
+                const data = response.data.updates;
+                setUpdates(data);
+            },
+            errorHandler: async (error: AxiosError) => {
+                console.error(`${DEBUG_PREFIX} Error fetching news and updates:`, error);
+                handleErrorWithModalOrToast({
+                    actionName: 'Fetch News and Updates',
+                    error,
+                    showModal: false,
+                    showToast: true,
+                    openModal,
+                    openToast,
+                });
+            },
+            offlineHandler: async () => {
+                console.warn(`${DEBUG_PREFIX} Offline while fetching news updates.`);
+                openToast({
+                    title: 'Offline',
+                    description: 'Cannot fetch news and updates.',
+                    type: 'warning',
+                });
+                setUpdates(["You can only see updates when you're online!"]);
+            },
+        };
+
+        try {
+            await handleRequest(request);
+        } catch (error) {
+            console.error(`${DEBUG_PREFIX} Unexpected error during fetchUpdates:`, error);
+        }
+    }, [setUpdates]);
+
+
 
 //     const contextValue: NotificationsContextProps = {
 //       hasPermission,
@@ -399,21 +571,28 @@
 //       backendHasToken,
 //       checkBackendPushToken,
 //     };
+        const contextValue = {
+            updates,
+            addUpdate,
+            removeUpdate,
+            fetchUpdates,
+            updateUpdate,
+        }
 
-//     return (
-//       <NotificationsContext.Provider value={contextValue}>
-//         {children}
-//       </NotificationsContext.Provider>
-//     );
-//   };
+    return (
+      <NotificationsContext.Provider value={contextValue}>
+        {children}
+      </NotificationsContext.Provider>
+    );
+  };
 
-//   /**
-//    * Custom hook to use the NotificationsContext
-//    */
-//   export const useNotifications = (): NotificationsContextProps => {
-//     const context = useContext(NotificationsContext);
-//     if (!context) {
-//       throw new Error(`${DEBUG_PREFIX} useNotifications must be used within a NotificationsProvider`);
-//     }
-//     return context;
-//   };
+  /**
+   * Custom hook to use the NotificationsContext
+   */
+  export const useNotifications = (): NotificationsContextProps => {
+    const context = useContext(NotificationsContext);
+    if (!context) {
+      throw new Error(`${DEBUG_PREFIX} useNotifications must be used within a NotificationsProvider`);
+    }
+    return context;
+  };

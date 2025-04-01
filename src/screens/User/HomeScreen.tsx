@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../utils/Context/AuthContext';
 import { useTheme } from '../../utils/UI/CustomThemeProvider';
@@ -7,7 +7,7 @@ import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { Progress, ProgressFilledTrack } from '@/components/ui/progress';
-import { Button, ButtonText } from '@/components/ui/button';
+import { Button, ButtonIcon, ButtonText } from '@/components/ui/button';
 import {
     Select,
     SelectTrigger,
@@ -18,11 +18,18 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import { MoonIcon, SunIcon, ChevronDownIcon } from 'lucide-react-native';
+import { MoonIcon, SunIcon, ChevronDownIcon, EllipsisVertical } from 'lucide-react-native';
 import { Fab, FabIcon } from '@/components/ui/fab';
 import UpdateRibbon from '@/src/components/UpdateRibbon';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { Box } from '@/components/ui/box';
+import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from '@/components/ui/alert-dialog';
+import { Input, InputField } from '@/components/ui/input';
+import { Controller, set, useForm } from 'react-hook-form';
+import { useNetworking } from '@/src/utils/Context/NetworkingContext';
+import { useNotifications } from '@/src/utils/Context/NotificationContext';
+import { Icon } from '@/components/ui/icon';
+import { Pressable } from '@/components/ui/pressable';
 
 const HomeScreen: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
@@ -38,6 +45,23 @@ const HomeScreen: React.FC = () => {
 
     const [timeLeft, setTimeLeft] = useState('');
     const [semesterEndDate, setSemesterEndDate] = useState<Date | null>(null);
+
+    const{ updates, fetchUpdates, addUpdate, updateUpdate, removeUpdate} = useNotifications();
+    const [showNewsPopup, setShowNewsPopup] = useState(false);
+
+    const [showEditNotis, setShowEditNotis] = useState(false);
+
+    const [currentlyEditing, setCurrentlyEditing] = useState<number>(1);
+
+    useEffect(() => {
+        fetchUpdates();
+    }, []);
+
+    const { control, handleSubmit , getValues, setValue} = useForm({
+        defaultValues: {
+          news: "",
+        },
+      });
 
     useEffect(() => {
         if (currentYear && currentTerm && schoolTerms[currentYear]?.[currentTerm]) {
@@ -144,6 +168,7 @@ const HomeScreen: React.FC = () => {
         } else {
             // If user is verified, refresh attendance data
             try {
+                await fetchUpdates();
                 await refreshAttendanceData();
             } catch (error) {
                 console.error("Error refreshing attendance data:", error);
@@ -301,7 +326,11 @@ const HomeScreen: React.FC = () => {
                         )}
                     </Button>
                     {semesterEndDate ? (
-                    <Box className={`w-full rounded ${theme === 'light' ? 'bg-gray-300' : 'bg-black'}`}>
+                    <Box className="w-full rounded-lg border"
+                    style={{
+                        borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
+                      }}>
+                    {/* <Box className={`w-full rounded ${theme === 'light' ? 'bg-gray-300' : 'bg-black'}`}> */}
                         <VStack className="w-full max-w-[600px] p-5">
                             <Text className="text-center font-semibold text-lg">Countdown to End of Term {currentTerm}:</Text>
                             <Text className="text-center text-xl font-bold">{timeLeft}</Text>
@@ -310,12 +339,192 @@ const HomeScreen: React.FC = () => {
                     ) : (
                         <Text className="text-center text-md">Loading countdown...</Text>
                     )}
+                    {updates.length > 0 ? (
+                     <Box className="w-full rounded-lg border"
+                     style={{
+                         borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
+                       }}>
+                        <VStack space="md" className="w-full max-w-[600px] p-5">
+                            <Text className="self-center text-2xl font-bold">News and Updates</Text>
+                            {updates.map((update, index) => (
+                                <Box className="border rounded-lg" key={index}
+                                style={{
+                                    borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
+                                  }}>
+                                <Text key={index} className="text-center font-semibold text-lg p-2">
+                                    {update[0]}
+                                </Text>
+                                </Box>
+                            ))}
+                            {(user?.role==="executive" || user?.role==="admin" || user?.role==="advisor") && (
+                            <Button onPress={() => setShowNewsPopup(true)} size="md" className="py-2 rounded-md">
+                                <ButtonText>Edit</ButtonText>
+                            </Button>)}
+                        </VStack>
+                    </Box>
+                    ) : (
+                        <Box className="w-full rounded-lg border"
+                     style={{
+                         borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
+                       }}>
+                        <Text className="self-center text-lg font-bold p-4">No major news right now...</Text>
+                        </Box>
+                    )}
                 </VStack>
 
-                <Fab size="md" placement="bottom right" onPress={toggleTheme}>
+                {showNewsPopup && (
+                        <AlertDialog
+                          isOpen={showNewsPopup}
+                          onClose={() => {
+                            setValue('news', '');
+                            setShowNewsPopup(false);
+                          }}
+                        >
+                          <AlertDialogBackdrop />
+                          <AlertDialogContent className="w-11/12 max-w-2xl">
+                            <AlertDialogHeader className="pb-4">
+                              <Text className="text-lg font-semibold">Updates</Text>
+                            </AlertDialogHeader>
+                            <AlertDialogBody>
+                              <VStack space="sm">
+                                {updates.map((update,index) => (
+                                    <Box className="border rounded-lg"
+                                    style={{
+                                        borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
+                                      }}>
+    
+                                    <HStack space="xl" className="items-center justify-between">
+                                    <Text key={index} ellipsizeMode="tail" className="text-center font-semibold text-lg p-2 flex-1">
+                                        {update[0]}
+                                    </Text>
+                                    <Pressable className="pr-2" onPress={() => {setShowEditNotis(true); setCurrentlyEditing(update[1]); setValue('news', update[0]);}}>
+                                        <Icon as={EllipsisVertical} />
+                                    </Pressable>
+                                    </HStack>
+                                    </Box>
+                                ))}
+                              <Controller
+                                control={control}
+                                name="news"
+                                render={({ field: { onChange, value } }) => (
+                                    <Input variant="outline" size="md" className="mt-1">
+                                    <InputField
+                                        size="2xl"
+                                        value={value}
+                                        onChangeText={onChange}
+                                        placeholder="Add news update..."
+                                        className="placeholder-gray-400 h-full"
+                                        multiline
+                                        numberOfLines={10} // Adjust height
+                                        textAlignVertical="top"
+                                    />
+                                    </Input>
+                                )}
+                                />           
+                              </VStack>
+                            </AlertDialogBody>
+                            <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+                            <HStack space="md">
+                            <Button   onPress={() => {
+                                const newsValue = getValues("news").trim(); // Get and trim the input value
+                                if (!newsValue) {
+                                openToast({
+                                    title: "Error",
+                                    description: "News update cannot be empty.",
+                                    type: "error",
+                                });
+                                return;
+                                }
+                                addUpdate(newsValue);
+                                setValue("news", ""); 
+                                setShowNewsPopup(false);}}
+                                size="md"
+                                className="mt-4 py-2 rounded-md"
+                            >
+                                <ButtonText className="font-semibold">Add</ButtonText>
+                            </Button>
+                            <Button onPress={() => setShowNewsPopup(false)} size="md" variant="outline" className="mt-4 py-2 rounded-md">
+                                <ButtonText className="font-semibold">Done</ButtonText>
+                            </Button>
+                            </HStack>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+
+                {showEditNotis && (
+                        <AlertDialog
+                          isOpen={showEditNotis}
+                          onClose={() => {
+                            setValue('news', '');
+                            setShowEditNotis(false);
+                          }}
+                        >
+                          <AlertDialogBackdrop />
+                          <AlertDialogContent className="w-11/12 max-w-2xl">
+                            <AlertDialogHeader className="pb-4">
+                              <Text className="text-lg font-semibold">Edit Update</Text>
+                            </AlertDialogHeader>
+                            <AlertDialogBody>
+                              <VStack space="sm">
+                              <Controller
+                                control={control}
+                                name="news"
+                                render={({ field: { onChange, value } }) => (
+                                    <Input variant="outline" size="md" className="mt-1">
+                                    <InputField
+                                        size="2xl"
+                                        value={value}
+                                        onChangeText={onChange}
+                                        placeholder="Enter news updates..."
+                                        className="placeholder-gray-400 h-full"
+                                        multiline
+                                        numberOfLines={10} // Adjust height
+                                        style={{
+                                            minHeight: 30, // Minimum height for the input
+                                          }}
+                                    />
+                                    </Input>
+                                )}
+                                />           
+                              </VStack>
+                            </AlertDialogBody>
+                            <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+                            <HStack space="md">
+                            <Button onPress={() => {
+                                removeUpdate(currentlyEditing);
+                                setValue('news', '');
+                                setShowEditNotis(false);
+                                }}
+                                size="md"
+                                className="mt-4 py-2 rounded-md" >
+                                <ButtonText className="font-semibold">Delete Update</ButtonText>
+                            </Button>
+                            <Button onPress={() => {
+                                updateUpdate(getValues("news"), currentlyEditing);
+                                setValue('news', '');
+                                setShowEditNotis(false);
+                                }} 
+                                size="md" 
+                                className="mt-4 py-2 rounded-md" 
+                                >
+                                <ButtonText className="font-semibold">Save</ButtonText>
+                            </Button>
+                            <Button onPress={() => {setShowEditNotis(false); setValue("news",'')}} size="md" variant="outline" className="mt-4 py-2 rounded-md">
+                                <ButtonText className="font-semibold">Cancel</ButtonText>
+                            </Button>
+                            </HStack>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+
+            </ScrollView>
+            <Box className="absolute bottom-6 right-6">
+                <Fab size="md" onPress={toggleTheme}>
                     <FabIcon as={theme === 'light' ? MoonIcon : SunIcon} />
                 </Fab>
-            </ScrollView>
+            </Box>
         </VStack>
     );
 }
