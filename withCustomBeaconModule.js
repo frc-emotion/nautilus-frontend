@@ -4,7 +4,7 @@ const fs = require('fs');
 
 function appendToPodfile(contents) {
   const customPod = `
-  pod 'BeaconBroadcaster', :path => '/Users/arshan/Desktop/nautilus-frontend/modules/BeaconBroadcaster/ios'
+  pod 'BeaconBroadcaster', :path => '/Users/mugilanrajaraman/Desktop/nautilus_4/nautilus-frontend/ios'
   `;
 
   // Avoid adding it multiple times

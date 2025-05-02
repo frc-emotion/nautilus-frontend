@@ -224,7 +224,8 @@ export enum TabNames {
     Attendance = "Attendance",
     AsyncStorage = "AsyncStorage",
     Directory = "Directory",
-    ForgotPasswordScreen = "Password"
+    ForgotPasswordScreen = "Password",
+    Scouting = "Scouting"
 }
 
 export enum Roles {
