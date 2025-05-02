@@ -339,7 +339,7 @@ const HomeScreen: React.FC = () => {
                     ) : (
                         <Text className="text-center text-md">Loading countdown...</Text>
                     )}
-                    {(updates.length > 0 || user?.role==="executive" || user?.role==="admin" || user?.role==="advisor") && (
+                    {updates.length > 0 ? (
                      <Box className="w-full rounded-lg border"
                      style={{
                          borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
