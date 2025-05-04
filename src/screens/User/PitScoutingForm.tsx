@@ -150,7 +150,7 @@ const PitScoutingForm: React.FC = () => {
         };
 
         const request: QueuedRequest = {
-            url: '/api/pitscouting/form',
+            url: '/api/scouting/pitform',
             method: "post",
             data: payload,
             retryCount: 3,
@@ -229,7 +229,7 @@ const PitScoutingForm: React.FC = () => {
 
     const getCompetitions = async () => {
         const request: QueuedRequest = {
-            url: "/api/pitscouting/competitions",
+            url: "/api/scouting/competitions",
             method: "get",
             retryCount: 0,
             successHandler: async (response: AxiosResponse) => {
