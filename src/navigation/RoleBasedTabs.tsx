@@ -125,18 +125,6 @@ const allTabs: Array<{
       Roles.Admin,
     ],
   },
-  {
-    name: TabNames.Scouting,
-    component: ScoutingStackNavigator,
-    roles: [
-      Roles.Unverified,
-      Roles.Member,
-      Roles.Leadership,
-      Roles.Executive,
-      Roles.Advisor,
-      Roles.Admin,
-    ],
-  },
 ];
 
 // Role-Based Tab Navigator Component

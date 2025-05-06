@@ -66,7 +66,7 @@
     "expo-dev-client": "~4.0.29",
     "expo-device": "~6.0.2",
     "expo-file-system": "~17.0.1",
-    "expo-image-picker": "^16.1.4",
+    "expo-image-picker": "15.1.0",
     "expo-linking": "~6.3.1",
     "expo-location": "~17.0.1",
     "expo-sharing": "~12.0.1",
