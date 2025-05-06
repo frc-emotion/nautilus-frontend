@@ -93,7 +93,6 @@ const allTabs: Array<{
     name: TabNames.Scouting,
     component: ScoutingStackNavigator,
     roles: [
-      Roles.Unverified,
       Roles.Member,
       Roles.Leadership,
       Roles.Executive,
