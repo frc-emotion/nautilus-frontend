@@ -6,9 +6,6 @@ import { KeyRound, LogIn, UserRoundPen } from "lucide-react-native";
 import { useTheme } from "../utils/UI/CustomThemeProvider";
 import { useRoute } from "@react-navigation/native";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
-import ScoutingStackNavigator from "./ScoutingStackNavigator";
-import ScoutingForm from "../screens/User/ScoutingForm";
-import PitScoutingForm from "../screens/User/PitScoutingForm";
 
 const Tab = createBottomTabNavigator();
 
@@ -25,14 +22,6 @@ const NotLoggedIn: React.FC = () => {
           <LogIn color={theme === "light" ? "black" : "white"} />
         )
       }} name="Login" component={LoginScreen} />}
-      {/*  */}
-      {!token && <Tab.Screen options={{
-        headerTitleAlign: "center",
-        tabBarIcon: ({ }) => (
-          <LogIn color={theme === "light" ? "black" : "white"} />
-        )
-      }} name="testing" component={ScoutingStackNavigator} />}
-      {/*  */}
       {!token &&
         <Tab.Screen options={{
           headerTitleAlign: "center",
