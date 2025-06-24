@@ -312,7 +312,7 @@ const ScoutingForm: React.FC = () => {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={120}
             className="flex-1"
-            style={{ backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
+            //style={{ backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 
@@ -326,7 +326,7 @@ const ScoutingForm: React.FC = () => {
                             onRefresh={handleRefresh}
                         />
                     }>
-                    
+
                     <VStack
                         space="md"
                         className="w-full max-w-[600px] mx-auto p-4 rounded-md shadow-sm flex-1"//justify-center"
@@ -348,8 +348,8 @@ const ScoutingForm: React.FC = () => {
                             >
                                 <AlertDialogBackdrop />
                                 <AlertDialogContent>
-                                    <AlertDialogHeader className="pb-4">
-                                        <Text className="text-lg font-semibold">
+                                    <AlertDialogHeader className="pb-4 justify-center w-full">
+                                        <Text className="text-lg font-semibold text-center ">
                                             Refresh Page
                                         </Text>
                                     </AlertDialogHeader>
@@ -358,16 +358,19 @@ const ScoutingForm: React.FC = () => {
                                             This will reset everything you've entered in the form. Are you sure you want to continue?
                                         </Text>
                                     </AlertDialogBody>
-                                    <AlertDialogFooter className="mt-2">
-                                        <Button onPress={() => {
-                                            setShowRefeshPopup(false);
-                                            setRefreshing(false);
-                                        }}>
+                                    <AlertDialogFooter className="mt-2 justify-center">
+                                        <Button
+                                            variant="solid"
+                                            className="w-1/2"
+                                            onPress={() => {
+                                                setShowRefeshPopup(false);
+                                                setRefreshing(false);
+                                            }}>
                                             <ButtonText>Cancel</ButtonText>
                                         </Button>
                                         <Button
                                             variant="solid"
-                                            className="ml-2"
+                                            className="ml-2 w-1/2"
                                             onPress={() => {
                                                 reset();
                                                 setShowRefeshPopup(false);
@@ -386,7 +389,7 @@ const ScoutingForm: React.FC = () => {
                             type="multiple"
                             isCollapsible={true}
                             isDisabled={false}
-                            className="w-[100%] border border-outline-50"
+                            className="w-[100%]"
                             defaultValue={["a", "b", "c", "d"]}
                         >
 

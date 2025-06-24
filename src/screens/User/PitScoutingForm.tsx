@@ -51,6 +51,8 @@ import { RefreshControl } from "react-native";
 
 
 const PitScoutingForm: React.FC = () => {
+    const navigation = useNavigation<StackNavigationProp<any>>();
+    const { theme } = useTheme();
     const [allCompetitions, setAllCompetitions] = useState<any[]>([]);
     const [showRefreshPopup, setShowRefeshPopup] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
@@ -160,7 +162,7 @@ const PitScoutingForm: React.FC = () => {
                     description: "Your pit scouting form is submitted successfully.",
                     type: "success",
                 });
-                reset(); // optionally clear form after submission
+                navigation.replace("RoleBasedTabs", {});
             },
             errorHandler: async (error: AxiosError) => {
                 handleErrorWithModalOrToast({
@@ -292,7 +294,8 @@ const PitScoutingForm: React.FC = () => {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView
                     contentContainerStyle={{ flexGrow: 1 }}
@@ -324,8 +327,8 @@ const PitScoutingForm: React.FC = () => {
                             >
                                 <AlertDialogBackdrop />
                                 <AlertDialogContent>
-                                    <AlertDialogHeader className="pb-4">
-                                        <Text className="text-lg font-semibold">
+                                    <AlertDialogHeader className="pb-4 justify-center w-full">
+                                        <Text className="text-lg font-semibold text-center ">
                                             Refresh Page
                                         </Text>
                                     </AlertDialogHeader>
@@ -334,16 +337,19 @@ const PitScoutingForm: React.FC = () => {
                                             This will reset everything you've entered in the form. Are you sure you want to continue?
                                         </Text>
                                     </AlertDialogBody>
-                                    <AlertDialogFooter className="mt-2">
-                                        <Button onPress={() => {
-                                            setShowRefeshPopup(false);
-                                            setRefreshing(false);
-                                        }}>
+                                    <AlertDialogFooter className="mt-2 justify-center">
+                                        <Button
+                                            variant="solid"
+                                            className="w-1/2"
+                                            onPress={() => {
+                                                setShowRefeshPopup(false);
+                                                setRefreshing(false);
+                                            }}>
                                             <ButtonText>Cancel</ButtonText>
                                         </Button>
                                         <Button
                                             variant="solid"
-                                            className="ml-2"
+                                            className="ml-2 w-1/2"
                                             onPress={() => {
                                                 reset();
                                                 setShowRefeshPopup(false);
@@ -362,7 +368,7 @@ const PitScoutingForm: React.FC = () => {
                             type="multiple"
                             isCollapsible={true}
                             isDisabled={false}
-                            className="w-[100%] border border-outline-50"
+                            className="w-[100%]"
                             defaultValue={["a", "b", "c", "d"]}
                         >
                             <AccordionItem value="a">

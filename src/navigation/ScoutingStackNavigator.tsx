@@ -44,7 +44,7 @@ const ScoutingStackNavigator: React.FC = () => {
 
             <Stack.Screen
                 name="PitScouting"
-                component={PitScoutingForm}
+                component={ScoutingForm}
                 options={{
                     headerTitleAlign: "center",
                     title: "Pit Scouting",
