@@ -79,6 +79,7 @@ const AttendanceManagementScreen: React.FC = () => {
     const [selectedYear, setSelectedYear] = useState<string>('All Years');
     const [selectedTerm, setSelectedTerm] = useState<string>('All Terms');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const [sortFourPointFive, setFourPointFive] = useState(false)
     const [filteredUsersLocal, setfilteredUsersLocal] = useState<
         {
             user: UserObject;
@@ -107,22 +108,21 @@ const AttendanceManagementScreen: React.FC = () => {
                 user: data.user,
                 attendanceLogs: data.attendanceLogs,
                 attendanceByTerm: data.attendanceHours,
-            }));
+                fourpointfive: data.user.fourpointfive ?? false
 
+            }));
             // Apply search filter
             let filtered = usersData.filter(({ user }) => {
                 const query = searchQueryLocal.toLowerCase();
+                //console.log(user.fourpointfive, "<--------------------------------------------")
                 return (
                     user.first_name.toLowerCase().includes(query) ||
                     user.last_name.toLowerCase().includes(query)
                 );
             });
-
-            
-
             // Apply year and term filters
             if (selectedYear !== 'All Years' || selectedTerm !== 'All Terms') {
-                filtered = filtered.map(({ user, attendanceLogs, attendanceByTerm }) => {
+                filtered = filtered.map(({ user, attendanceLogs, attendanceByTerm, fourpointfive }) => {
                     console.log(attendanceLogs)
                     const filteredLogs = attendanceLogs.filter(log => {
                         console.log(log)
@@ -142,10 +142,13 @@ const AttendanceManagementScreen: React.FC = () => {
                         }
                     });
 
+
+
                     return {
                         user,
                         attendanceLogs: filteredLogs,
                         attendanceByTerm: filteredHours,
+                        fourpointfive: fourpointfive
                     };
                 }).filter(user => user.attendanceLogs.length > 0);
             }
@@ -156,12 +159,15 @@ const AttendanceManagementScreen: React.FC = () => {
                 const bTotal = Object.values(b.attendanceByTerm).reduce((sum, h) => sum + h, 0);
                 return sortOrder === 'asc' ? aTotal - bTotal : bTotal - aTotal;
             });
+            if (sortFourPointFive) {
+                filtered = filtered.filter(user => user.fourpointfive == true);
+            };
 
             setfilteredUsersLocal(filtered);
         };
 
         preparefilteredUsersLocal();
-    }, [allUsersAttendanceData, searchQueryLocal, selectedYear, selectedTerm, sortOrder]);
+    }, [allUsersAttendanceData, searchQueryLocal, selectedYear, selectedTerm, sortOrder, sortFourPointFive]);
 
     useEffect(() => {
         // Update term options based on selected year
@@ -224,7 +230,7 @@ const AttendanceManagementScreen: React.FC = () => {
             setShowEditDialog(false);
             await fetchAllUsersAttendanceLogs();
 
-            
+
         } catch (error) {
             console.error('Error adjusting attendance:', error);
         }
@@ -235,11 +241,11 @@ const AttendanceManagementScreen: React.FC = () => {
 
         filteredUsersLocal.forEach(({ user, attendanceLogs }) => {
             // Find the matching user directly from the users array instead of using state updates
-            const matchingUser = users.find(u => 
+            const matchingUser = users.find(u =>
                 u.first_name.toLowerCase() === user.first_name.toLowerCase() &&
                 u.last_name.toLowerCase() === user.last_name.toLowerCase()
             );
-        
+
             if (matchingUser) {
                 const totalHours = attendanceLogs.reduce((sum, log) => sum + log.hours, 0);
                 csvContent += `${matchingUser.student_id},${matchingUser.first_name},${matchingUser.last_name},${Math.round(totalHours)}\n`;
@@ -451,20 +457,36 @@ const AttendanceManagementScreen: React.FC = () => {
                         )}
                     </HStack>
 
-                    {/* Sort Order */}
-                    <HStack space="md" className="items-center">
-                        <Text>Sort by Hours:</Text>
-                        <Button
-                            variant="outline"
-                            size="md"
-                            onPress={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                        >
-                            <ButtonText>
-                                {sortOrder === 'asc' ? 'Lowest to Highest' : 'Highest to Lowest'}
-                            </ButtonText>
-                        </Button>
-                    </HStack>
 
+
+                    <HStack space='sm' className='items-center justify-center'>
+
+                        {/* Sort Order */}
+                        <VStack space="md" className="justify-center items-center w-1/2">
+                            <Text>Sort by Hours:</Text>
+                            <Button
+                                variant="outline"
+                                size="md"
+                                onPress={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                className='w-[95%]'
+                            >
+                                <ButtonText>
+                                    {sortOrder === 'asc' ? 'Lowest to Highest' : 'Highest to Lowest'}
+                                </ButtonText>
+                            </Button>
+                        </VStack>
+                        {/*Sort by 4.5 class*/}
+                        <VStack space='md' className='justify-center items-center w-1/2'>
+                            <Text>Sort by 4.5:</Text>
+                            <Button
+                                variant={sortFourPointFive ? "solid" : "outline"}
+                                size="md"
+                                onPress={() => setFourPointFive(prev => !prev)}
+                                className='w-[95%]'>
+                                <ButtonText>4.5</ButtonText>
+                            </Button>
+                        </VStack>
+                    </HStack>
                     {/* Export Button */}
                     <Button onPress={handleExport} size="md" className="mt-2">
                         <ButtonText>Export Data</ButtonText>
@@ -542,6 +564,6 @@ const AttendanceManagementScreen: React.FC = () => {
             )}
         </ScrollView>
     );
-    };
+};
 
 export default AttendanceManagementScreen;
