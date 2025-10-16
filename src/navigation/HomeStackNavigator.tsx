@@ -31,14 +31,7 @@ const HomeStackNavigator: React.FC = () => {
                 style={{color: theme === "light" ? "black" : "white" }}
               />
             ),
-            headerLeft: () => (
-              <RoleBasedHeaderButton
-                onPress={() => navigation.navigate("ScoutingForm")}
-                title="Scouting Form"
-                requiredRoles={[Roles.Member, Roles.Leadership, Roles.Executive, Roles.Admin]}
-                style={{color: theme === "light" ? "black" : "white" }}
-              />
-            ),
+            
           })}
         />
       )}
@@ -63,14 +56,7 @@ const HomeStackNavigator: React.FC = () => {
         }}
       />
 
-      <Stack.Screen
-        name="ScoutingForm"
-        component={ScoutingForm}
-        options={{
-          headerTitleAlign: "center",
-          title: "Scouting Form",
-        }}
-      />
+      
 
     </Stack.Navigator>
   );

@@ -8,7 +8,8 @@ import {
   CircleUserRoundIcon,
   HomeIcon,
   NotebookPenIcon,
-  UserPen
+  UserPen,
+  Binoculars
 } from "lucide-react-native";
 
 import DebugAsyncStorageScreen from "../screens/DebugAsyncStorageScreen";
@@ -19,6 +20,7 @@ import { roleHierarchy, Roles, TabNames } from "../Constants";
 import ProfileStackNavigator from "./ProfileStackNavigator";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen";
 import { useRoute } from "@react-navigation/native";
+import ScoutingStackNavigator from "./ScoutingStackNavigator";
 
 
 const Tab = createBottomTabNavigator();
@@ -37,6 +39,8 @@ const getIcon = (name: TabNames, theme: string) => {
       return <CircleHelpIcon color={color} />;
     case TabNames.Directory:
       return <BookUser color={color} />;
+    case TabNames.Scouting:
+      return <Binoculars color={color} />
     case TabNames.ForgotPasswordScreen:
       return <UserPen color={color} />;
     default:
@@ -77,6 +81,17 @@ const allTabs: Array<{
   {
     name: TabNames.Directory,
     component: DirectoryStackNavigator,
+    roles: [
+      Roles.Member,
+      Roles.Leadership,
+      Roles.Executive,
+      Roles.Advisor,
+      Roles.Admin,
+    ],
+  },
+  {
+    name: TabNames.Scouting,
+    component: ScoutingStackNavigator,
     roles: [
       Roles.Member,
       Roles.Leadership,

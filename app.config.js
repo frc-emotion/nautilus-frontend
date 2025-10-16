@@ -1,4 +1,3 @@
-const withCustomBeaconModule = require('./withCustomBeaconModule');
 const withRemoveiOSNotificationEntitlement = require('./withRemoveiOSNotificationEntitlement');
 
 export default ({ config }) => ({
