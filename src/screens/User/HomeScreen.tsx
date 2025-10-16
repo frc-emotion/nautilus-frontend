@@ -362,7 +362,7 @@ const HomeScreen: React.FC = () => {
                             </Button>)}
                         </VStack>
                     </Box>
-                    ) : (
+                    )} : {(
                         <Box className="w-full rounded-lg border"
                      style={{
                          borderColor: theme === 'light' ? 'black' : 'white', // Dynamically set border color
