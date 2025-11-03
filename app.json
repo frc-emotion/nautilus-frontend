@@ -1,71 +1,81 @@
 {
-    "expo": {
-        "name": "Nautilus",
-        "slug": "nautilus",
-        "scheme": "nautilus",
-        "version": "3.0.5",
-        "platforms": [
-            "ios",
-            "android"
-        ],
-        "splash": {
-            "image": "./src/assets/splash.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#ffffff"
-        },
-        "orientation": "portrait",
-        "icon": "./src/assets/icon.png",
-        "userInterfaceStyle": "light",
-        "autolinking": {
-            "nativeModulesDir": "./modules/BLEBeaconManager"
-        },
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "org.team2658.scouting",
-            "infoPlist": {
-                "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
-                "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
-                "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to detect beacons."
-            }
-        },
-        "android": {
-            "package": "org.team2658.nautilus",
-            "permissions": [
-                "android.permission.INTERNET",
-                "android.permission.ACCESS_COARSE_LOCATION",
-                "android.permission.FOREGROUND_SERVICE",
-                "android.permission.ACCESS_FINE_LOCATION",
-                "android.permission.ACCESS_BACKGROUND_LOCATION",
-                "android.permission.RECEIVE_BOOT_COMPLETED",
-                "android.permission.FOREGROUND_SERVICE_LOCATION",
-                "android.permission.BLUETOOTH",
-                "android.permission.BLUETOOTH_ADMIN",
-                "android.permission.BLUETOOTH_SCAN",
-                "android.permission.BLUETOOTH_CONNECT",
-                "android.permission.VIBRATE"
-            ]
-        },
-        "plugins": [
-            [
-                "@sentry/react-native/expo",
-                {
-                    "organization": "frc-team-2658",
-                    "project": "nautilus-app",
-                    "url": "https://sentry.io/"
-                }
-            ],
-            [
-                "expo-build-properties",
-                {
-                  "android": {
-                    "minSdkVersion": 26,
-                    "compileSdkVersion": 35,
-                    "targetSdkVersion": 35,
-                    "enable16KBPageSize": true,
-                    "kotlinVersion": "2.0.21"
-                  }
-                }
-            ]
-        ]
+  "expo": {
+    "name": "Nautilus",
+    "slug": "nautilus",
+    "scheme": "nautilus",
+    "version": "3.0.5",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "splash": {
+      "image": "./src/assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.frc2658.nautilus",
+      "infoPlist": {
+        "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
+        "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to detect beacons.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.frc2658.nautilus",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.VIBRATE"
+      ]
+    },
+    "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "frc-team-2658",
+          "project": "nautilus-app",
+          "url": "https://sentry.io/"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "enable16KBPageSize": true,
+            "kotlinVersion": "2.0.21"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "APP_UUID": "35a2ba12-25ba-4c79-9d0b-a88fc8d4255f",
+      "environment": "prod",
+      "API_URL": "https://api.team2658.org",
+      "MAX_RETRIES": 3,
+      "eas": {
+        "projectId": "f1196ac6-e7c1-42a6-a6d8-051b096d2963"
+      }
     }
+  }
 }

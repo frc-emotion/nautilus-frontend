@@ -91,6 +91,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@react-native-community/cli": "^20.0.2",
     "@types/react": "~18.2.45",
     "jscodeshift": "0.15.2",
     "reactotron-react-native": "^5.1.10",

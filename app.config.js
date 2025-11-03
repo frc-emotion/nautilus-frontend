@@ -12,7 +12,7 @@ export default ({ config }) => ({
 
       MAX_RETRIES: 3,
       eas: {
-        projectId: "9a4e6a54-63ce-46b8-a978-ba046e0f2ae8"
+        projectId: "f1196ac6-e7c1-42a6-a6d8-051b096d2963"
       }
     },
     plugins: [
