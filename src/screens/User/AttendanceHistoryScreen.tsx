@@ -131,14 +131,16 @@ const AttendanceHistoryScreen: React.FC = () => {
     <Card
       key={item._id}
       variant="outline"
-      className="p-4 mb-3 rounded-lg"
+      className="p-5 mb-4 rounded-xl shadow-sm border-outline-200"
     >
       <Pressable onPress={() => handleViewMeeting(item)}>
-        <Text className="text-lg font-semibold">{item.title}</Text>
-        <Text>{item.location}</Text>
-        <Text>
-          {formatDateTime(item.time_start)} - {formatDateTime(item.time_end)}
-        </Text>
+        <VStack space="sm">
+          <Text className="text-lg font-semibold text-typography-950">{item.title}</Text>
+          <Text className="text-sm text-typography-600">{item.location}</Text>
+          <Text className="text-xs text-typography-500">
+            {formatDateTime(item.time_start)}
+          </Text>
+        </VStack>
       </Pressable>
     </Card>
   );
@@ -146,18 +148,15 @@ const AttendanceHistoryScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{
-        flex: 1,
-        backgroundColor: theme === "light" ? "#FFFFFF" : "#1A202C",
-      }}
+      className="flex-1 bg-background-0"
     >
-      <Box className="p-4 flex-1">
+      <Box className="px-6 py-6 flex-1">
         {/* Search Bar */}
         <Controller
           control={control}
           name="searchQuery"
           render={({ field: { onChange, value } }) => (
-            <Input variant="outline" size="md" className="mb-4">
+            <Input variant="outline" size="md" className="mb-6 rounded-lg shadow-sm border-outline-200">
               <InputField
                 value={value}
                 onChangeText={(text) => {
@@ -165,7 +164,7 @@ const AttendanceHistoryScreen: React.FC = () => {
                   setSearchQuery(text);
                 }}
                 placeholder="Search your meetings by title, location, or description..."
-                placeholderTextColor={theme === 'light' ? '#A0AEC0' : '#4A5568'}
+                className="text-typography-900"
               />
             </Input>
           )}
@@ -185,16 +184,16 @@ const AttendanceHistoryScreen: React.FC = () => {
             }
             ListEmptyComponent={
               !isLoadingMeetings && !isLoadingUsers ? (
-                <Box className="p-3">
-                  <Text className="text-center">You have no meetings marked for attendance.</Text>
+                <Box className="p-6">
+                  <Text className="text-center text-base text-typography-600">You have no meetings marked for attendance.</Text>
                 </Box>
               ) : null
             }
             ListHeaderComponent={
               (isLoadingMeetings || isLoadingUsers) ? (
-                <Box className="p-3">
+                <Box className="p-6">
                   <Spinner />
-                  <Text className="text-center">Loading your meetings...</Text>
+                  <Text className="text-center text-base text-typography-600">Loading your meetings...</Text>
                 </Box>
               ) : null
             }
@@ -213,37 +212,53 @@ const AttendanceHistoryScreen: React.FC = () => {
             <AlertDialogBackdrop />
             <AlertDialogContent>
               <AlertDialogHeader className="pb-4">
-                <Text className="text-lg font-semibold">Meeting Details</Text>
+                <Text className="text-xl font-semibold text-typography-950">Meeting Details</Text>
               </AlertDialogHeader>
               <AlertDialogBody>
-                <VStack space="sm">
-                  <Text className="font-medium">Title:</Text>
-                  <Text>{viewingMeeting.title}</Text>
+                <VStack space="md">
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">Title</Text>
+                    <Text className="text-base text-typography-950">{viewingMeeting.title}</Text>
+                  </VStack>
 
-                  <Text className="font-medium">Description:</Text>
-                  <Text>{viewingMeeting.description}</Text>
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">Description</Text>
+                    <Text className="text-base text-typography-950">{viewingMeeting.description}</Text>
+                  </VStack>
 
-                  <Text className="font-medium">Location:</Text>
-                  <Text>{viewingMeeting.location}</Text>
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">Location</Text>
+                    <Text className="text-base text-typography-950">{viewingMeeting.location}</Text>
+                  </VStack>
 
-                  <Text className="font-medium">Start Time:</Text>
-                  <Text>{formatDateTime(viewingMeeting.time_start)}</Text>
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">Start Time</Text>
+                    <Text className="text-base text-typography-950">{formatDateTime(viewingMeeting.time_start)}</Text>
+                  </VStack>
 
-                  <Text className="font-medium">End Time:</Text>
-                  <Text>{formatDateTime(viewingMeeting.time_end)}</Text>
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">End Time</Text>
+                    <Text className="text-base text-typography-950">{formatDateTime(viewingMeeting.time_end)}</Text>
+                  </VStack>
 
-                  <Text className="font-medium">Hours:</Text>
-                  <Text>{viewingMeeting.hours}</Text>
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">Hours</Text>
+                    <Text className="text-base text-typography-950">{viewingMeeting.hours}</Text>
+                  </VStack>
 
-                  <Text className="font-medium">Created By:</Text>
-                  <Text>{getUserName(viewingMeeting.created_by)}</Text>
+                  <VStack space="xs">
+                    <Text className="text-sm font-medium text-typography-600">Created By</Text>
+                    <Text className="text-base text-typography-950">{getUserName(viewingMeeting.created_by)}</Text>
+                  </VStack>
                 </VStack>
               </AlertDialogBody>
-              <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
+              <AlertDialogFooter className="flex justify-end pt-6">
                 <Button
                   onPress={() => setShowViewMeetingDialog(false)}
+                  size="md"
+                  className="rounded-lg shadow-sm"
                 >
-                  <ButtonText>Close</ButtonText>
+                  <ButtonText className="font-semibold">Close</ButtonText>
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>

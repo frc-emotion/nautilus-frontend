@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { RefreshControl, ScrollView, ActivityIndicator } from "react-native";
+import { RefreshControl, ScrollView, ActivityIndicator, Pressable } from "react-native";
 import { View } from "@/components/ui/view";
+import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
@@ -162,93 +163,133 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 16,
-        backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C'
-      }}
+      className="flex-1 bg-background-0"
+      contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
-      <VStack space="lg" className="items-center">
+      <VStack space="2xl" className="items-center">
         <Image
           width={128}
           height={128}
-          className="w-32 h-32 rounded-full"
+          className="w-32 h-32 rounded-full shadow-lg"
           source={icon}
           alt="Profile Picture"
         />
 
-        <VStack space="md" className="w-full max-w-[600px]">
-          <HStack className="justify-between">
-            <Text>Name</Text>
-            <Text className="font-semibold">{`${displayUser?.first_name} ${displayUser?.last_name}`}</Text>
-          </HStack>
+        <VStack space="lg" className="w-full max-w-2xl">
+          <Box className="bg-background-0 rounded-xl shadow-md p-6 border border-outline-100">
+            <VStack space="md">
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Name</Text>
+                <Text className="font-semibold text-base text-typography-950">{`${displayUser?.first_name} ${displayUser?.last_name}`}</Text>
+              </HStack>
 
-          <HStack className="justify-between">
-            <Text>Email</Text>
-            <Text className="font-semibold">{displayUser?.email}</Text>
-          </HStack>
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Email</Text>
+                <Text className="font-semibold text-base text-typography-950">{displayUser?.email}</Text>
+              </HStack>
 
-          <HStack className="justify-between">
-            <Text>Phone</Text>
-            <Text className="font-semibold">{displayUser?.phone ? formatPhoneNumber(displayUser?.phone) : displayUser?.phone}</Text>
-          </HStack>
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Phone</Text>
+                <Text className="font-semibold text-base text-typography-950">{displayUser?.phone ? formatPhoneNumber(displayUser?.phone) : displayUser?.phone}</Text>
+              </HStack>
 
-          <HStack className="justify-between">
-            <Text>Student ID</Text>
-            <Text className="font-semibold">{displayUser?.student_id}</Text>
-          </HStack>
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Student ID</Text>
+                <Text className="font-semibold text-base text-typography-950">{displayUser?.student_id}</Text>
+              </HStack>
 
-          <HStack className="justify-between">
-            <Text>Grade</Text>
-            <Text className="font-semibold">{displayUser?.grade}</Text>
-          </HStack>
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Grade</Text>
+                <Text className="font-semibold text-base text-typography-950">{displayUser?.grade}</Text>
+              </HStack>
 
-          <HStack className="justify-between">
-            <Text>Subteam</Text>
-            <Text className="font-semibold">{displayUser?.subteam ? displayUser.subteam.join(", ") : "N/A"}</Text>
-          </HStack>
+              {/* Subteam - Horizontal Scrollable Chips */}
+              <VStack space="xs">
+                <Text className="text-sm font-medium text-typography-600">Subteam</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingVertical: 4 }}
+                >
+                  <HStack space="xs">
+                    {displayUser?.subteam && displayUser.subteam.length > 0 ? (
+                      displayUser.subteam.map((team, index) => (
+                        <View 
+                          key={index}
+                          className="px-3 py-1.5 rounded-full border border-outline-200"
+                          style={{
+                            backgroundColor: theme === 'dark' ? 'rgba(245, 245, 245, 0.1)' : 'rgba(51, 51, 51, 0.05)',
+                          }}
+                        >
+                          <Text className="text-sm font-semibold text-typography-900">{team}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text className="text-sm text-typography-500 italic">No subteam assigned</Text>
+                    )}
+                  </HStack>
+                </ScrollView>
+              </VStack>
 
-          <HStack className="justify-between">
-            <Text>Role</Text>
-            <Text className="font-semibold">{displayUser?.role}</Text>
-          </HStack>
+              {/* Role - Single Badge with Accent Color */}
+              <VStack space="xs">
+                <Text className="text-sm font-medium text-typography-600">Role</Text>
+                <View 
+                  className="px-4 py-2 rounded-full self-start border-2"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(96, 165, 250, 0.15)' : 'rgba(59, 130, 246, 0.1)',
+                    borderColor: theme === 'dark' ? 'rgba(96, 165, 250, 0.4)' : 'rgba(59, 130, 246, 0.3)',
+                  }}
+                >
+                  <Text 
+                    className="text-base font-bold uppercase tracking-wide"
+                    style={{ color: theme === 'dark' ? '#60A5FA' : '#2563EB' }}
+                  >
+                    {displayUser?.role || 'N/A'}
+                  </Text>
+                </View>
+              </VStack>
 
-          <HStack className="justify-between">
-            <Text>Enrolled in 4.5 Class</Text>
-            <Text className="font-semibold">{displayUser?.fourpointfive}</Text>
-          </HStack>
-          {/* <HStack className="justify-between">
-            <Text>Push Notifications</Text>
-            <Text className="font-semibold">Disabled</Text>
-          </HStack> */}
-
-          <HStack className="justify-between">
-            <Text>API</Text>
-            <Text className="font-semibold">{CLEAN_API_URL}</Text>
-          </HStack>
-          
-          <HStack className="justify-between">
-            <Text>Version</Text>
-            <Text className="font-semibold">{Application.nativeApplicationVersion}</Text>
-          </HStack>
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Enrolled in 4.5 Class</Text>
+                <Text className="font-semibold text-base text-typography-950">{displayUser?.fourpointfive}</Text>
+              </HStack>
+            </VStack>
+          </Box>
+          <Box className="bg-background-0 rounded-xl shadow-md p-6 border border-outline-100">
+            <VStack space="md">
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">API</Text>
+                <Text className="font-semibold text-base text-typography-950">{CLEAN_API_URL}</Text>
+              </HStack>
+              
+              <HStack className="justify-between items-center">
+                <Text className="text-sm font-medium text-typography-600">Version</Text>
+                <Text className="font-semibold text-base text-typography-950">{Application.nativeApplicationVersion}</Text>
+              </HStack>
+            </VStack>
+          </Box>
         </VStack>
 
-        <Button
-          onPress={handleLogout}
-          size="lg"
-          className="mt-4 py-2 rounded-md bg-red-600"
-        >
-          <ButtonText className="font-semibold">Logout</ButtonText>
-        </Button>
+        <VStack space="md" className="w-full max-w-2xl">
+          <Button
+            onPress={handleLogout}
+            size="lg"
+            className="rounded-lg shadow-md bg-error-600"
+          >
+            <ButtonText className="font-semibold text-base">Logout</ButtonText>
+          </Button>
 
-        <Button
-          onPress={forceCrash}
-          size="lg"
-          className="mt-4 py-2 rounded-md bg-gray-600"
-        >
-          <ButtonText className="font-semibold">Upload Logs</ButtonText>
-        </Button>
+          <Button
+            onPress={forceCrash}
+            size="lg"
+            variant="outline"
+            className="rounded-lg"
+          >
+            <ButtonText className="font-semibold text-base">Upload Logs</ButtonText>
+          </Button>
+        </VStack>
       </VStack>
     </ScrollView>
   );

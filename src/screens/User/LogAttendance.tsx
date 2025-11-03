@@ -336,10 +336,10 @@ const LogAttendance: React.FC = () => {
 
   return (
     <ScrollView
+      className="bg-background-0"
       contentContainerStyle={{
         flexGrow: 1,
         padding: 16,
-        backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C',
       }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >

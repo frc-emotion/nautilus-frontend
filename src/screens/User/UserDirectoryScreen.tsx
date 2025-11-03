@@ -405,7 +405,7 @@ const UserDirectoryScreen: React.FC = () => {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={80}
-      style={{ flex: 1, backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
+      className="flex-1 bg-background-0"
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -414,10 +414,10 @@ const UserDirectoryScreen: React.FC = () => {
           <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
       >
-        <Box className="p-4 flex-1">
+        <Box className="px-6 py-6 flex-1">
           {/* Search Bar */}
           {['admin', 'executive', 'advisor'].includes(user?.role ?? '') && (
-            <Input variant="outline" size="md" className="mb-4">
+            <Input variant="outline" size="md" className="mb-6 rounded-lg shadow-sm border-outline-200">
               <InputField
                 value={searchQuery}
                 onChangeText={(text) => {
@@ -425,13 +425,13 @@ const UserDirectoryScreen: React.FC = () => {
                   setSearchQuery(text);
                 }}
                 placeholder="Search by name, email, or role"
-                className={`placeholder-gray-400`}
+                className="text-typography-900"
               />
             </Input>
           )}
 
           {/* Filters */}
-          <View className="mb-4">
+          <View className="mb-6">
             <View className="flex flex-row flex-wrap justify-between">
               <View className="flex-1 min-w-[45%] mb-2 mr-2">
                 <Select
@@ -441,7 +441,7 @@ const UserDirectoryScreen: React.FC = () => {
                     setSelectedSubteam(itemValue);
                   }}
                 >
-                  <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
+                  <SelectTrigger variant="outline" size="md" className="rounded-lg shadow-sm justify-between border-outline-200">
                     <SelectInput placeholder="Subteam" />
                     <SelectIcon className='mr-2' as={ChevronDownIcon} />
                   </SelectTrigger>
@@ -468,7 +468,7 @@ const UserDirectoryScreen: React.FC = () => {
                     setSelectedGrade(itemValue);
                   }}
                 >
-                  <SelectTrigger variant="outline" size="md" className="mb-2 justify-between">
+                  <SelectTrigger variant="outline" size="md" className="rounded-lg shadow-sm justify-between border-outline-200">
                     <SelectInput placeholder="Grade" />
                     <SelectIcon as={ChevronDownIcon} />
                   </SelectTrigger>
@@ -490,7 +490,7 @@ const UserDirectoryScreen: React.FC = () => {
           </View>
 
           {/* User Table Header */}
-          <View className="flex flex-row p-2 rounded mb-1">
+          <View className="flex flex-row p-3 rounded-lg bg-background-50 mb-2">
             <View className="flex-1 items-center justify-center">
               <Text className="font-medium">First Name</Text>
             </View>
@@ -520,16 +520,16 @@ const UserDirectoryScreen: React.FC = () => {
             )} */}
           </View>
 
-          <Divider className="my-1" />
+          <Divider className="my-2" />
 
           {/* User List */}
           {isLoading ? (
-            <View className="p-3">
-              <Text className="text-center">Loading users...</Text>
+            <View className="p-6">
+              <Text className="text-center text-base text-typography-600">Loading users...</Text>
             </View>
           ) : sortedUsers.length === 0 ? (
-            <View className="p-3">
-              <Text className="text-center">No users found.</Text>
+            <View className="p-6">
+              <Text className="text-center text-base text-typography-600">No users found.</Text>
             </View>
           ) : (
             sortedUsers.map((userItem) => (
@@ -537,7 +537,7 @@ const UserDirectoryScreen: React.FC = () => {
                 key={userItem._id}
                 onPress={() => handleViewUser(userItem)}
               >
-                <View className={`flex flex-row items-center border-b ${theme === 'light' ? 'border-gray-300' : 'border-gray-600'}`}>
+                <View className="flex flex-row items-center border-b border-outline-200 py-3">
                   <Text
                     className="p-2 flex-1 text-center"
                     numberOfLines={1}
@@ -612,7 +612,7 @@ const UserDirectoryScreen: React.FC = () => {
               <AlertDialogBackdrop />
               <AlertDialogContent className="w-11/12 max-w-2xl">
                 <AlertDialogHeader className="pb-4">
-                  <Text className="text-lg font-semibold">User Details</Text>
+                  <Text className="text-xl font-semibold text-typography-950">User Details</Text>
                 </AlertDialogHeader>
                 <AlertDialogBody>
                   <VStack space="sm">
@@ -685,7 +685,7 @@ const UserDirectoryScreen: React.FC = () => {
               <AlertDialogBackdrop />
               <AlertDialogContent className="w-11/12 max-w-3xl">
                 <AlertDialogHeader className="pb-4">
-                  <Text className="text-lg font-semibold">Edit User</Text>
+                  <Text className="text-xl font-semibold text-typography-950">Edit User</Text>
                 </AlertDialogHeader>
                 <AlertDialogBody>
                   <ScrollView>
@@ -699,12 +699,12 @@ const UserDirectoryScreen: React.FC = () => {
                             rules={{ required: 'First Name is required' }}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                               <>
-                                <Input variant="outline" size="md" className="mt-1">
+                                <Input variant="outline" size="md" className="mt-1 rounded-lg border-outline-200">
                                   <InputField
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="First Name"
-                                    className={`placeholder-gray-400`}
+                                    className="text-typography-900"
                                   />
                                 </Input>
                                 {error && <Text className="text-red-500">{error.message}</Text>}
@@ -720,12 +720,12 @@ const UserDirectoryScreen: React.FC = () => {
                             rules={{ required: 'Last Name is required' }}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                               <>
-                                <Input variant="outline" size="md" className="mt-1">
+                                <Input variant="outline" size="md" className="mt-1 rounded-lg border-outline-200">
                                   <InputField
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Last Name"
-                                    className={`placeholder-gray-400`}
+                                    className="text-typography-900"
                                   />
                                 </Input>
                                 {error && <Text className="text-red-500">{error.message}</Text>}
@@ -750,13 +750,13 @@ const UserDirectoryScreen: React.FC = () => {
                             }}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                               <>
-                                <Input variant="outline" size="md" className="mt-1">
+                                <Input variant="outline" size="md" className="mt-1 rounded-lg border-outline-200">
                                   <InputField
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Email"
                                     keyboardType="email-address"
-                                    className={`placeholder-gray-400`}
+                                    className="text-typography-900"
                                   />
                                 </Input>
                                 {error && <Text className="text-red-500">{error.message}</Text>}
@@ -778,7 +778,7 @@ const UserDirectoryScreen: React.FC = () => {
                             }}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                               <>
-                                <Input variant="outline" size="md" className="mt-1">
+                                <Input variant="outline" size="md" className="mt-1 rounded-lg border-outline-200">
                                   <InputField
                                     value={value}
                                     onChangeText={(text) => {
@@ -788,7 +788,7 @@ const UserDirectoryScreen: React.FC = () => {
                                     placeholder="Phone"
                                     keyboardType="phone-pad"
                                     maxLength={14}
-                                    className={`placeholder-gray-400`}
+                                    className="text-typography-900"
                                   />
                                 </Input>
                                 {error && <Text className="text-red-500">{error.message}</Text>}
@@ -813,14 +813,14 @@ const UserDirectoryScreen: React.FC = () => {
                             }}
                             render={({ field: { onChange, value }, fieldState: { error } }) => (
                               <>
-                                <Input variant="outline" size="md" className="mt-1">
+                                <Input variant="outline" size="md" className="mt-1 rounded-lg border-outline-200">
                                   <InputField
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Student ID"
                                     keyboardType="numeric"
                                     maxLength={7}
-                                    className={`placeholder-gray-400`}
+                                    className="text-typography-900"
                                   />
                                 </Input>
                                 {error && <Text className="text-red-500">{error.message}</Text>}

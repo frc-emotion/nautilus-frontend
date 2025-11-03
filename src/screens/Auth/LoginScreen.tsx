@@ -1,16 +1,12 @@
-import React, { useState } from "react";
-import {
-  ScrollView,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-  ActivityIndicator,
-} from "react-native";
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TouchableWithoutFeedback, Keyboard, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Button, ButtonText } from "@/components/ui/button";
+import { Image } from "@/components/ui/image";
+import { Pressable } from "@/components/ui/pressable";
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon, MoonIcon, SunIcon } from "lucide-react-native";
 import { useGlobalModal } from "../../utils/UI/CustomModalProvider";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
@@ -22,7 +18,6 @@ import { QueuedRequest } from "../../Constants";
 import { Fab, FabIcon } from "@/components/ui/fab";
 import { useTheme } from '../../utils/UI/CustomThemeProvider';
 import { handleErrorWithModalOrToast } from "@/src/utils/Helpers";
-import { Image } from "@/components/ui/image";
 import { useNetworking } from "@/src/utils/Context/NetworkingContext";
 import { useAttendance } from "@/src/utils/Context/AttendanceContext";
 
@@ -39,6 +34,11 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [forgot, setForgot] = useState(false);
   const { loadYearsAndTerms } = useAttendance();
 
+  // Premium entrance animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
   const {
     control,
     handleSubmit,
@@ -49,6 +49,29 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       password: "",
     },
   });
+
+  useEffect(() => {
+    // Entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 9,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleLogin = async (data: any) => {
     console.log("Login form submitted with data:", data);
@@ -209,24 +232,39 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={60}
       className="flex-1"
-      style={{ backgroundColor: theme === 'light' ? '#FFFFFF' : '#1A202C' }}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          automaticallyAdjustKeyboardInsets={true}
-          showsVerticalScrollIndicator
-        >
-          <VStack
-            className="flex-1 justify-center items-center px-4 md:px-8 lg:px-16 space-y-4"
+      <LinearGradient
+        colors={theme === 'light' 
+          ? ['#FFFFFF', '#F9FAFB', '#F3F4F6']
+          : ['#0A0A0A', '#171717', '#1E1E1E']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            automaticallyAdjustKeyboardInsets={true}
+            showsVerticalScrollIndicator={false}
           >
-            <Image
-              className="w-64 h-64 sm:w-32 sm:h-32 md:w-64 md:h-64 lg:w-128 lg:h-128 mb-6"
-              source={icon}
-              alt="App Icon"
-            />
+            <Animated.View
+              style={{
+                flex: 1,
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+              }}
+            >
+              <VStack className="flex-1 justify-center items-center px-6 py-12">
+            <View style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24, marginBottom: 32 }}>
+              <Image
+                className="w-48 h-48"
+                source={icon}
+                alt="App Icon"
+              />
+            </View>
 
-            <Text className="text-sm md:text-base font-medium mb-2">Email</Text>
+            <Text className="text-base font-semibold text-typography-900 mb-3">Email</Text>
             <Controller
               control={control}
               name="email"
@@ -238,7 +276,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 },
               }}
               render={({ field: { onChange, value } }) => (
-                <Input size="md" className="rounded w-9/12 mb-4 max-w-md">
+                <Input size="md" className="rounded-lg shadow-sm w-full max-w-md mb-6 border-outline-200">
                   <InputSlot className="pl-3">
                     <InputIcon as={MailIcon} />
                   </InputSlot>
@@ -256,14 +294,14 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
             {!forgot && (
               <>
-                <Text className="text-sm md:text-base font-medium mb-2">
+                <Text className="text-base font-semibold text-typography-900 mb-3">
                   Password
                 </Text>
                 <Controller
                   control={control}
                   name="password"
                   render={({ field: { onChange, value } }) => (
-                    <Input size="md" className="rounded w-9/12 mb-4 max-w-md">
+                    <Input size="md" className="rounded-lg shadow-sm w-full max-w-md mb-8 border-outline-200">
                       <InputSlot className="pl-3">
                         <InputIcon as={LockIcon} />
                       </InputSlot>
@@ -287,13 +325,13 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <Button
                   onPress={handleSubmit(handleLogin, onError)}
                   size="lg"
-                  className="mt-4 py-2 rounded-md w-1/2 max-w-md"
+                  className="rounded-lg shadow-md w-full max-w-md"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <ActivityIndicator size="small" />
                   ) : (
-                    <ButtonText className="font-semibold text-lg">Login</ButtonText>
+                    <ButtonText className="font-semibold text-base">Login</ButtonText>
                   )}
                 </Button>
               </>
@@ -303,7 +341,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Button
                 onPress={handleSubmit(handleForgotPassword, onError)}
                 size="lg"
-                className="mt-4 py-2 rounded-md"
+                className="rounded-lg shadow-md w-full max-w-md"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -318,9 +356,10 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Button
                 onPress={() => setForgot(true)}
                 size="sm"
-                className={theme === 'light' ? "mt-4 py-2 rounded-md bg-white" : "mt-4 py-2 rounded-md bg-grey"} disabled={false}
+                variant="outline"
+                className="mt-6 rounded-lg w-full max-w-md"
               >
-                <ButtonText className={theme === 'light' ? "color-black" : "color-white"}>
+                <ButtonText>
                   Forgot Password?
                 </ButtonText>
               </Button>
@@ -328,26 +367,57 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             {/* Remember Password */}
             {forgot && (
                 <Button
-                  onPress={()=>setForgot(false)}
+                  onPress={() => setForgot(false)}
                   size="sm"
-                  className={theme === 'light' ? "mt-4 py-2 rounded-md bg-white active:bg-white" : "mt-4 py-2 rounded-md bg-grey active:bg-grey"} disabled={false}
-                  >
-                    <ButtonText className={theme === 'light' ? "color-black" : "color-white"}>
+                  variant="outline"
+                  className="mt-6 rounded-lg w-full max-w-md"
+                >
+                    <ButtonText>
                       Remember Password?
                     </ButtonText>
                   </Button>
               )}
-          </VStack>
-          <Fab
-            size="md"
-            placement="bottom right"
-            onPress={toggleTheme}
-            className="absolute bottom-4 right-4"
-          >
-            <FabIcon as={theme === 'light' ? MoonIcon : SunIcon} />
-          </Fab>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+              </VStack>
+            </Animated.View>
+            
+            {/* Premium FAB for theme toggle */}
+            <View style={{ position: 'absolute', bottom: Platform.OS === 'ios' ? 32 : 24, right: 24 }}>
+              <Pressable onPress={toggleTheme}>
+                {({ pressed }) => (
+                  <Animated.View
+                    style={[
+                      {
+                        width: 56,
+                        height: 56,
+                        borderRadius: 28,
+                        backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(45, 45, 45, 0.95)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: theme === 'light' ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)',
+                        transform: [{ scale: pressed ? 0.95 : 1 }],
+                      },
+                      Platform.select({
+                        ios: {
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 8 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 12,
+                        },
+                        android: {
+                          elevation: 8,
+                        },
+                      }),
+                    ]}
+                  >
+                    {theme === 'light' ? <MoonIcon color="#333333" size={24} /> : <SunIcon color="#F5F5F5" size={24} />}
+                  </Animated.View>
+                )}
+              </Pressable>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 };

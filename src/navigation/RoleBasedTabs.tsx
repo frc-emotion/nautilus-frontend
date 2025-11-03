@@ -11,6 +11,7 @@ import {
   UserPen,
   Binoculars
 } from "lucide-react-native";
+import AnimatedTabBar from "../components/AnimatedTabBar";
 
 import DebugAsyncStorageScreen from "../screens/DebugAsyncStorageScreen";
 import HomeStackNavigator from "./HomeStackNavigator";
@@ -25,26 +26,30 @@ import ScoutingStackNavigator from "./ScoutingStackNavigator";
 
 const Tab = createBottomTabNavigator();
 
-// Icon mapping remains the same
-const getIcon = (name: TabNames, theme: string) => {
-  const color = theme === "light" ? "black" : "white";
+// Icon mapping with theme-aware colors
+const getIcon = (name: TabNames, focused: boolean, theme: string) => {
+  const color = focused 
+    ? (theme === "light" ? "#333333" : "#F5F5F5")
+    : (theme === "light" ? "#6B7280" : "#9CA3AF");
+  const size = 24;
+  
   switch (name) {
     case TabNames.Home:
-      return <HomeIcon color={color} />;
+      return <HomeIcon color={color} size={size} />;
     case TabNames.Attendance:
-      return <NotebookPenIcon color={color} />;
+      return <NotebookPenIcon color={color} size={size} />;
     case TabNames.Profile:
-      return <CircleUserRoundIcon color={color} />;
+      return <CircleUserRoundIcon color={color} size={size} />;
     case TabNames.AsyncStorage:
-      return <CircleHelpIcon color={color} />;
+      return <CircleHelpIcon color={color} size={size} />;
     case TabNames.Directory:
-      return <BookUser color={color} />;
+      return <BookUser color={color} size={size} />;
     case TabNames.Scouting:
-      return <Binoculars color={color} />
+      return <Binoculars color={color} size={size} />
     case TabNames.ForgotPasswordScreen:
-      return <UserPen color={color} />;
+      return <UserPen color={color} size={size} />;
     default:
-      return <CircleHelpIcon color={color} />;
+      return <CircleHelpIcon color={color} size={size} />;
   }
 };
 
@@ -150,8 +155,9 @@ const RoleBasedTabs: React.FC = () => {
 
   return (
     <Tab.Navigator
+      tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
-        headerShown: false, // Disable headers in Tab Navigator
+        headerShown: false,
       }}
     >
       {filteredTabs.map(({ name, component }, index) => (
@@ -161,7 +167,8 @@ const RoleBasedTabs: React.FC = () => {
           component={component}
           initialParams={{ token, admin }}
           options={{
-            tabBarIcon: ({ size = 24 }) => getIcon(name, theme),
+            tabBarIcon: ({ focused }) => getIcon(name, focused, theme),
+            tabBarLabel: name,
           }}
         />
       ))}

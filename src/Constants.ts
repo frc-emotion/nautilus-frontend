@@ -378,23 +378,23 @@ export interface ModalContextProps {
 export const LightTheme: Theme = {
     dark: false,
     colors: {
-        primary: '#010101', // systemBlue
-        background: '#F2F2F7', // systemBackground (light)
-        card: '#FFFFFF', // systemCard (light)
-        text: '#1C1C1E', // primary text (dark)
-        border: '#D8D8DC', // separator (light)
-        notification: '#FF3B30', // systemRed
+        primary: '#333333', // Modern dark gray for primary actions
+        background: '#FFFFFF', // Clean white background
+        card: '#FFFFFF', // Card surfaces
+        text: '#171717', // Primary text
+        border: '#E5E7EB', // Subtle borders
+        notification: '#DC2626', // Error red
     },
 };
 
 export const DarkTheme: Theme = {
     dark: true,
     colors: {
-        primary: '#FFFFFF', // systemBlue (dark mode)
-        background: '#010101', // systemBackground (dark)
-        card: '#1A202C', // systemGray6 (dark)
-        text: '#E5E5E7', // primary text (light on dark)
-        border: '#272729', // separator (dark)
-        notification: '#FF453A', // systemRed (dark mode)
+        primary: '#F5F5F5', // Light primary in dark mode
+        background: '#121212', // True black for OLED
+        card: '#1E1E1E', // Elevated surfaces
+        text: '#F5F5F5', // High contrast text
+        border: '#374151', // Subtle dark borders
+        notification: '#EF4444', // Bright error in dark mode
     },
 };

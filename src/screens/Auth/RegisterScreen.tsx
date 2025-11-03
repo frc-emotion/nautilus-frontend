@@ -239,11 +239,11 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-background-0">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={100}
-        style={{ backgroundColor: theme === "light" ? "#FFFFFF" : "#1A202C" }}
+        className="flex-1 bg-background-0"
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView

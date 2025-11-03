@@ -509,10 +509,7 @@ const MeetingsScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{
-        flex: 1,
-        backgroundColor: theme === "light" ? "#FFFFFF" : "#1A202C",
-      }}
+      className="flex-1 bg-background-0"
     >
       <Box className="p-4 flex-1">
         {/* Search Input */}
