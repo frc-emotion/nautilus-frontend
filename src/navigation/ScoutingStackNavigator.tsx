@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screens/User/HomeScreen";
 import ScoutingForm from "../screens/User/ScoutingForm";
 import DataVisualizationScreen from "../screens/User/DataVisualizationScreen";
+import AdvancedOprScreen from "../screens/User/AdvancedOprScreen";
 import { Roles } from "../Constants";
 import RoleBasedHeaderButton from "../components/RoleBasedHeaderButton";
 import { useTheme } from "../utils/UI/CustomThemeProvider";
@@ -63,9 +64,26 @@ const ScoutingStackNavigator: React.FC = () => {
             <Stack.Screen
                 name="DataViz"
                 component={DataVisualizationScreen}
-                options={{
+                options={({ navigation }) => ({
                     headerTitleAlign: "center",
                     title: "Data Visualization",
+                    headerRight: () => (
+                        <RoleBasedHeaderButton
+                            onPress={() => navigation.navigate("AdvancedOpr")}
+                            title="Advanced OPR"
+                            requiredRoles={[Roles.Member, Roles.Leadership, Roles.Executive, Roles.Admin]}
+                            style={{ color: theme === "light" ? "black" : "white" }}
+                        />
+                    )
+                })}
+            />
+
+            <Stack.Screen
+                name="AdvancedOpr"
+                component={AdvancedOprScreen}
+                options={{
+                    headerTitleAlign: "center",
+                    title: "Advanced OPR Analytics",
                 }}
             />
         </Stack.Navigator>

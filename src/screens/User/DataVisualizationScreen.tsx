@@ -23,8 +23,13 @@ import { TeamNumberInput } from '@/src/components/dataviz/TeamNumberInput';
 import { MetricCard } from '@/src/components/MetricCard';
 import { LevelContributionChart } from '@/src/components/dataviz/LevelContributionChart';
 import { ClimbBarChart } from '@/src/components/dataviz/ClimbBarChart';
+import { OprBarChart } from '@/src/components/oprs/OprBarChart';
+import { OprCard } from '@/src/components/oprs/OprCard';
 import { useTeamAggregation } from '@/src/hooks/useTeamAggregation';
 import { useEventSummary } from '@/src/hooks/useEventSummary';
+import { useAdvancedOprs } from '@/src/hooks/useAdvancedOprs';
+import type { TeamOprMetrics } from '@/src/types/oprs';
+import { OPR_METRICS } from '@/src/types/oprs';
 import { useTheme } from '@/src/utils/UI/CustomThemeProvider';
 import { PremiumFAB } from '@/src/components/PremiumFAB';
 import {
@@ -33,7 +38,8 @@ import {
   TrendingUpIcon,
   TargetIcon,
   MoonIcon,
-  SunIcon
+  SunIcon,
+  BarChart3Icon
 } from 'lucide-react-native';
 
 // Create query client
@@ -98,6 +104,14 @@ function DataVisualizationScreenContent() {
     refetch: refetchTba,
   } = useEventSummary(hasSubmitted ? eventKey : undefined, hasSubmitted ? teamNumber : undefined);
 
+  // OPR data query
+  const {
+    data: oprData,
+    isLoading: isLoadingOpr,
+    error: oprError,
+    refetch: refetchOpr,
+  } = useAdvancedOprs(hasSubmitted ? eventKey : undefined);
+
   // Debug logging
   useEffect(() => {
     if (tbaData) {
@@ -143,11 +157,29 @@ function DataVisualizationScreenContent() {
 
   const handleRefresh = async () => {
     if (hasSubmitted) {
-      await Promise.all([refetchScouting(), refetchTba()]);
+      const promises: Promise<any>[] = [refetchScouting(), refetchTba()];
+      promises.push(refetchOpr());
+      await Promise.all(promises);
     }
   };
 
-  const isLoading = isLoadingScouting || isLoadingTba;
+  // Calculate max values for OPR scaling
+  const oprMaxValues = React.useMemo(() => {
+    if (!oprData) return {};
+    
+    const maxes: Record<string, number> = {};
+    const allTeams = Object.values(oprData.team_metrics);
+    
+    OPR_METRICS.forEach((config) => {
+      const values = allTeams.map((m) => Math.abs(m[config.key]));
+      maxes[config.key] = Math.max(...values, 1);
+    });
+    
+    return maxes;
+  }, [oprData]);
+
+
+  const isLoading = isLoadingScouting || isLoadingTba || isLoadingOpr;
 
   return (
     <VStack className="flex-1 bg-background-0">
@@ -229,7 +261,7 @@ function DataVisualizationScreenContent() {
             )}
 
             {/* Error States */}
-            {!isLoading && hasSubmitted && (scoutingError || tbaError) && (
+            {!isLoading && hasSubmitted && (scoutingError || tbaError || oprError) && (
               <View className="rounded-2xl p-4 bg-error-100 border border-error-300">
                 <VStack space="sm">
                   {scoutingError && (
@@ -239,6 +271,9 @@ function DataVisualizationScreenContent() {
                   )}
                   {tbaError && (
                     <Text className="text-error-700">TBA: {tbaError.message}</Text>
+                  )}
+                  {oprError && (
+                    <Text className="text-error-700">OPR: {oprError.message}</Text>
                   )}
                 </VStack>
               </View>
@@ -370,6 +405,64 @@ function DataVisualizationScreenContent() {
                     </Text>
                   </View>
                 )}
+
+                {/* OPR Analytics Section */}
+                <VStack space="lg">
+                    <Text className="text-xl font-semibold">OPR Analytics - Team {teamNumber}</Text>
+                    
+                    {oprData && Object.keys(oprData.team_metrics).length > 0 ? (
+                      <>
+                        {/* Current Team OPR Data */}
+                        {oprData.team_metrics[teamNumber] ? (
+                          <VStack space="md">
+                            {/* Main OPR Card */}
+                            <OprCard
+                              teamNumber={teamNumber}
+                              metrics={oprData.team_metrics[teamNumber]}
+                              eventKey={oprData.event}
+                              totalTeams={Object.keys(oprData.team_metrics).length}
+                              isCalibrated={true}
+                            />
+
+                            
+
+                            {/* Visual Chart */}
+                    
+                          </VStack>
+                        ) : (
+                          <View className="rounded-2xl p-6 bg-warning-100 border border-warning-300">
+                            <VStack space="sm" className="items-center">
+                              <Text className="text-warning-800 font-semibold">Team {teamNumber} Not Found</Text>
+                              <Text className="text-warning-700 text-center">
+                                Team {teamNumber} did not participate in event {eventKey.toUpperCase()} or has no match data.
+                              </Text>
+                              <Text className="text-xs text-warning-600 text-center">
+                                {Object.keys(oprData.team_metrics).length} teams found: {Object.keys(oprData.team_metrics).slice(0, 5).join(', ')}
+                                {Object.keys(oprData.team_metrics).length > 5 ? '...' : ''}
+                              </Text>
+                            </VStack>
+                          </View>
+                        )}
+                      </>
+                    ) : oprError ? (
+                      <View className="rounded-2xl p-6 bg-error-100 border border-error-300">
+                        <Text className="text-center text-error-700">
+                          Failed to load OPR data: {oprError.message}
+                        </Text>
+                      </View>
+                    ) : isLoadingOpr ? (
+                      <View className="py-8 items-center">
+                        <ActivityIndicator size="large" />
+                        <Text className="mt-4 text-typography-500">Computing OPR metrics...</Text>
+                      </View>
+                    ) : (
+                      <View className="rounded-2xl p-6 bg-background-100">
+                        <Text className="text-center text-typography-600">
+                          No OPR data available for event {eventKey}
+                        </Text>
+                      </View>
+                    )}
+                </VStack>
 
                 {/* Sample Matches */}
                 {scoutingData && scoutingData.samples.length > 0 && (
