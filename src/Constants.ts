@@ -2,7 +2,8 @@ import { Theme } from "@react-navigation/native";
 import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from 'expo-constants';
-import { Subscription } from "expo-modules-core";
+// import { Subscription } from "expo-modules-core";
+type Subscription = any; // Temporary type definition
 //import * as Notifications from "expo-notifications";
 
 export const GRADES = ["9", "10", "11", "12"];
