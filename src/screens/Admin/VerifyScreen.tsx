@@ -46,8 +46,8 @@ import { useUsers } from '@/src/utils/Context/UsersContext';
 type SortCriteria = 'name' | 'subteam';
 
 interface SortConfig {
-  criteria: SortCriteria;
-  order: 'asc' | 'desc' | 'none';
+    criteria: SortCriteria;
+    order: 'asc' | 'desc' | 'none';
 }
 
 const VerifyScreen: React.FC = () => {
@@ -92,7 +92,7 @@ const VerifyScreen: React.FC = () => {
         selectedGrade,
         setSelectedGrade,
         filteredUsers,
-      } = useUsers();
+    } = useUsers();
 
 
     const log = (...args: any[]) => {
@@ -101,7 +101,7 @@ const VerifyScreen: React.FC = () => {
 
     useEffect(() => {
         log("useEffect [user]", user);
-        if (user?.role !== "admin" && user?.role !== "executive" &&  user?.role !== "advisor") {
+        if (user?.role !== "admin" && user?.role !== "executive" && user?.role !== "advisor") {
             log("User is not admin/exec/advisor, opening access denied modal");
             openModal({
                 title: "Access Denied",
@@ -125,7 +125,7 @@ const VerifyScreen: React.FC = () => {
             type: "success"
         });
         setRefreshing(false);
-    };    
+    };
 
     const fetchUnverifiedUsers = async () => {
         setUnverifiedUsers(users.filter(
@@ -357,7 +357,7 @@ const VerifyScreen: React.FC = () => {
         };
 
         const fieldDisplay = fieldMap[flag.field] || flag.field.charAt(0).toUpperCase() + flag.field.slice(1);
-        
+
         if (typeof flag.actual === 'string') {
             flag.actual = flag.actual.toLowerCase();
         }
@@ -602,21 +602,23 @@ const VerifyScreen: React.FC = () => {
                 </Box>
 
                 {/* Action Buttons */}
-                <HStack className="mt-4 justify-end space-x-4">
+                {/* Action Buttons */}
+                <VStack className="mt-4 w-full" space="md">
                     <Button
                         onPress={confirmDeleteUsers}
                         variant="outline"
-                        className="mr-2"
+                        className="w-full"
                     >
                         <ButtonText>Delete Selected Users</ButtonText>
                     </Button>
                     <Button
                         onPress={confirmVerifyUsers}
                         action="primary"
+                        className="w-full"
                     >
                         <ButtonText>Verify Selected Users</ButtonText>
                     </Button>
-                </HStack>
+                </VStack>
             </Box>
 
             {/* Flags Portal */}

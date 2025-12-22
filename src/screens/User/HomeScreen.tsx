@@ -41,7 +41,7 @@ const HomeScreen: React.FC = () => {
     const { userAttendanceHours, isLoading, currentYear, currentTerm, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
     const { openToast } = useGlobalToast();
     const [refreshing, setRefreshing] = useState(false);
-    
+
     // Animation refs for premium feel
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(20)).current;
@@ -63,7 +63,7 @@ const HomeScreen: React.FC = () => {
 
     useEffect(() => {
         fetchUpdates();
-        
+
         // Entrance animation
         Animated.parallel([
             Animated.timing(fadeAnim, {
@@ -122,10 +122,11 @@ const HomeScreen: React.FC = () => {
     }, [semesterEndDate]);
 
     useEffect(() => {
-        // Extract available years and terms from attendance data
+        // Extract available years and terms from attendance data AND school configuration
         const yearsSet = new Set<string>();
         const tempTermsByYear: { [year: string]: Set<string> } = {};
 
+        // 1. From Attendance Data
         Object.keys(userAttendanceHours).forEach(key => {
             const [year, term] = key.split('_');
             if (year && term) {
@@ -137,17 +138,38 @@ const HomeScreen: React.FC = () => {
             }
         });
 
+        // 2. From School Configuration (schoolTerms)
+        if (schoolTerms) {
+            Object.keys(schoolTerms).forEach(year => {
+                yearsSet.add(year);
+                if (!tempTermsByYear[year]) {
+                    tempTermsByYear[year] = new Set();
+                }
+                // Ensure schoolTerms[year] is an object before iterating keys
+                if (schoolTerms[year]) {
+                    Object.keys(schoolTerms[year]).forEach(term => {
+                        tempTermsByYear[year].add(term);
+                    });
+                }
+            });
+        }
+
+        // 3. From School Years list (if available)
+        if (schoolYears && Array.isArray(schoolYears)) {
+            schoolYears.forEach(year => yearsSet.add(year));
+        }
+
         const yearsArray = Array.from(yearsSet).sort();
         setAvailableYears(yearsArray);
 
         const termsObj: { [year: string]: string[] } = {};
         yearsArray.forEach(year => {
-            termsObj[year] = Array.from(tempTermsByYear[year]).sort((a, b) => parseInt(a) - parseInt(b));
+            termsObj[year] = Array.from(tempTermsByYear[year] || []).sort((a, b) => parseInt(a) - parseInt(b));
         });
         setTermsByYear(termsObj);
 
-        setSelectedYear(currentYear);
-        setSelectedTerm(currentTerm.toString());
+        // REMOVED: Auto-reset of selectedYear and selectedTerm here.
+        // We trust the initial state or user selection.
 
     }, [userAttendanceHours, schoolYears, schoolTerms]);
 
@@ -157,22 +179,20 @@ const HomeScreen: React.FC = () => {
 
     useEffect(() => {
         // Update term options based on selected year
-
-        // If the current year is selected, default to the current term
         if (selectedYear !== 'All Years' && termsByYear[selectedYear]) {
             setTermOptions(['All Terms', ...termsByYear[selectedYear]]);
-            // If the current term is not in the list of terms for the selected year, default to 'All Terms'
-            if (!termsByYear[selectedYear].includes(selectedTerm)) {
-                // setSelectedTerm('All Terms');
-                setSelectedTerm(currentTerm.toString());
 
+            // Only reset if current selection is invalid for the new year
+            if (selectedTerm !== 'All Terms' && !termsByYear[selectedYear].includes(selectedTerm)) {
+                setSelectedTerm('All Terms');
             }
-            // If 'All Years' is selected, show all terms and default to 'All Terms'
         } else {
             setTermOptions(['All Terms']);
-            setSelectedTerm('All Terms');
+            if (selectedTerm !== 'All Terms') {
+                setSelectedTerm('All Terms');
+            }
         }
-    }, [selectedYear, termsByYear]); //, selectedTerm]);
+    }, [selectedYear, termsByYear]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -264,164 +284,164 @@ const HomeScreen: React.FC = () => {
                             <Text className="text-sm font-medium text-typography-600">Welcome back,</Text>
                             <Text className="text-3xl font-bold text-typography-950">{user?.first_name}</Text>
                         </VStack>
-                    {availableYears.length > 0 ? (
-                        <>
-                            {/* Compact Period Selector */}
-                            <HStack className="gap-3">
-                                <View className="flex-1">
-                                    <Select selectedValue={selectedYear} onValueChange={setSelectedYear}>
-                                        <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
-                                            <SelectInput placeholder="Year" value={selectedYear} />
-                                            <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
-                                        </SelectTrigger>
-                                        <SelectPortal>
-                                            <SelectBackdrop />
-                                            <SelectContent>
-                                                <SelectItem label="All Years" value="All Years" />
-                                                {availableYears.map(year => (
-                                                    <SelectItem key={year} label={year} value={year} />
-                                                ))}
-                                            </SelectContent>
-                                        </SelectPortal>
-                                    </Select>
-                                </View>
-                                {selectedYear !== 'All Years' && (
+                        {availableYears.length > 0 ? (
+                            <>
+                                {/* Compact Period Selector */}
+                                <HStack className="gap-3">
                                     <View className="flex-1">
-                                        <Select selectedValue={selectedTerm} onValueChange={setSelectedTerm}>
+                                        <Select selectedValue={selectedYear} onValueChange={setSelectedYear}>
                                             <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
-                                                <SelectInput placeholder="Term" value={selectedTerm} />
+                                                <SelectInput placeholder="Year" value={selectedYear} />
                                                 <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
                                             </SelectTrigger>
                                             <SelectPortal>
                                                 <SelectBackdrop />
                                                 <SelectContent>
-                                                    {termOptions.map(term => (
-                                                        <SelectItem
-                                                            key={term}
-                                                            label={term === 'All Terms' ? 'All Terms' : `Term ${term}`}
-                                                            value={term}
-                                                        />
+                                                    <SelectItem label="All Years" value="All Years" />
+                                                    {availableYears.map(year => (
+                                                        <SelectItem key={year} label={year} value={year} />
                                                     ))}
                                                 </SelectContent>
                                             </SelectPortal>
                                         </Select>
                                     </View>
-                                )}
-                            </HStack>
-
-                            {/* Dashboard Grid - 2 columns on wider screens */}
-                            <VStack space="md">
-                                {/* Hero Metric - Attendance Hours */}
-                                <View className="bg-background-0 rounded-2xl shadow-lg border border-outline-100 overflow-hidden">
-                                    <LinearGradient
-                                        colors={theme === 'light' 
-                                            ? ['#F0F9FF', '#E0F2FE'] 
-                                            : ['#1E293B', '#0F172A']
-                                        }
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                    >
-                                        <VStack space="lg" className="p-6">
-                                            <HStack className="items-center justify-between">
-                                                <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
-                                                    Attendance Progress
-                                                </Text>
-                                                <TrophyIcon color={theme === 'light' ? '#0EA5E9' : '#38BDF8'} size={20} />
-                                            </HStack>
-                                            
-                                            <HStack className="items-baseline gap-2">
-                                                <Text className="text-5xl font-bold text-typography-950">
-                                                    {Math.round(totalHours)}
-                                                </Text>
-                                                <Text className="text-lg text-typography-600 pb-1">/ 36 hours</Text>
-                                            </HStack>
-                                            
-                                            <AnimatedProgressBar
-                                                value={(totalHours / 36) * 100}
-                                                height={10}
-                                                showPercentage={false}
-                                                gradient={true}
-                                            />
-                                            
-                                            <HStack className="justify-between">
-                                                <Text className="text-sm text-typography-600">
-                                                    {Math.round((totalHours / 36) * 100)}% Complete
-                                                </Text>
-                                                <Text className="text-sm font-medium text-typography-700">
-                                                    {Math.round(36 - totalHours)} hrs remaining
-                                                </Text>
-                                            </HStack>
-                                        </VStack>
-                                    </LinearGradient>
-                                </View>
-                                
-                                {/* Quick Stats Grid */}
-                                <HStack className="gap-3">
-                                    <View className="flex-1">
-                                        <MetricCard
-                                            label="This Term"
-                                            value={selectedTerm !== 'All Terms' ? Math.round(totalHours) : '—'}
-                                            subtitle="hours"
-                                            icon={<ClockIcon color={theme === 'light' ? '#6B7280' : '#9CA3AF'} size={18} />}
-                                            theme={theme}
-                                        />
-                                    </View>
-                                    <View className="flex-1">
-                                        <MetricCard
-                                            label="Progress"
-                                            value={`${Math.round((totalHours / 36) * 100)}%`}
-                                            subtitle="complete"
-                                            icon={<TrendingUpIcon color={theme === 'light' ? '#10B981' : '#34D399'} size={18} />}
-                                            theme={theme}
-                                        />
-                                    </View>
+                                    {selectedYear !== 'All Years' && (
+                                        <View className="flex-1">
+                                            <Select selectedValue={selectedTerm} onValueChange={setSelectedTerm}>
+                                                <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
+                                                    <SelectInput placeholder="Term" value={selectedTerm} />
+                                                    <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
+                                                </SelectTrigger>
+                                                <SelectPortal>
+                                                    <SelectBackdrop />
+                                                    <SelectContent>
+                                                        {termOptions.map(term => (
+                                                            <SelectItem
+                                                                key={term}
+                                                                label={term === 'All Terms' ? 'All Terms' : `Term ${term}`}
+                                                                value={term}
+                                                            />
+                                                        ))}
+                                                    </SelectContent>
+                                                </SelectPortal>
+                                            </Select>
+                                        </View>
+                                    )}
                                 </HStack>
-                            </VStack>
-                        </>
-                    ) : (
-                        <Text className="text-center text-sm text-typography-600">No attendance data available</Text>
-                    )}
-                    
-                    {/* Countdown Timer - Compact */}
-                    {semesterEndDate && (
-                        <View className="bg-background-0 rounded-2xl shadow-md border border-outline-100 p-5">
-                            <HStack className="items-center justify-between">
-                                <VStack space="xs">
-                                    <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
-                                        Term {currentTerm} Ends In
-                                    </Text>
-                                    <Text className="text-2xl font-bold text-typography-950 tracking-tight">
-                                        {timeLeft}
-                                    </Text>
+
+                                {/* Dashboard Grid - 2 columns on wider screens */}
+                                <VStack space="md">
+                                    {/* Hero Metric - Attendance Hours */}
+                                    <View className="bg-background-0 rounded-2xl shadow-lg border border-outline-100 overflow-hidden">
+                                        <LinearGradient
+                                            colors={theme === 'light'
+                                                ? ['#F0F9FF', '#E0F2FE']
+                                                : ['#1E293B', '#0F172A']
+                                            }
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                        >
+                                            <VStack space="lg" className="p-6">
+                                                <HStack className="items-center justify-between">
+                                                    <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
+                                                        Attendance Progress
+                                                    </Text>
+                                                    <TrophyIcon color={theme === 'light' ? '#0EA5E9' : '#38BDF8'} size={20} />
+                                                </HStack>
+
+                                                <HStack className="items-baseline gap-2">
+                                                    <Text className="text-5xl font-bold text-typography-950">
+                                                        {Math.round(totalHours)}
+                                                    </Text>
+                                                    <Text className="text-lg text-typography-600 pb-1">/ 36 hours</Text>
+                                                </HStack>
+
+                                                <AnimatedProgressBar
+                                                    value={(totalHours / 36) * 100}
+                                                    height={10}
+                                                    showPercentage={false}
+                                                    gradient={true}
+                                                />
+
+                                                <HStack className="justify-between">
+                                                    <Text className="text-sm text-typography-600">
+                                                        {Math.round((totalHours / 36) * 100)}% Complete
+                                                    </Text>
+                                                    <Text className="text-sm font-medium text-typography-700">
+                                                        {Math.round(36 - totalHours)} hrs remaining
+                                                    </Text>
+                                                </HStack>
+                                            </VStack>
+                                        </LinearGradient>
+                                    </View>
+
+                                    {/* Quick Stats Grid */}
+                                    <HStack className="gap-3">
+                                        <View className="flex-1">
+                                            <MetricCard
+                                                label="This Term"
+                                                value={selectedTerm !== 'All Terms' ? Math.round(totalHours) : '—'}
+                                                subtitle="hours"
+                                                icon={<ClockIcon color={theme === 'light' ? '#6B7280' : '#9CA3AF'} size={18} />}
+                                                theme={theme}
+                                            />
+                                        </View>
+                                        <View className="flex-1">
+                                            <MetricCard
+                                                label="Progress"
+                                                value={`${Math.round((totalHours / 36) * 100)}%`}
+                                                subtitle="complete"
+                                                icon={<TrendingUpIcon color={theme === 'light' ? '#10B981' : '#34D399'} size={18} />}
+                                                theme={theme}
+                                            />
+                                        </View>
+                                    </HStack>
                                 </VStack>
-                                <CalendarIcon color={theme === 'light' ? '#6B7280' : '#9CA3AF'} size={32} />
-                            </HStack>
-                        </View>
-                    )}
-                    
-                    {/* Compact News Feed */}
-                    <CompactNewsFeed
-                        updates={updates}
-                        onEditPress={() => setShowNewsPopup(true)}
-                        canEdit={['executive', 'admin', 'advisor'].includes(user?.role ?? '')}
-                        maxVisible={3}
-                        theme={theme}
-                    />
-                    
-                    {/* Action Button */}
-                    <Button 
-                        onPress={handleRefresh} 
-                        size="md" 
-                        variant="outline"
-                        className="rounded-xl"
-                        disabled={refreshing}
-                    >
-                        {refreshing ? (
-                            <ActivityIndicator size="small" />
+                            </>
                         ) : (
-                            <ButtonText className="font-medium">Refresh Data</ButtonText>
+                            <Text className="text-center text-sm text-typography-600">No attendance data available</Text>
                         )}
-                    </Button>
+
+                        {/* Countdown Timer - Compact */}
+                        {semesterEndDate && (
+                            <View className="bg-background-0 rounded-2xl shadow-md border border-outline-100 p-5">
+                                <HStack className="items-center justify-between">
+                                    <VStack space="xs">
+                                        <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
+                                            Term {currentTerm} Ends In
+                                        </Text>
+                                        <Text className="text-2xl font-bold text-typography-950 tracking-tight">
+                                            {timeLeft}
+                                        </Text>
+                                    </VStack>
+                                    <CalendarIcon color={theme === 'light' ? '#6B7280' : '#9CA3AF'} size={32} />
+                                </HStack>
+                            </View>
+                        )}
+
+                        {/* Compact News Feed */}
+                        <CompactNewsFeed
+                            updates={updates}
+                            onEditPress={() => setShowNewsPopup(true)}
+                            canEdit={['executive', 'admin', 'advisor'].includes(user?.role ?? '')}
+                            maxVisible={3}
+                            theme={theme}
+                        />
+
+                        {/* Action Button */}
+                        <Button
+                            onPress={handleRefresh}
+                            size="md"
+                            variant="outline"
+                            className="rounded-xl"
+                            disabled={refreshing}
+                        >
+                            {refreshing ? (
+                                <ActivityIndicator size="small" />
+                            ) : (
+                                <ButtonText className="font-medium">Refresh Data</ButtonText>
+                            )}
+                        </Button>
                     </VStack>
                 </Animated.View>
 

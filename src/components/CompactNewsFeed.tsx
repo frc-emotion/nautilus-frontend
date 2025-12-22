@@ -31,19 +31,6 @@ export const CompactNewsFeed: React.FC<CompactNewsFeedProps> = ({
   const visibleUpdates = updates.slice(0, maxVisible);
   const hasMore = updates.length > maxVisible;
 
-  if (updates.length === 0) {
-    return (
-      <View className="bg-background-0 rounded-2xl shadow-md border border-outline-100 p-6">
-        <VStack space="md" className="items-center">
-          <BellIcon color={theme === 'light' ? '#9CA3AF' : '#6B7280'} size={32} />
-          <Text className="text-sm text-typography-600 text-center">
-            No announcements right now
-          </Text>
-        </VStack>
-      </View>
-    );
-  }
-
   return (
     <View className="bg-background-0 rounded-2xl shadow-md border border-outline-100 overflow-hidden">
       <VStack>
@@ -62,32 +49,41 @@ export const CompactNewsFeed: React.FC<CompactNewsFeedProps> = ({
           )}
         </HStack>
 
-        {/* News Items */}
-        <VStack>
-          {visibleUpdates.map(([text, id], index) => (
-            <View
-              key={id}
-              className={`px-5 py-4 ${
-                index < visibleUpdates.length - 1 ? 'border-b border-outline-50' : ''
-              }`}
-            >
-              <HStack space="sm" className="items-start">
-                <View className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2" />
-                <Text className="flex-1 text-sm text-typography-800 leading-relaxed">
-                  {text}
-                </Text>
-              </HStack>
-            </View>
-          ))}
-        </VStack>
-
-        {/* Footer if more items */}
-        {hasMore && (
-          <View className="px-5 py-3 border-t border-outline-100 bg-background-50">
-            <Text className="text-xs text-typography-500 text-center">
-              +{updates.length - maxVisible} more announcement{updates.length - maxVisible !== 1 ? 's' : ''}
+        {/* Content */}
+        {updates.length === 0 ? (
+          <VStack space="md" className="items-center py-6 px-5">
+            <BellIcon color={theme === 'light' ? '#9CA3AF' : '#6B7280'} size={32} />
+            <Text className="text-sm text-typography-600 text-center">
+              No announcements right now
             </Text>
-          </View>
+          </VStack>
+        ) : (
+          <VStack>
+            {/* News Items */}
+            {visibleUpdates.map(([text, id], index) => (
+              <View
+                key={id}
+                className={`px-5 py-4 ${index < visibleUpdates.length - 1 ? 'border-b border-outline-50' : ''
+                  }`}
+              >
+                <HStack space="sm" className="items-start">
+                  <View className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2" />
+                  <Text className="flex-1 text-sm text-typography-800 leading-relaxed">
+                    {text}
+                  </Text>
+                </HStack>
+              </View>
+            ))}
+
+            {/* Footer if more items */}
+            {hasMore && (
+              <View className="px-5 py-3 border-t border-outline-100 bg-background-50">
+                <Text className="text-xs text-typography-500 text-center">
+                  +{updates.length - maxVisible} more announcement{updates.length - maxVisible !== 1 ? 's' : ''}
+                </Text>
+              </View>
+            )}
+          </VStack>
         )}
       </VStack>
     </View>
