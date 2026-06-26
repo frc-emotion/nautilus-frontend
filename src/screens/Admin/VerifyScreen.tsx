@@ -147,12 +147,7 @@ const VerifyScreen: React.FC = () => {
     const getUserFlags = (user: UserObject, allUsers: UserObject[]): UserFlag[] => {
         const combinedFlags: UserFlag[] = user.flags ? [...user.flags] : [];
 
-        if (!user.phone) {
-            combinedFlags.push({
-                field: "phone",
-                issue: "missing",
-            });
-        }
+        // Phone is now optional - don't flag as missing
 
         if (!user.student_id) {
             combinedFlags.push({
@@ -672,7 +667,7 @@ const VerifyScreen: React.FC = () => {
                                 </Text>
                                 <Text>
                                     <Text className="font-semibold">Phone: </Text>
-                                    {selectedUserInfo.phone ? selectedUserInfo.phone.toLowerCase() : "N/A"}
+                                    {selectedUserInfo.phone && selectedUserInfo.phone !== "0000000000" ? selectedUserInfo.phone : "N/A"}
                                 </Text>
                                 <Text>
                                     <Text className="font-semibold">Student ID: </Text>

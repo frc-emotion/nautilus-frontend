@@ -18,7 +18,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.frc2658.nautilus",
+      "bundleIdentifier": "com.frcteam2658.nautilus",
       "infoPlist": {
         "NSLocationAlwaysUsageDescription": "This app uses location services to detect beacons.",
         "NSLocationWhenInUseUsageDescription": "This app uses location services to detect beacons.",
@@ -27,7 +27,7 @@
       }
     },
     "android": {
-      "package": "com.frc2658.nautilus",
+      "package": "org.frcteam2658.nautilus",
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_COARSE_LOCATION",

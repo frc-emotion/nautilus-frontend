@@ -153,7 +153,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       student_id: data.studentId,
       email: data.email,
       password: data.password,
-      phone: cleanPhoneNumber(data.phone),
+      phone: data.phone ? cleanPhoneNumber(data.phone) : "0000000000",
       subteam: [data.subteam?.toLowerCase()],
       grade: data.grade,
     };
@@ -372,14 +372,13 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               />
 
               {/* Phone */}
-              <Text className="mb-1">Phone Number</Text>
+              <Text className="mb-1">Phone Number (Optional)</Text>
               <Controller
                 control={control}
                 name="phone"
                 rules={{
-                  required: "Phone Number is required",
                   pattern: {
-                    value: /^\(\d{3}\)\s\d{3}-\d{4}$/,
+                    value: /^$|^\(\d{3}\)\s\d{3}-\d{4}$/,
                     message:
                       "Phone Number must be in the format (123) 456-7890",
                   },

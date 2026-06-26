@@ -18,7 +18,8 @@ import { Buffer } from "buffer";
 import { NetworkingContextProps, QueuedRequest, UserObject } from "../../Constants";
 import * as Sentry from "@sentry/react-native";
 
-const API_URL = Constants.expoConfig?.extra?.API_URL || "https://api.team2658.org";
+// const API_URL = Constants.expoConfig?.extra?.API_URL || "https://api.team2658.org";
+const API_URL = "https://api.team2658.org";
 //const API_URL = "http://localhost:7001";
 export const CLEAN_API_URL = API_URL.split('//')[1];
 const MAX_RETRIES = Constants.expoConfig?.extra?.MAX_RETRIES || 3;

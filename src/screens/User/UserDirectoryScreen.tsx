@@ -647,7 +647,7 @@ const UserDirectoryScreen: React.FC = () => {
                           </View>
                           <View className="flex-1 ml-1">
                             <Text className="font-medium">Phone:</Text>
-                            <Text>{formatPhoneNumber(viewUser.phone)}</Text>
+                            <Text>{viewUser.phone && viewUser.phone !== "0000000000" ? formatPhoneNumber(viewUser.phone) : "N/A"}</Text>
                           </View>
                         </View>
 
@@ -765,14 +765,13 @@ const UserDirectoryScreen: React.FC = () => {
                           />
                         </View>
                         <View className="flex-1 ml-1">
-                          <Text className="font-medium">Phone</Text>
+                          <Text className="font-medium">Phone (Optional)</Text>
                           <Controller
                             control={control}
                             name="phone"
                             rules={{
-                              required: 'Phone Number is required',
                               pattern: {
-                                value: /^\(\d{3}\)\s\d{3}-\d{4}$/,
+                                value: /^$|^\(\d{3}\)\s\d{3}-\d{4}$/,
                                 message: 'Phone Number must be in the format (123) 456-7890',
                               },
                             }}

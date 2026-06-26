@@ -191,7 +191,7 @@ const ProfileScreen: React.FC = () => {
 
               <HStack className="justify-between items-center">
                 <Text className="text-sm font-medium text-typography-600">Phone</Text>
-                <Text className="font-semibold text-base text-typography-950">{displayUser?.phone ? formatPhoneNumber(displayUser?.phone) : displayUser?.phone}</Text>
+                <Text className="font-semibold text-base text-typography-950">{displayUser?.phone && displayUser?.phone !== "0000000000" ? formatPhoneNumber(displayUser?.phone) : "N/A"}</Text>
               </HStack>
 
               <HStack className="justify-between items-center">
