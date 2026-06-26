@@ -1,5 +1,11 @@
 /ios
 /android
+
+# Android release signing (extra protection)
+android/keystore.properties
+android/app/keystore/
+*.keystore
+*.jks
 modules/BLEBeaconManager/android/build
 
 *.ipa
