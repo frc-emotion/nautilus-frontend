@@ -5,7 +5,8 @@ import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { MoonIcon, SunIcon } from "lucide-react-native";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "../../utils/Context/AuthContext";
 import { useGlobalToast } from "../../utils/UI/CustomToastProvider";
@@ -27,7 +28,7 @@ const ProfileScreen: React.FC = () => {
   const { user, logout, refreshUser, isLoading } = useAuth();
   const { openToast } = useGlobalToast();
   const { openModal } = useGlobalModal();
-  const { theme } = useTheme();
+  const { theme, toggleTheme  } = useTheme();
   // const { backendHasToken, checkBackendPushToken } = useNotifications();
   const { handleRequest } = useNetworking(); // handleRequest from networking
   const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
@@ -282,11 +283,23 @@ const ProfileScreen: React.FC = () => {
           </Button>
 
           <Button
-            onPress={forceCrash}
+            onPress={toggleTheme}
             size="lg"
             variant="outline"
-            className="rounded-lg"
+            className="rounded-lg border-outline-200"
           >
+            <ButtonIcon as={theme === 'light' ? MoonIcon : SunIcon} className="mr-2" />
+              <ButtonText className="font-semibold text-base text-typography-900">
+                Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
+              </ButtonText>
+            </Button>
+
+            <Button
+              onPress={forceCrash}
+              size="lg"
+              variant="outline"
+              className="rounded-lg border-outline-200"
+            >
             <ButtonText className="font-semibold text-base">Upload Logs</ButtonText>
           </Button>
         </VStack>

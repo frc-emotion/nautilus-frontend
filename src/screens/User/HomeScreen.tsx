@@ -22,8 +22,7 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import { MoonIcon, SunIcon, ChevronDownIcon, EllipsisVertical, BellIcon } from 'lucide-react-native';
-import { PremiumFAB } from '@/src/components/PremiumFAB';
+import { MoonIcon, SunIcon, ChevronDownIcon, EllipsisVertical, BellIcon } from 'lucide-react-native'
 import UpdateRibbon from '@/src/components/UpdateRibbon';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { Box } from '@/components/ui/box';
@@ -36,7 +35,7 @@ import { Icon } from '@/components/ui/icon';
 import { Pressable } from '@/components/ui/pressable';
 
 const HomeScreen: React.FC = () => {
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
     const { user, refreshUser } = useAuth();
     const { userAttendanceHours, isLoading, currentYear, currentTerm, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
     const { openToast } = useGlobalToast();
@@ -292,7 +291,7 @@ const HomeScreen: React.FC = () => {
                                         <Select selectedValue={selectedYear} onValueChange={setSelectedYear}>
                                             <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
                                                 <SelectInput placeholder="Year" value={selectedYear} />
-                                                <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
+                                                <SelectIcon className="mr-2" as={ChevronDownIcon} size="sm" />
                                             </SelectTrigger>
                                             <SelectPortal>
                                                 <SelectBackdrop />
@@ -310,7 +309,7 @@ const HomeScreen: React.FC = () => {
                                             <Select selectedValue={selectedTerm} onValueChange={setSelectedTerm}>
                                                 <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
                                                     <SelectInput placeholder="Term" value={selectedTerm} />
-                                                    <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
+                                                    <SelectIcon className="mr-2" as={ChevronDownIcon} size="sm" />
                                                 </SelectTrigger>
                                                 <SelectPortal>
                                                     <SelectBackdrop />
@@ -590,11 +589,6 @@ const HomeScreen: React.FC = () => {
                 )}
 
             </ScrollView>
-            <PremiumFAB
-                onPress={toggleTheme}
-                icon={theme === 'light' ? <MoonIcon color="#333333" size={24} /> : <SunIcon color="#F5F5F5" size={24} />}
-                theme={theme}
-            />
         </VStack>
     );
 }
