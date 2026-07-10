@@ -44,7 +44,16 @@ export const CompactNewsFeed: React.FC<CompactNewsFeedProps> = ({
           </HStack>
           {canEdit && onEditPress && (
             <Pressable onPress={onEditPress}>
-              <Text className="text-sm font-medium text-blue-600">Edit</Text>
+              <View
+                className={theme === 'light' ? 'bg-teamYellow-50' : 'bg-teamYellow-900'}
+                style={{
+                  borderRadius: 6,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text className="text-sm font-medium" style={{ color: theme === 'light' ? '#333333' : '#E5E5E5' }}>Edit</Text>
+              </View>
             </Pressable>
           )}
         </HStack>

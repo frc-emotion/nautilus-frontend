@@ -1,7 +1,7 @@
 import React from "react";
+import { View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../utils/Context/AuthContext";
-import { useTheme } from "../utils/UI/CustomThemeProvider";
 import {
   BookUser,
   CircleHelpIcon,
@@ -27,30 +27,47 @@ import ScoutingStackNavigator from "./ScoutingStackNavigator";
 const Tab = createBottomTabNavigator();
 
 // Icon mapping with theme-aware colors
-const getIcon = (name: TabNames, focused: boolean, theme: string) => {
-  const color = focused 
-    ? (theme === "light" ? "#333333" : "#F5F5F5")
-    : (theme === "light" ? "#6B7280" : "#9CA3AF");
+const renderIcon = (name: TabNames, iconColor: string, iconFill: string) => {
   const size = 24;
   
   switch (name) {
     case TabNames.Home:
-      return <HomeIcon color={color} size={size} />;
+      return <HomeIcon color={iconColor} size={size} fill={iconFill} />;
     case TabNames.Attendance:
-      return <NotebookPenIcon color={color} size={size} />;
+      return <NotebookPenIcon color={iconColor} size={size} fill={iconFill} />;
     case TabNames.Profile:
-      return <CircleUserRoundIcon color={color} size={size} />;
+      return <CircleUserRoundIcon color={iconColor} size={size} fill={iconFill} />;
     case TabNames.AsyncStorage:
-      return <CircleHelpIcon color={color} size={size} />;
+      return <CircleHelpIcon color={iconColor} size={size} fill={iconFill} />;
     case TabNames.Directory:
-      return <BookUser color={color} size={size} />;
+      return <BookUser color={iconColor} size={size} fill={iconFill} />;
     case TabNames.Scouting:
-      return <Binoculars color={color} size={size} />
+      return <Binoculars color={iconColor} size={size} fill={iconFill} />;
     case TabNames.ForgotPasswordScreen:
-      return <UserPen color={color} size={size} />;
+      return <UserPen color={iconColor} size={size} fill={iconFill} />;
     default:
-      return <CircleHelpIcon color={color} size={size} />;
+      return <CircleHelpIcon color={iconColor} size={size} fill={iconFill} />;
   }
+};
+
+const getIcon = (name: TabNames, focused: boolean, color: string, fill?: string) => {
+  const size = 24;
+
+  // Stack a yellow layer under a black layer for a solid fill
+  if (focused && fill) {
+    return (
+      <View style={{ width: size, height: size }}>
+        <View style={{ position: 'absolute', top: 0, left: 0 }}>
+          {renderIcon(name, 'transparent', fill)}
+        </View>
+        <View style={{ position: 'absolute', top: 0, left: 0 }}>
+          {renderIcon(name, color, 'none')}
+        </View>
+      </View>
+    );
+  }
+
+  return renderIcon(name, color, 'none');
 };
 
 // Define all necessary stack navigators within the same file with unique screen names
@@ -143,7 +160,6 @@ const RoleBasedTabs: React.FC = () => {
 
   const { user } = useAuth();
   const role = (user?.role as Roles) || Roles.Unverified;
-  const { theme } = useTheme();
 
   // Get all roles that the current role includes
   const allowedRoles = roleHierarchy[role] || [Roles.Unverified];
@@ -167,7 +183,7 @@ const RoleBasedTabs: React.FC = () => {
           component={component}
           initialParams={{ token, admin }}
           options={{
-            tabBarIcon: ({ focused }) => getIcon(name, focused, theme),
+            tabBarIcon: ({ focused, color, fill }) => getIcon(name, focused, color, fill),
             tabBarLabel: name,
           }}
         />

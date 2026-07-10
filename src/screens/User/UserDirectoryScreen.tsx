@@ -401,6 +401,16 @@ const UserDirectoryScreen: React.FC = () => {
     );
   };
 
+  const getRoleColor = (role: string) => {
+    switch(role.toLowerCase()) {
+      case 'admin': return '#000000'; 
+      case 'advisor': return '#CAC000';
+      case 'executive': return '#fcf000'; //Primary yellow
+      case 'leadership': return '#FEF999';
+      case 'member': return theme === 'light' ? '#E5E7EB' : '#374151';
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -537,7 +547,15 @@ const UserDirectoryScreen: React.FC = () => {
                 key={userItem._id}
                 onPress={() => handleViewUser(userItem)}
               >
-                <View className="flex flex-row items-center border-b border-outline-200 py-3">
+                <View className="flex flex-row items-center border-b border-outline-200 py-3 relative overflow-hidden pl-3">
+                  <View 
+                    style={{ 
+                        position: 'absolute', left: 0, top: 3, bottom: 3, width: 5, 
+                        backgroundColor: getRoleColor(userItem.role),
+                        opacity: theme === 'dark' && userItem.role === 'admin' ? 0.8 : 1,
+                        borderRadius: 3,
+                    }} 
+                  />
                   <Text
                     className="p-2 flex-1 text-center"
                     numberOfLines={1}

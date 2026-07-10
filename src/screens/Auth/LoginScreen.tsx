@@ -325,13 +325,13 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <Button
                   onPress={handleSubmit(handleLogin, onError)}
                   size="lg"
-                  className="rounded-lg shadow-md w-full max-w-md"
+                  className="rounded-lg shadow-md w-full max-w-md border-0 bg-teamYellow-500"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <ActivityIndicator size="small" />
+                    <ActivityIndicator size="small" color="#333333" />
                   ) : (
-                    <ButtonText className="font-semibold text-base">Login</ButtonText>
+                    <ButtonText className="font-semibold text-base" style={{ color: '#333333' }}>Login</ButtonText>
                   )}
                 </Button>
               </>
@@ -341,13 +341,13 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Button
                 onPress={handleSubmit(handleForgotPassword, onError)}
                 size="lg"
-                className="rounded-lg shadow-md w-full max-w-md"
+                className="rounded-lg shadow-md w-full max-w-md border-0 bg-teamYellow-500"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" />
+                  <ActivityIndicator size="small" color="#333333" />
                 ) : (
-                  <ButtonText className="font-semibold">Send Email</ButtonText>
+                  <ButtonText className="font-semibold" style={{ color: '#333333' }}>Send Email</ButtonText>
                 )}
               </Button>
             )}
@@ -393,8 +393,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(45, 45, 45, 0.95)',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        borderWidth: 1,
-                        borderColor: theme === 'light' ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 0,
                         transform: [{ scale: pressed ? 0.95 : 1 }],
                       },
                       Platform.select({

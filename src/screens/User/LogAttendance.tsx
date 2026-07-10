@@ -484,9 +484,11 @@ const LogAttendance: React.FC = () => {
               {(bluetoothState === 'unknown' || locationStatus === 'unknown' || bluetoothState === 'unauthorized' || locationStatus === 'unauthorized') && (
                 <Button
                   onPress={() => Linking.openSettings()}
-                  className="mt-2 px-6 py-2 rounded-lg bg-blue-500"
+                  className="mt-2 px-6 py-2 rounded-lg bg-teamYellow-500"
                 >
-                  <ButtonText className="font-bold text-center">Open Settings</ButtonText>
+                  <ButtonText className="font-bold text-center" style={{ color: '#333333' }}>
+                    Open Settings
+                  </ButtonText>
                 </Button>
               )}
 

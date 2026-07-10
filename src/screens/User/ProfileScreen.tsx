@@ -168,95 +168,81 @@ const ProfileScreen: React.FC = () => {
       contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
-      <VStack space="2xl" className="items-center">
-        <Image
-          width={128}
-          height={128}
-          className="w-32 h-32 rounded-full shadow-lg"
-          source={icon}
-          alt="Profile Picture"
-        />
+      <VStack space="xl" className="items-center">
+        <VStack space="sm" className="items-center mb-2">
+          <View className="p-1 rounded-full bg-teamYellow-500 shadow-md">
+            <Image
+              width={112}
+              height={112}
+              className="w-28 h-28 rounded-full border-4 border-background-0"
+              source={icon}
+              alt="Profile Picture"
+            />
+          </View>
+          
+          <Text className="text-2xl font-bold text-typography-950 mt-2 tracking-tight">
+            {`${displayUser?.first_name} ${displayUser?.last_name}`}
+          </Text>
+          
+          <View className="px-3 py-1 rounded-md bg-teamYellow-500 shadow-sm mt-1">
+            <Text className="text-xs font-bold uppercase tracking-widest text-black">
+              {displayUser?.role || 'N/A'}
+            </Text>
+          </View>
+        </VStack>
 
         <VStack space="lg" className="w-full max-w-2xl">
-          <Box className="bg-background-0 rounded-xl shadow-md p-6 border border-outline-100">
-            <VStack space="md">
-              <HStack className="justify-between items-center">
-                <Text className="text-sm font-medium text-typography-600">Name</Text>
-                <Text className="font-semibold text-base text-typography-950">{`${displayUser?.first_name} ${displayUser?.last_name}`}</Text>
-              </HStack>
+          <Box className="bg-background-0 rounded-2xl shadow-sm border border-outline-100 px-5">  
+            <View className="py-4 flex-row justify-between items-center border-b border-outline-100">
+              <Text className="text-sm font-medium text-typography-500">Email</Text>
+              <Text className="text-sm font-semibold text-typography-950">{displayUser?.email}</Text>
+            </View>
 
-              <HStack className="justify-between items-center">
-                <Text className="text-sm font-medium text-typography-600">Email</Text>
-                <Text className="font-semibold text-base text-typography-950">{displayUser?.email}</Text>
-              </HStack>
+            <View className="py-4 flex-row justify-between items-center border-b border-outline-100">
+              <Text className="text-sm font-medium text-typography-500">Phone</Text>
+              <Text className="text-sm font-semibold text-typography-950">
+                {displayUser?.phone && displayUser?.phone !== "0000000000" ? formatPhoneNumber(displayUser?.phone) : "N/A"}
+              </Text>
+            </View>
 
-              <HStack className="justify-between items-center">
-                <Text className="text-sm font-medium text-typography-600">Phone</Text>
-                <Text className="font-semibold text-base text-typography-950">{displayUser?.phone && displayUser?.phone !== "0000000000" ? formatPhoneNumber(displayUser?.phone) : "N/A"}</Text>
-              </HStack>
+            <View className="py-4 flex-row justify-between items-center border-b border-outline-100">
+              <Text className="text-sm font-medium text-typography-500">Student ID</Text>
+              <Text className="text-sm font-semibold text-typography-950">{displayUser?.student_id}</Text>
+            </View>
 
-              <HStack className="justify-between items-center">
-                <Text className="text-sm font-medium text-typography-600">Student ID</Text>
-                <Text className="font-semibold text-base text-typography-950">{displayUser?.student_id}</Text>
-              </HStack>
+            <View className="py-4 flex-row justify-between items-center border-b border-outline-100">
+              <Text className="text-sm font-medium text-typography-500">Grade</Text>
+              <Text className="text-sm font-semibold text-typography-950">{displayUser?.grade}</Text>
+            </View>
 
-              <HStack className="justify-between items-center">
-                <Text className="text-sm font-medium text-typography-600">Grade</Text>
-                <Text className="font-semibold text-base text-typography-950">{displayUser?.grade}</Text>
-              </HStack>
+            <View className="py-4 flex-row justify-between items-center border-b border-outline-100">
+              <Text className="text-sm font-medium text-typography-500">Enrolled in 4.5</Text>
+              <Text className="text-sm font-semibold text-typography-950">
+                {displayUser?.fourpointfive ? "Yes" : "No"}
+              </Text>
+            </View>
 
-              {/* Subteam - Horizontal Scrollable Chips */}
-              <VStack space="xs">
-                <Text className="text-sm font-medium text-typography-600">Subteam</Text>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingVertical: 4 }}
-                >
-                  <HStack space="xs">
-                    {displayUser?.subteam && displayUser.subteam.length > 0 ? (
-                      displayUser.subteam.map((team, index) => (
-                        <View 
-                          key={index}
-                          className="px-3 py-1.5 rounded-full border border-outline-200"
-                          style={{
-                            backgroundColor: theme === 'dark' ? 'rgba(245, 245, 245, 0.1)' : 'rgba(51, 51, 51, 0.05)',
-                          }}
-                        >
-                          <Text className="text-sm font-semibold text-typography-900">{team}</Text>
-                        </View>
-                      ))
-                    ) : (
-                      <Text className="text-sm text-typography-500 italic">No subteam assigned</Text>
-                    )}
-                  </HStack>
-                </ScrollView>
-              </VStack>
-
-              {/* Role - Single Badge with Accent Color */}
-              <VStack space="xs">
-                <Text className="text-sm font-medium text-typography-600">Role</Text>
-                <View 
-                  className="px-4 py-2 rounded-full self-start border-2"
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(96, 165, 250, 0.15)' : 'rgba(59, 130, 246, 0.1)',
-                    borderColor: theme === 'dark' ? 'rgba(96, 165, 250, 0.4)' : 'rgba(59, 130, 246, 0.3)',
-                  }}
-                >
-                  <Text 
-                    className="text-base font-bold uppercase tracking-wide"
-                    style={{ color: theme === 'dark' ? '#60A5FA' : '#2563EB' }}
-                  >
-                    {displayUser?.role || 'N/A'}
-                  </Text>
-                </View>
-              </VStack>
-
-              <HStack className="justify-between items-center">
-                <Text className="text-sm font-medium text-typography-600">Enrolled in 4.5 Class</Text>
-                <Text className="font-semibold text-base text-typography-950">{displayUser?.fourpointfive}</Text>
-              </HStack>
-            </VStack>
+            <View className="py-4 flex-row justify-between items-center">
+              <Text className="text-sm font-medium text-typography-500 mr-4">Subteam</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+                <HStack space="xs" className="items-center">
+                  {displayUser?.subteam && displayUser.subteam.length > 0 ? (
+                    displayUser.subteam.map((team, index) => (
+                      <View 
+                        key={index}
+                        className="px-2.5 py-1 rounded border border-outline-200 bg-background-50"
+                      >
+                        <Text className="text-xs font-semibold text-typography-700 uppercase tracking-wider">
+                          {team}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text className="text-sm text-typography-400 italic">None</Text>
+                  )}
+                </HStack>
+              </ScrollView>
+            </View>
           </Box>
           <Box className="bg-background-0 rounded-xl shadow-md p-6 border border-outline-100">
             <VStack space="md">

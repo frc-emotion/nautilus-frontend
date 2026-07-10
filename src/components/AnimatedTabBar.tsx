@@ -190,9 +190,10 @@ export const AnimatedTabBar: React.FC<BottomTabBarProps> = ({
                   {options.tabBarIcon?.({
                     focused: isFocused,
                     color: isFocused 
-                      ? (isDark ? '#F5F5F5' : '#333333')
+                      ? (isDark ? '#fcf000' : '#333333')
                       : (isDark ? '#9CA3AF' : '#6B7280'),
                     size: 24,
+                    fill: isFocused && !isDark ? '#fcf000' : 'none',
                   })}
                 </Animated.View>
                 
@@ -202,9 +203,9 @@ export const AnimatedTabBar: React.FC<BottomTabBarProps> = ({
                       styles.label,
                       {
                         color: isFocused 
-                          ? (isDark ? '#F5F5F5' : '#333333')
-                          : (isDark ? '#9CA3AF' : '#6B7280'),
-                        fontWeight: isFocused ? '600' : '500',
+                          ? (isDark ? '#fcf000' : '#333333')
+                        : (isDark ? '#9CA3AF' : '#6B7280'),
+                        fontWeight: isFocused ? '700' : '500',
                       },
                     ]}
                   >
