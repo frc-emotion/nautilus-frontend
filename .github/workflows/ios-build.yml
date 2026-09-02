@@ -1,0 +1,64 @@
+name: iOS unsigned build (Xcode 26)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          ls /Applications | grep -i xcode
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: |
+          pod --version
+          pod install --repo-update
+
+      - name: Build unsigned Release app
+        working-directory: ios
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace Nautilus.xcworkspace \
+            -scheme Nautilus \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+            build | tail -200
+          ls -la build/dd/Build/Products/Release-iphoneos/
+
+      - name: Package app
+        working-directory: ios
+        run: |
+          cd build/dd/Build/Products/Release-iphoneos
+          zip -qry "$GITHUB_WORKSPACE/Nautilus-unsigned.zip" Nautilus.app Nautilus.app.dSYM || zip -qry "$GITHUB_WORKSPACE/Nautilus-unsigned.zip" Nautilus.app
+          plutil -p Nautilus.app/Info.plist | grep -E "DTSDKName|DTXcode|CFBundleShortVersionString|CFBundleVersion"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nautilus-unsigned
+          path: Nautilus-unsigned.zip
+          retention-days: 7
