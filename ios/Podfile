@@ -55,6 +55,17 @@ target 'Nautilus' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
+    # Xcode 26's clang rejects fmt's consteval format strings ("call to consteval
+    # function ... is not a constant expression"). fmt exposes FMT_USE_CONSTEVAL
+    # as an official switch; turning it off keeps the same runtime behavior.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        defs = Array(config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)'])
+        defs << 'FMT_USE_CONSTEVAL=0' unless defs.include?('FMT_USE_CONSTEVAL=0')
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+      end
+    end
+
     # This is necessary for Xcode 14, because it signs resource bundles by default
     # when building for devices.
     installer.target_installation_results.pod_target_installation_results
