@@ -1,4 +1,10 @@
-/ios
+# ios project is tracked on the ios-releases branch for CI builds; keep generated dirs out
+/ios/Pods
+/ios/build
+/ios/*.xcworkspace/xcuserdata
+/ios/*.xcodeproj/xcuserdata
+/ios/*.xcodeproj/project.xcworkspace/xcuserdata
+/ios/.xcode.env.local
 /android
 
 # Android release signing (extra protection)
