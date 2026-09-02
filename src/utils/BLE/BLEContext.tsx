@@ -4,7 +4,7 @@ import { Beacon, BLEContextProps } from '@/src/Constants';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { useGlobalModal } from '@/src/utils/UI/CustomModalProvider';
 import Constants from 'expo-constants';
-import { Subscription } from "expo-modules-core";
+import { type EventSubscription as Subscription } from "expo-modules-core";
 import * as Sentry from '@sentry/react-native';
 
 const BLEContext = createContext<BLEContextProps | undefined>(undefined);

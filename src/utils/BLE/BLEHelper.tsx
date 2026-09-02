@@ -7,13 +7,18 @@ import {
 } from "react-native";
 import { BLEHelperType, Beacon } from "@/src/Constants";
 import { requireNativeModule } from "expo-modules-core";
-import { EventEmitter, Subscription } from "expo-modules-core";
+import { LegacyEventEmitter, type EventSubscription as Subscription } from "expo-modules-core";
 import * as Sentry from "@sentry/react-native";
 import { getRequiredPermissions } from "./permissionHelper";
 
 const BLEBeaconManager =
   Platform.OS !== "android" ? null : requireNativeModule("BLEBeaconManager");
-const emitter = new EventEmitter(
+// Expo SDK 52+ replaced EventEmitter with a native class that only accepts
+// Expo native modules. The iOS BeaconBroadcaster is a legacy RCTEventEmitter,
+// so its BeaconDetected / BluetoothStateChanged events were silently dropped.
+// LegacyEventEmitter wraps legacy modules in a NativeEventEmitter and passes
+// Expo modules (Android BLEBeaconManager) through unchanged.
+const emitter = new LegacyEventEmitter(
   Platform.OS === "ios" ? NativeModules.BeaconBroadcaster : BLEBeaconManager
 );
 
