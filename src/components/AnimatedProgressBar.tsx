@@ -16,6 +16,7 @@ interface AnimatedProgressBarProps {
   showPercentage?: boolean;
   label?: string;
   gradient?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
@@ -24,6 +25,7 @@ export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
   showPercentage = true,
   label,
   gradient = true,
+  theme = 'light',
 }) => {
   const animatedWidth = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -90,13 +92,13 @@ export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
         >
           {gradient ? (
             <LinearGradient
-              colors={['#10B981', '#059669', '#047857']}
+              colors={theme === 'light' ? ['#000000', '#1a1a1a', '#333333'] : ['#fcf000', '#e6da00', '#d4c800']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
             />
           ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#10B981' }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: theme === 'light' ? '#000000' : '#fcf000' }]} />
           )}
         </Animated.View>
       </Animated.View>

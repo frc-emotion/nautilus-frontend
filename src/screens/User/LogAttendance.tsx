@@ -10,7 +10,7 @@ import {
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
-import { QueuedRequest, Beacon, MeetingObject } from '@/src/Constants';
+import { APP_UUID, QueuedRequest, Beacon, MeetingObject } from '@/src/Constants';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from '@/src/utils/Context/AuthContext';
 import { useBLE } from '@/src/utils/BLE/BLEContext';
@@ -37,37 +37,58 @@ import {
   RadioIcon,
 } from "@/components/ui/radio"
 import { ChevronDownIcon, ChevronUpIcon, CircleIcon } from "@/components/ui/icon"
-import { Accordion, AccordionItem, AccordionHeader, AccordionTrigger, AccordionTitleText, AccordionIcon, AccordionContent, AccordionContentText } from '@/components/ui/accordion';
+import { Accordion, AccordionItem, AccordionHeader, AccordionTrigger, AccordionTitleText, AccordionIcon, AccordionContent } from '@/components/ui/accordion';
 import { Divider } from '@/components/ui/divider';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Input, InputField } from '@/components/ui/input';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
 const LogAttendance: React.FC = () => {
+  //BLE + other states
   const {
     bluetoothState,
     detectedBeacons,
     isListening,
+    isBroadcasting,
+    startBroadcasting,
+    stopBroadcasting, 
     startListening,
     stopListening,
     fetchInitialBluetoothState
   } = useBLE();
 
+  //LogAttendance.tsx states
   const { locationStatus, checkLocationServices } = useLocation();
-  const { handleRequest, isConnected } = useNetworking(); // handleRequest & isConnected from networking
-  const { meetings, fetchMeetings, isLoadingMeetings } = useMeetings();
+  const { handleRequest, isConnected } = useNetworking();
+  const { meetings, fetchMeetings, isLoadingMeetings, getChildMeeting } = useMeetings();
   const { users, isLoading: isUsersLoading } = useUsers();
   const { openToast } = useGlobalToast();
   const { user } = useAuth();
   const { theme } = useTheme();
 
-  const [loading, setLoading] = useState<boolean>(false);
+  const isLead = ['leadership', 'executive', 'admin', 'advisor'].includes(user?.role ?? '');
+
+  const [isListeningLoading, setIsListeningLoading] = useState<boolean>(false);
   const [selectedBeacon, setSelectedBeacon] = useState<Beacon | null>(null);
-  const [selectedMeeting, setSelectedMeeting] = useState<MeetingObject | null>(null);
+  const [selectedMeetingToLog, setSelectedMeetingToLog] = useState<MeetingObject | null>(null);
   const [loggingBeacons, setLoggingBeacons] = useState<string[]>([]);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [listeningType, setType] = useState<number>(0);
 
-  const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false); // State to control popup visibility
+  //BroadcastAttendancePortal.tsx states
+  const [isBroadcastingLoading, setIsBroadcastingLoading] = useState<boolean>(false);
+  const [validMeetings, setValidMeetings] = useState<MeetingObject[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
+  const [selectedMeetingToBroadcast, setSelectedMeetingToBroadcast] = useState<MeetingObject | null>(null);
+  const [broadcastingType, setBroadcastingType] = useState<number>(2); // 0: Low, 1: Balanced, 2: High
+  const [broadcastMeetingMode, setBroadcastMeetingMode] = useState<'full' | 'half'>('full');
+
+  //Shared states
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [isPopupVisible, setIsPopupVisible] = useState<boolean>(false);
+
+  
 
   const log = (...args: any[]) => {
     console.log(`[${new Date().toISOString()}] ${DEBUG_PREFIX}`, ...args);
@@ -77,13 +98,11 @@ const LogAttendance: React.FC = () => {
     if (locationStatus !== 'enabled') {
       openToast({
         title: 'Location Services Required',
-        description: 'Please enable location services to listen for attendance.',
+        description: 'Please enable location services to use attendance features.',
         type: 'error',
       });
 
-      setTimeout(() => {
-        Linking.openSettings();
-      }, 2000);
+      setTimeout(() => Linking.openSettings(), 2000);
       return false;
     }
     return true;
@@ -93,17 +112,17 @@ const LogAttendance: React.FC = () => {
     if (bluetoothState === 'unauthorized') {
       openToast({
         title: 'Bluetooth Unauthorized',
-        description: 'Please allow Bluetooth access to listen for attendance.',
+        description: 'Please allow Bluetooth access to use attendance features.',
         type: 'error',
       });
 
-      setTimeout(() => {
-        Linking.openSettings();
-      }, 2000);
+      setTimeout(() => Linking.openSettings(), 2000);
       return false;
     }
     return true;
   };
+
+  //Logging attendance logic
 
   const toggleListening = async () => {
     const hasLocation = await handleLocationPermissions();
@@ -111,7 +130,7 @@ const LogAttendance: React.FC = () => {
 
     if (!hasLocation || !hasBluetooth) return;
 
-    setLoading(true);
+    setIsListeningLoading(true);
     log('Toggling listening', { isListening });
 
     try {
@@ -131,7 +150,7 @@ const LogAttendance: React.FC = () => {
         type: 'error',
       });
     } finally {
-      setLoading(false);
+      setIsListeningLoading(false);
       log('Toggle listening completed');
     }
   };
@@ -159,7 +178,7 @@ const LogAttendance: React.FC = () => {
       }
 
       setSelectedBeacon(beacon);
-      setSelectedMeeting(cachedMeeting || null);
+      setSelectedMeetingToLog(cachedMeeting || null);
     } catch (error) {
       Sentry.captureException(error);
       console.error('Error during attendance logging preparation:', error);
@@ -183,12 +202,12 @@ const LogAttendance: React.FC = () => {
         type: 'error',
       });
       setSelectedBeacon(null);
-      setSelectedMeeting(null);
+      setSelectedMeetingToLog(null);
       return;
     }
 
     const beacon = selectedBeacon;
-    const cachedMeeting = selectedMeeting;
+    const cachedMeeting = selectedMeetingToLog;
 
     const payload = {
       meeting_id: beacon.major,
@@ -240,7 +259,7 @@ const LogAttendance: React.FC = () => {
       });
     } finally {
       setSelectedBeacon(null);
-      setSelectedMeeting(null);
+      setSelectedMeetingToLog(null);
     }
   };
 
@@ -308,18 +327,119 @@ const LogAttendance: React.FC = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await fetchMeetings();
     await checkLocationServices();
     await fetchInitialBluetoothState();
     setRefreshing(false);
   };
 
+  const toggleBroadcasting = async () => {
+      console.log(`${DEBUG_PREFIX} Toggling broadcasting`, { isBroadcasting, selectedMeetingToBroadcast });
+      if (!isBroadcasting && !selectedMeetingToBroadcast) {
+        openToast({
+          title: 'No Meeting Selected',
+          description: 'Please select a meeting to broadcast.',
+          type: 'error',
+        });
+        return;
+      }
+  
+      setIsBroadcastingLoading(true);
+      try {
+        if (isBroadcasting) {
+          console.log(`${DEBUG_PREFIX} Attempting to stop broadcasting`);
+          await stopBroadcasting();
+        } else {
+          // Determine which meeting ID to broadcast based on mode:
+          let meetingIdToBroadcast = selectedMeetingToBroadcast!._id;
+          if (broadcastMeetingMode === 'half') {
+            const halfMeeting = getChildMeeting(selectedMeetingToBroadcast!._id);
+            if (!halfMeeting) {
+              openToast({
+                title: 'Half Meeting Not Available',
+                description: 'There is no half meeting available for this meeting.',
+                type: 'error',
+              });
+              setIsBroadcastingLoading(false);
+              return;
+            }
+            meetingIdToBroadcast = halfMeeting._id;
+          }
+    
+              const hasLocation = await handleLocationPermissions();
+              const hasBluetooth = await handleBluetoothPermissions();
+              if (!hasLocation || !hasBluetooth) {
+                setIsBroadcastingLoading(false);
+                return;
+              }
+              if (bluetoothState !== 'poweredOn') {
+                openToast({
+                  title: 'Bluetooth Required',
+                  description: 'Please enable Bluetooth to start broadcasting.',
+                  type: 'error',
+                });
+                Linking.openSettings();
+                setIsBroadcastingLoading(false);
+                return;
+              }
+              const majorValue = Number(meetingIdToBroadcast);
+              const minorValue = Number(user?._id);
+              console.log(`${DEBUG_PREFIX} Starting broadcasting`, { APP_UUID, majorValue, minorValue, meetingTitle: selectedMeetingToBroadcast!.title });
+              // Use existing broadcasting strength radio group values for power mode
+              // (Assuming broadcastingType is already handled in the radio group below)
+              // For this example, we simply use fixed values:
+              // Full broadcasting uses mode 2, high power (for example)
+              // Half broadcasting uses mode 0, low power (for example)
+              if (broadcastMeetingMode === 'full') {
+                await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeetingToBroadcast!.title, 2, 3);
+              } else {
+                await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeetingToBroadcast!.title, 0, 1);
+              }
+          }
+        } catch (error: any) {
+          Sentry.captureException(error);
+          console.error(`${DEBUG_PREFIX} Error toggling broadcasting`, error);
+          openToast({
+            title: 'Broadcast Error',
+            description: error.message || 'An unknown error occurred.',
+            type: 'error',
+          });
+        } finally {
+          setIsBroadcastingLoading(false);
+          console.log(`${DEBUG_PREFIX} Broadcasting toggle completed, loading state set to false`);
+        }
+    };
+
+    //Effects
   useEffect(() => {
     fetchMeetings();
   }, []);
 
+  useEffect(() => {
+    const currentTime = Math.floor(Date.now() / 1000);
+    const eligibleMeetings = meetings.filter(
+      (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
+    );
+    const mainMeetings = eligibleMeetings.filter((meeting) => !meeting.parent);
+    setValidMeetings(mainMeetings);
+  }, [meetings]);
+
+  useEffect(() => {
+    if (!searchQuery) {
+      setFilteredMeetings(validMeetings);
+      return;
+    }
+    const filtered = validMeetings.filter((meeting) =>
+      meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      meeting.location.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredMeetings(filtered);
+  }, [searchQuery, validMeetings]);
+
   if (isLoadingMeetings || isUsersLoading) {
     return (
-      <VStack space="lg" className="p-6 flex-1 justify-center items-center">
+      <VStack space="lg" className="p-6 flex-1 justify-center items-center bg-background-0">
         <Spinner />
         <Text className="mt-2">Loading...</Text>
       </VStack>
@@ -337,105 +457,243 @@ const LogAttendance: React.FC = () => {
   return (
     <ScrollView
       className="bg-background-0"
-      contentContainerStyle={{
-        flexGrow: 1,
-        padding: 16,
-      }}
+      contentContainerStyle={{ flexGrow: 1, padding: 16 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <VStack space="lg" className="flex-1">
-        <View className="flex items-center justify-center">
-          <Pressable onPress={openPermissionPopup}>
-            <BluetoothStatusIndicator state={bluetoothState} />
-          </Pressable>
-          <Pressable onPress={openPermissionPopup}>
-            <View className="ml-4">
-              <LocationStatusIndicator state={locationStatus} />
-            </View>
-          </Pressable>
+      <VStack space="xl" className="flex-1">
+        {/* 1. Settings card*/}
+        <View className="bg-background-0 rounded-2xl shadow-lg border border-outline-100 overflow-hidden">
+          <LinearGradient
+            colors={theme === 'light' ? ['#F9FAFB', '#F3F4F6'] : ['#1E1E1E', '#171717']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
+            <VStack space="md" className="p-5">
+              <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
+                System Status
+              </Text>
+              
+              <VStack space="sm" className="mt-2">
+                <Pressable onPress={openPermissionPopup}>
+                  <BluetoothStatusIndicator state={bluetoothState} />
+                </Pressable>
+                <Pressable onPress={openPermissionPopup}>
+                  <LocationStatusIndicator state={locationStatus} />
+                </Pressable>
+              </VStack>
+
+              {(bluetoothState === 'unknown' || locationStatus === 'unknown' || bluetoothState === 'unauthorized' || locationStatus === 'unauthorized') && (
+                <Button
+                  onPress={() => Linking.openSettings()}
+                  className="mt-2 px-6 py-2 rounded-lg bg-teamYellow-500"
+                >
+                  <ButtonText className="font-bold text-center" style={{ color: '#333333' }}>
+                    Open Settings
+                  </ButtonText>
+                </Button>
+              )}
+
+              {Platform.OS === 'android' && (
+                <Accordion size="md" variant="unfilled" type="single" isCollapsible={true} className="mt-2">
+                  <AccordionItem value="settings">
+                    <AccordionHeader>
+                      <AccordionTrigger>
+                        {({ isExpanded }) => (
+                          <>
+                            <AccordionTitleText className="text-sm">Advanced Settings</AccordionTitleText>
+                            <AccordionIcon as={isExpanded ? ChevronUpIcon : ChevronDownIcon} />
+                          </>
+                        )}
+                      </AccordionTrigger>
+                    </AccordionHeader>
+                    <AccordionContent>
+                      <VStack space="md">
+                        <VStack space="xs">
+                          <Text size="sm" className="font-semibold">Listening Mode</Text>
+                          <Text size="xs" className="text-typography-500">
+                              Main is the most reliable, but if you're having trouble detecting meetings, try Alternative.
+                          </Text>
+                        </VStack>
+                        <RadioGroup value={listeningType.toString()} onChange={(val) => setType(Number(val))} className="mt-1">
+                          <HStack space="md">
+                            <Radio value="0" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>Main</RadioLabel></Radio>
+                            <Radio value="1" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>Alternative</RadioLabel></Radio>
+                          </HStack>
+                        </RadioGroup>
+
+                        <Divider className="my-2" />
+
+                        <View className={!isLead ? 'opacity-50' : ''} pointerEvents={!isLead ? 'none' : 'auto'}>
+                          <HStack className="justify-between items-center mb-2">
+                             <Text size="sm" className="font-semibold">Broadcast Strength</Text>
+                             {!isLead && (
+                               <View className="bg-gray-200 px-2 py-0.5 rounded-md">
+                                 <Text className="text-[10px] font-bold text-gray-500">LEADS ONLY</Text>
+                               </View>
+                             )}
+                          </HStack>
+                          <RadioGroup value={broadcastingType.toString()} onChange={(val) => setBroadcastingType(Number(val))}>
+                            <HStack space="md">
+                              <Radio value="0" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>Low</RadioLabel></Radio>
+                              <Radio value="1" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>Mid</RadioLabel></Radio>
+                              <Radio value="2" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>High</RadioLabel></Radio>
+                            </HStack>
+                          </RadioGroup>
+                        </View>
+
+                      </VStack>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              )}
+            </VStack>
+          </LinearGradient>
         </View>
 
-        {(bluetoothState === 'unknown' || locationStatus === 'unknown' || bluetoothState === 'unauthorized' || locationStatus === 'unauthorized') && (
+        {/*2. Card for logging attendance*/}
+        <View className="bg-background-0 rounded-2xl shadow-lg border border-outline-100 p-5">
+          <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide mb-4">
+            Record Attendance
+          </Text>
+
           <Button
-            onPress={() => Linking.openSettings()}
-            className="mt-4 px-6 py-2 rounded-lg bg-blue-500"
+            onPress={toggleListening}
+            className="rounded-xl h-12"
+            disabled={isListeningLoading || locationStatus !== 'enabled' || bluetoothState !== 'poweredOn'}
+            style={{
+              backgroundColor: isListening ? '#fcf000' : (theme === 'light' ? '#111827' : '#374151')
+            }}
           >
-            <ButtonText className="font-bold text-center">Open Settings</ButtonText>
+            {isListeningLoading ? <Spinner color={isListening ? 'black' : 'white'} /> : (
+              <ButtonText className="font-bold text-lg" style={{ color: isListening ? '#000000' : '#FFFFFF' }}>
+                {isListening ? 'Stop Scanning' : 'Scan for Meetings'}
+              </ButtonText>
+            )}
           </Button>
-        )}
 
-        <Text size="2xl" bold className="text-center mt-4 mb-4">
-          {isListening ? 'Listening for Attendance' : 'Not Listening'}
-        </Text>
+          <VStack space="md" className="mt-4">
+            {detectedBeacons.length > 0 ? (
+              detectedBeacons.map(beacon => {
+                const beaconId = `${beacon.uuid}-${beacon.major}-${beacon.minor}`;
+                const isLogging = loggingBeacons.includes(beaconId);
+                const meetingTitle = getMeetingTitle(beacon.major);
+                const leadName = getUserName(beacon.minor);
 
-        <Button
-          onPress={toggleListening}
+                return (
+                  <Card
+                    key={beaconId}
+                    variant={isLogging ? 'filled' : 'outline'}
+                    className={`p-4 rounded-lg border ${isLogging ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300'}`}
+                  >
+                    <VStack space="sm">
+                      <HStack className="justify-between items-center">
+                        <VStack>
+                          <Text className="text-sm font-semibold">Lead:</Text>
+                          <Text className="text-md font-semibold">{leadName}</Text>
+                        </VStack>
+                        <VStack className="items-end">
+                          <Text className="text-sm font-semibold">Meeting:</Text>
+                          <Text className="text-sm">{meetingTitle}</Text>
+                        </VStack>
+                      </HStack>
+                      <Button
+                        onPress={() => initiateLogAttendance(beacon)}
+                        className={`mt-4 py-2 rounded-lg ${isLogging ? 'bg-yellow-300' : 'bg-green-500'}`}
+                        disabled={isLogging}
+                      >
+                        {isLogging ? (
+                          <Spinner />
+                        ) : (
+                          <ButtonText className="font-bold text-center">
+                            Log Attendance
+                          </ButtonText>
+                        )}
+                      </Button>
+                    </VStack>
+                  </Card>
+                );
+              })
+            ) : (
+              <Text className="text-center text-typography-500 mt-2 text-sm italic">
+                {isListening ? "Scanning for nearby meetings..." : "No meetings detected"}
+              </Text>
+            )}
+          </VStack>
+        </View>
 
-          className={`px-6 rounded-lg ${bluetoothState === 'unauthorized' || locationStatus !== 'enabled' ? 'bg-gray-500' : 'bg-blue-500'}`}
-          disabled={loading || locationStatus !== 'enabled' || bluetoothState === 'unauthorized'}
-        >
-          {loading ? (
-            <Spinner />
-          ) : (
-            <ButtonText size="lg" className="font-bold text-center">
-              {isListening ? 'Stop Listening' : 'Start Listening'}
-            </ButtonText>
-          )}
-        </Button>
+        {/* 3. Card for broadcasting attendance */}
+        <View className={`bg-background-0 rounded-2xl shadow-lg border border-outline-100 p-5 ${!isLead ? 'opacity-50' : ''}`} pointerEvents={!isLead ? 'none' : 'auto'}>
+          <HStack className="justify-between items-center mb-4">
+            <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
+              Host a Meeting
+            </Text>
+            {!isLead && (
+              <View className="bg-gray-200 px-2 py-1 rounded-md">
+                <Text className="text-xs font-bold text-gray-500">LEADS ONLY</Text>
+              </View>
+            )}
+          </HStack>
 
-        <VStack space="md" className="w-full mt-6">
-          {detectedBeacons.length > 0 ? (
-            detectedBeacons.map(beacon => {
-              const beaconId = `${beacon.uuid}-${beacon.major}-${beacon.minor}`;
-              const isLogging = loggingBeacons.includes(beaconId);
-              const meetingTitle = getMeetingTitle(beacon.major);
-              const leadName = getUserName(beacon.minor);
-
-              return (
-                <Card
-                  key={beaconId}
-                  variant={isLogging ? 'filled' : 'outline'}
-                  className={`p-4 rounded-lg border ${isLogging ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300'
-                    }`}
-                >
-                  <VStack space="sm">
-                    <HStack className="justify-between items-center">
-                      <VStack>
-                        <Text className="text-sm font-semibold">Lead:</Text>
-                        <Text className="text-md font-semibold">{leadName}</Text>
-                      </VStack>
-                      <VStack className="items-end">
-                        <Text className="text-sm font-semibold">Meeting:</Text>
-                        <Text className="text-sm">{meetingTitle}</Text>
-                      </VStack>
-                    </HStack>
-                    <Button
-                      onPress={() => initiateLogAttendance(beacon)}
-                      className={`mt-4 py-2 rounded-lg ${isLogging ? 'bg-yellow-300' : 'bg-green-500'
-                        }`}
-                      disabled={isLogging}
-                    >
-                      {isLogging ? (
-                        <Spinner />
-                      ) : (
-                        <ButtonText className="font-bold text-center">
-                          Log Attendance
-                        </ButtonText>
-                      )}
-                    </Button>
-                  </VStack>
-                </Card>
-              );
-            })
-          ) : (
-            <Text className="text-center text-gray-500">
-              No leads detected
+          {isBroadcasting && selectedMeetingToBroadcast && (
+            <Text className="font-bold text-lg text-center mb-3">
+              Broadcasting: {selectedMeetingToBroadcast.title}
             </Text>
           )}
-        </VStack>
+
+          <Input variant="outline" size="sm" className="mb-3 rounded-lg">
+            <InputField 
+               value={searchQuery} 
+               onChangeText={setSearchQuery} 
+               placeholder="Search meetings..." 
+            />
+          </Input>
+
+          <ScrollView className="max-h-48 mb-4" nestedScrollEnabled>
+            {isLoadingMeetings ? (
+               <Spinner className="mt-4"/>
+            ) : filteredMeetings.length === 0 ? (
+               <Text className="text-center text-typography-500 mt-4 text-sm">No active meetings</Text>
+            ) : (
+               filteredMeetings.map((meeting) => (
+                 <Pressable key={meeting._id} onPress={() => setSelectedMeetingToBroadcast(meeting)}>
+                    <View className={`p-3 mb-2 rounded-lg border ${selectedMeetingToBroadcast?._id === meeting._id ? 'border-blue-500 bg-blue-50' : 'border-outline-200'}`}>
+                       <Text className="font-semibold">{meeting.title}</Text>
+                       <Text className="text-xs text-typography-600">{meeting.location}</Text>
+                    </View>
+                 </Pressable>
+               ))
+            )}
+          </ScrollView>
+
+          {selectedMeetingToBroadcast && (
+             <HStack space="md" className="mb-4">
+               <Pressable onPress={() => setBroadcastMeetingMode('full')} className={`flex-1 p-2 rounded-lg items-center ${broadcastMeetingMode === 'full' ? 'bg-blue-100 border border-blue-500' : 'bg-background-50 border border-outline-200'}`}>
+                 <Text className={broadcastMeetingMode === 'full' ? 'text-blue-700 font-bold' : ''}>Full Credit</Text>
+               </Pressable>
+               <Pressable onPress={() => setBroadcastMeetingMode('half')} className={`flex-1 p-2 rounded-lg items-center ${broadcastMeetingMode === 'half' ? 'bg-blue-100 border border-blue-500' : 'bg-background-50 border border-outline-200'}`}>
+                 <Text className={broadcastMeetingMode === 'half' ? 'text-blue-700 font-bold' : ''}>Half Credit</Text>
+               </Pressable>
+             </HStack>
+          )}
+
+          <Button
+            onPress={toggleBroadcasting}
+            className="rounded-xl h-12"
+            disabled={isBroadcastingLoading || (!isBroadcasting && !selectedMeetingToBroadcast) || locationStatus !== 'enabled' || bluetoothState !== 'poweredOn'}
+            style={{
+              backgroundColor: isBroadcasting ? '#fcf000' : (theme === 'light' ? '#111827' : '#374151')
+            }}
+          >
+            {isBroadcastingLoading ? <Spinner color={isBroadcasting ? 'black' : 'white'} /> : (
+              <ButtonText className="font-bold text-lg" style={{ color: isBroadcasting ? '#000000' : '#FFFFFF' }}>
+                {isBroadcasting ? 'Stop Broadcasting' : 'Start Broadcasting'}
+              </ButtonText>
+            )}
+          </Button>
+
+        </View>
 
         {selectedBeacon && (
-          <AlertDialog isOpen={!!selectedBeacon} onClose={() => { setSelectedBeacon(null); setSelectedMeeting(null); }} size="md">
+          <AlertDialog isOpen={!!selectedBeacon} onClose={() => { setSelectedBeacon(null); setSelectedMeetingToLog(null); }} size="md">
             <AlertDialogBackdrop />
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -444,14 +702,14 @@ const LogAttendance: React.FC = () => {
                 </Text>
               </AlertDialogHeader>
               <AlertDialogBody className="mt-3 mb-4">
-                {selectedMeeting ? (
+                {selectedMeetingToLog ? (
                   <>
-                    <Text size="sm"><Text className="font-bold">Title:</Text> {selectedMeeting.title}</Text>
-                    <Text size="sm"><Text className="font-bold">Description:</Text> {selectedMeeting.description}</Text>
-                    <Text size="sm"><Text className="font-bold">Location:</Text> {selectedMeeting.location}</Text>
-                    <Text size="sm"><Text className="font-bold">Time Start:</Text> {formatDateTime(selectedMeeting.time_start)}</Text>
-                    <Text size="sm"><Text className="font-bold">Time End:</Text> {formatDateTime(selectedMeeting.time_end)}</Text>
-                    <Text size="sm"><Text className="font-bold">Created by:</Text> {users.find(u => u._id === selectedMeeting.created_by)?.first_name || `User ID ${selectedMeeting.created_by}`}</Text>
+                    <Text size="sm"><Text className="font-bold">Title:</Text> {selectedMeetingToLog.title}</Text>
+                    <Text size="sm"><Text className="font-bold">Description:</Text> {selectedMeetingToLog.description}</Text>
+                    <Text size="sm"><Text className="font-bold">Location:</Text> {selectedMeetingToLog.location}</Text>
+                    <Text size="sm"><Text className="font-bold">Time Start:</Text> {formatDateTime(selectedMeetingToLog.time_start)}</Text>
+                    <Text size="sm"><Text className="font-bold">Time End:</Text> {formatDateTime(selectedMeetingToLog.time_end)}</Text>
+                    <Text size="sm"><Text className="font-bold">Created by:</Text> {users.find(u => u._id === selectedMeetingToLog.created_by)?.first_name || `User ID ${selectedMeetingToLog.created_by}`}</Text>
                   </>
                 ) : (
                   <Text size="sm">
@@ -463,7 +721,7 @@ const LogAttendance: React.FC = () => {
                 <Button
                   variant="outline"
                   action="secondary"
-                  onPress={() => { setSelectedBeacon(null); setSelectedMeeting(null); }}
+                  onPress={() => { setSelectedBeacon(null); setSelectedMeetingToLog(null); }}
                   size="sm"
                   className="mr-2"
                 >
@@ -476,73 +734,10 @@ const LogAttendance: React.FC = () => {
             </AlertDialogContent>
           </AlertDialog>
         )}
-
-{Platform.OS === 'android' && (
-          
-            <Accordion
-              size="md"
-              variant="filled"
-              type="single"
-              isCollapsible={true}
-              isDisabled={false}
-              className="m-5 w-[90%] border border-outline-200"
-            >
-              <AccordionItem value="a">
-                <AccordionHeader>
-                  <AccordionTrigger>
-                    {({ isExpanded }) => {
-                      return (
-                        <>
-                          <AccordionTitleText>
-                            Having trouble detecting meetings?
-                          </AccordionTitleText>
-                          {isExpanded ? (
-                            <AccordionIcon as={ChevronUpIcon} className="ml-3" />
-                          ) : (
-                            <AccordionIcon as={ChevronDownIcon} className="ml-3" />
-                          )}
-                        </>
-                      )
-                    }}
-                  </AccordionTrigger>
-                </AccordionHeader>
-                <AccordionContent>
-                  <Text size="lg" className="text-center">
-                    Try changing the listening mode.
-                  </Text>
-                  <Text size="sm" className="text-center">
-                    Main is the most reliable option, but if you're having trouble, try Alternative.
-                  </Text>
-
-                  <RadioGroup value={listeningType.toString()}>
-                    <HStack space="md" className="items-center justify-center">
-                      <Radio isDisabled={isListening} onPress={() => setType(0)} value="0" size="md" isInvalid={false}>
-                        <RadioIndicator>
-                          <RadioIcon as={CircleIcon} />
-                        </RadioIndicator>
-                        <RadioLabel>Main</RadioLabel>
-                      </Radio>
-                      <Radio isDisabled={isListening} onPress={() => setType(1)} value="1" size="md" isInvalid={false}>
-                        <RadioIndicator>
-                          <RadioIcon as={CircleIcon} />
-                        </RadioIndicator>
-                        <RadioLabel>Alternative</RadioLabel>
-                      </Radio>
-                    </HStack>
-                  </RadioGroup>
-                </AccordionContent>
-              </AccordionItem>
-              <Divider />
-            </Accordion>
-          
-
-        )}
-
-        {/* Permission Status Popup */}
+        
         <PermissionStatusPopup visible={isPopupVisible} onClose={closePermissionPopup} />
-      </VStack>
 
-      
+      </VStack>
     </ScrollView>
   );
 };

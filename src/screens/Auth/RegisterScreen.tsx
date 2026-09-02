@@ -576,14 +576,13 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Button
                 onPress={handleSubmit(handleRegister, onError)}
                 size="lg"
-                className="mt-2 py-2 rounded-md"
+                className="mt-2 py-2 rounded-md border-0 bg-teamYellow-500"
                 disabled={isSubmitting}
-                action="primary"
               >
                 {isSubmitting ? (
-                  <ActivityIndicator size="small" />
+                  <ActivityIndicator size="small" color="#333333" />
                 ) : (
-                  <ButtonText className="font-semibold">
+                  <ButtonText className="font-semibold" style={{ color: '#333333' }}>
                     Create Account
                   </ButtonText>
                 )}

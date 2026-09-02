@@ -22,8 +22,7 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import { MoonIcon, SunIcon, ChevronDownIcon, EllipsisVertical, BellIcon } from 'lucide-react-native';
-import { PremiumFAB } from '@/src/components/PremiumFAB';
+import { MoonIcon, SunIcon, ChevronDownIcon, EllipsisVertical, BellIcon } from 'lucide-react-native'
 import UpdateRibbon from '@/src/components/UpdateRibbon';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
 import { Box } from '@/components/ui/box';
@@ -36,7 +35,7 @@ import { Icon } from '@/components/ui/icon';
 import { Pressable } from '@/components/ui/pressable';
 
 const HomeScreen: React.FC = () => {
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
     const { user, refreshUser } = useAuth();
     const { userAttendanceHours, isLoading, currentYear, currentTerm, schoolYears, schoolTerms, refreshAttendanceData } = useAttendance();
     const { openToast } = useGlobalToast();
@@ -292,7 +291,7 @@ const HomeScreen: React.FC = () => {
                                         <Select selectedValue={selectedYear} onValueChange={setSelectedYear}>
                                             <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
                                                 <SelectInput placeholder="Year" value={selectedYear} />
-                                                <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
+                                                <SelectIcon className="mr-2" as={ChevronDownIcon} size="sm" />
                                             </SelectTrigger>
                                             <SelectPortal>
                                                 <SelectBackdrop />
@@ -310,7 +309,7 @@ const HomeScreen: React.FC = () => {
                                             <Select selectedValue={selectedTerm} onValueChange={setSelectedTerm}>
                                                 <SelectTrigger variant="outline" size="sm" className="rounded-xl border-outline-200">
                                                     <SelectInput placeholder="Term" value={selectedTerm} />
-                                                    <SelectIcon className="mr-2" as={ChevronDownIcon} size={16} />
+                                                    <SelectIcon className="mr-2" as={ChevronDownIcon} size="sm" />
                                                 </SelectTrigger>
                                                 <SelectPortal>
                                                     <SelectBackdrop />
@@ -335,8 +334,8 @@ const HomeScreen: React.FC = () => {
                                     <View className="bg-background-0 rounded-2xl shadow-lg border border-outline-100 overflow-hidden">
                                         <LinearGradient
                                             colors={theme === 'light'
-                                                ? ['#F0F9FF', '#E0F2FE']
-                                                : ['#1E293B', '#0F172A']
+                                                ? ['#FEF999', '#fcf000'] // Bright yellow gradient
+                                                : ['#323000', '#1A1800'] // Darkest yellow into deep black
                                             }
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 1 }}
@@ -346,7 +345,7 @@ const HomeScreen: React.FC = () => {
                                                     <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
                                                         Attendance Progress
                                                     </Text>
-                                                    <TrophyIcon color={theme === 'light' ? '#0EA5E9' : '#38BDF8'} size={20} />
+                                                    <TrophyIcon color={theme === 'light' ? '#111827' : '#fcf000'} size={20} />
                                                 </HStack>
 
                                                 <HStack className="items-baseline gap-2">
@@ -361,6 +360,7 @@ const HomeScreen: React.FC = () => {
                                                     height={10}
                                                     showPercentage={false}
                                                     gradient={true}
+                                                    theme={theme}
                                                 />
 
                                                 <HStack className="justify-between">
@@ -382,7 +382,7 @@ const HomeScreen: React.FC = () => {
                                                 label="This Term"
                                                 value={selectedTerm !== 'All Terms' ? Math.round(totalHours) : '—'}
                                                 subtitle="hours"
-                                                icon={<ClockIcon color={theme === 'light' ? '#6B7280' : '#9CA3AF'} size={18} />}
+                                                icon={<ClockIcon color={theme === 'light' ? '#333333' : '#E5E5E5'} size={18} />}
                                                 theme={theme}
                                             />
                                         </View>
@@ -391,7 +391,7 @@ const HomeScreen: React.FC = () => {
                                                 label="Progress"
                                                 value={`${Math.round((totalHours / 36) * 100)}%`}
                                                 subtitle="complete"
-                                                icon={<TrendingUpIcon color={theme === 'light' ? '#10B981' : '#34D399'} size={18} />}
+                                                icon={<TrendingUpIcon color={theme === 'light' ? '#333333' : '#E5E5E5'} size={18} />}
                                                 theme={theme}
                                             />
                                         </View>
@@ -414,7 +414,15 @@ const HomeScreen: React.FC = () => {
                                             {timeLeft}
                                         </Text>
                                     </VStack>
-                                    <CalendarIcon color={theme === 'light' ? '#6B7280' : '#9CA3AF'} size={32} />
+                                    <View
+                                      style={{
+                                        backgroundColor: theme === 'light' ? '#FEF999' : '#323000',
+                                        borderRadius: 10,
+                                        padding: 8,
+                                      }}
+                                    >
+                                      <CalendarIcon color={theme === 'light' ? '#333333' : '#E5E5E5'} size={32} />
+                                    </View>
                                 </HStack>
                             </View>
                         )}
@@ -433,7 +441,7 @@ const HomeScreen: React.FC = () => {
                             onPress={handleRefresh}
                             size="md"
                             variant="outline"
-                            className="rounded-xl"
+                            className="rounded-xl border-outline-200"
                             disabled={refreshing}
                         >
                             {refreshing ? (
@@ -590,11 +598,6 @@ const HomeScreen: React.FC = () => {
                 )}
 
             </ScrollView>
-            <PremiumFAB
-                onPress={toggleTheme}
-                icon={theme === 'light' ? <MoonIcon color="#333333" size={24} /> : <SunIcon color="#F5F5F5" size={24} />}
-                theme={theme}
-            />
         </VStack>
     );
 }

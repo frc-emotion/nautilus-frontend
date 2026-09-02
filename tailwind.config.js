@@ -14,10 +14,19 @@ module.exports = {
       pattern:
         /(bg|border|text|stroke|fill)-(primary|secondary|tertiary|error|success|warning|info|typography|outline|background)-(0|50|100|200|300|400|500|600|700|800|900|950|white|gray|black|error|warning|muted|success|info|light|dark)/,
     },
+    {
+      pattern: /(bg|border|text|stroke|fill)-teamYellow-(50|100|500|700|900)/,
+    },
   ],
   theme: {
     extend: {
       colors: {
+        teamYellow: {
+          50: 'rgb(254, 249, 153)',
+          500: 'rgb(252, 240, 0)',
+          700: 'rgb(202, 192, 0)',
+          900: 'rgb(50, 48, 0)',
+        },
         primary: {
           0: 'rgb(var(--color-primary-0)/<alpha-value>)',
           50: 'rgb(var(--color-primary-50)/<alpha-value>)',

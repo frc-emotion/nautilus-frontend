@@ -27,7 +27,6 @@ import { useTeamAggregation } from '@/src/hooks/useTeamAggregation';
 import { useEventSummary } from '@/src/hooks/useEventSummary';
 
 import { useTheme } from '@/src/utils/UI/CustomThemeProvider';
-import { PremiumFAB } from '@/src/components/PremiumFAB';
 import {
   TrophyIcon,
   ActivityIcon,
@@ -53,7 +52,7 @@ const eventKeySchema = z.string().regex(/^\d{4}[a-z0-9]+$/, 'Invalid event key f
 const teamNumberSchema = z.string().regex(/^\d+$/, 'Team number must be numeric');
 
 function DataVisualizationScreenContent() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [competition, setCompetition] = useState<string>('');
   const [eventKey, setEventKey] = useState<string>('');
   const [teamNumber, setTeamNumber] = useState<string>('');
@@ -427,11 +426,6 @@ function DataVisualizationScreenContent() {
           </VStack>
         </Animated.View>
       </ScrollView>
-      <PremiumFAB
-        onPress={toggleTheme}
-        icon={theme === 'light' ? <MoonIcon color="#333333" size={24} /> : <SunIcon color="#F5F5F5" size={24} />}
-        theme={theme}
-      />
     </VStack>
   );
 }

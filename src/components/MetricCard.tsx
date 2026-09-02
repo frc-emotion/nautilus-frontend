@@ -39,7 +39,17 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
           {label}
         </Text>
-        {icon && <View>{icon}</View>}
+        {icon && (
+          <View
+            className={theme === 'light' ? 'bg-teamYellow-50' : 'bg-teamYellow-900'}
+            style={{
+              borderRadius: 8,
+              padding: 6,
+            }}
+          >
+            {icon}
+          </View>
+        )}
       </HStack>
       <Text className="text-3xl font-bold text-typography-950 tracking-tight">
         {value}
