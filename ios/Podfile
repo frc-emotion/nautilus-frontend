@@ -55,14 +55,19 @@ target 'Nautilus' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
-    # Xcode 26's clang rejects fmt's consteval format strings ("call to consteval
-    # function ... is not a constant expression"). fmt exposes FMT_USE_CONSTEVAL
-    # as an official switch; turning it off keeps the same runtime behavior.
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        defs = Array(config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)'])
-        defs << 'FMT_USE_CONSTEVAL=0' unless defs.include?('FMT_USE_CONSTEVAL=0')
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+    # Xcode 26's clang rejects fmt 11.0's consteval format strings
+    # ("call to consteval function ... is not a constant expression").
+    # fmt 11.0 hardcodes FMT_USE_CONSTEVAL (no #ifndef guard), so a -D does
+    # nothing; patch the header to force it off. Same runtime behavior.
+    fmt_base = File.join(installer.sandbox.root.to_s, 'fmt', 'include', 'fmt', 'base.h')
+    if File.exist?(fmt_base)
+      src = File.read(fmt_base)
+      patched = src.sub("#if !defined(__cpp_lib_is_constant_evaluated)\n#  define FMT_USE_CONSTEVAL 0",
+                        "#if 1  // patched: Xcode 26 clang cannot compile fmt consteval format strings\n#  define FMT_USE_CONSTEVAL 0")
+      if patched != src
+        File.chmod(0644, fmt_base)
+        File.write(fmt_base, patched)
+        Pod::UI.puts "Patched fmt base.h to disable consteval (Xcode 26)"
       end
     end
 
