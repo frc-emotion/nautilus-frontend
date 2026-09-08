@@ -18,8 +18,11 @@ export default ({ config }) => ({
     },
     plugins: [
       withCustomBeaconModule,
-      [withRemoveiOSNotificationEntitlement],
+      // withRemoveiOSNotificationEntitlement strips the `aps-environment`
+      // entitlement, which disables iOS push entirely. It stays off so
+      // announcement notifications can be delivered.
+      // [withRemoveiOSNotificationEntitlement],
       ...(config.plugins || [])
-      
+
     ],
   });

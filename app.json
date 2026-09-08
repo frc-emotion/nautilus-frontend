@@ -40,7 +40,8 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
@@ -50,6 +51,14 @@
           "organization": "frc-team-2658",
           "project": "nautilus-app",
           "url": "https://sentry.io/"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/icon.png",
+          "color": "#fcf000",
+          "defaultChannel": "announcements"
         }
       ],
       [

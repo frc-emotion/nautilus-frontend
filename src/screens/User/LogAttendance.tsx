@@ -10,7 +10,7 @@ import {
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { useGlobalToast } from '@/src/utils/UI/CustomToastProvider';
-import { APP_UUID, QueuedRequest, Beacon, MeetingObject } from '@/src/Constants';
+import { QueuedRequest, Beacon, MeetingObject } from '@/src/Constants';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuth } from '@/src/utils/Context/AuthContext';
 import { useBLE } from '@/src/utils/BLE/BLEContext';
@@ -38,9 +38,7 @@ import {
 } from "@/components/ui/radio"
 import { ChevronDownIcon, ChevronUpIcon, CircleIcon } from "@/components/ui/icon"
 import { Accordion, AccordionItem, AccordionHeader, AccordionTrigger, AccordionTitleText, AccordionIcon, AccordionContent } from '@/components/ui/accordion';
-import { Divider } from '@/components/ui/divider';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Input, InputField } from '@/components/ui/input';
 
 const DEBUG_PREFIX = '[LogAttendance]';
 
@@ -50,9 +48,6 @@ const LogAttendance: React.FC = () => {
     bluetoothState,
     detectedBeacons,
     isListening,
-    isBroadcasting,
-    startBroadcasting,
-    stopBroadcasting, 
     startListening,
     stopListening,
     fetchInitialBluetoothState
@@ -61,28 +56,17 @@ const LogAttendance: React.FC = () => {
   //LogAttendance.tsx states
   const { locationStatus, checkLocationServices } = useLocation();
   const { handleRequest, isConnected } = useNetworking();
-  const { meetings, fetchMeetings, isLoadingMeetings, getChildMeeting } = useMeetings();
+  const { meetings, fetchMeetings, isLoadingMeetings } = useMeetings();
   const { users, isLoading: isUsersLoading } = useUsers();
   const { openToast } = useGlobalToast();
   const { user } = useAuth();
   const { theme } = useTheme();
-
-  const isLead = ['leadership', 'executive', 'admin', 'advisor'].includes(user?.role ?? '');
 
   const [isListeningLoading, setIsListeningLoading] = useState<boolean>(false);
   const [selectedBeacon, setSelectedBeacon] = useState<Beacon | null>(null);
   const [selectedMeetingToLog, setSelectedMeetingToLog] = useState<MeetingObject | null>(null);
   const [loggingBeacons, setLoggingBeacons] = useState<string[]>([]);
   const [listeningType, setType] = useState<number>(0);
-
-  //BroadcastAttendancePortal.tsx states
-  const [isBroadcastingLoading, setIsBroadcastingLoading] = useState<boolean>(false);
-  const [validMeetings, setValidMeetings] = useState<MeetingObject[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filteredMeetings, setFilteredMeetings] = useState<MeetingObject[]>([]);
-  const [selectedMeetingToBroadcast, setSelectedMeetingToBroadcast] = useState<MeetingObject | null>(null);
-  const [broadcastingType, setBroadcastingType] = useState<number>(2); // 0: Low, 1: Balanced, 2: High
-  const [broadcastMeetingMode, setBroadcastMeetingMode] = useState<'full' | 'half'>('full');
 
   //Shared states
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -333,109 +317,10 @@ const LogAttendance: React.FC = () => {
     setRefreshing(false);
   };
 
-  const toggleBroadcasting = async () => {
-      console.log(`${DEBUG_PREFIX} Toggling broadcasting`, { isBroadcasting, selectedMeetingToBroadcast });
-      if (!isBroadcasting && !selectedMeetingToBroadcast) {
-        openToast({
-          title: 'No Meeting Selected',
-          description: 'Please select a meeting to broadcast.',
-          type: 'error',
-        });
-        return;
-      }
-  
-      setIsBroadcastingLoading(true);
-      try {
-        if (isBroadcasting) {
-          console.log(`${DEBUG_PREFIX} Attempting to stop broadcasting`);
-          await stopBroadcasting();
-        } else {
-          // Determine which meeting ID to broadcast based on mode:
-          let meetingIdToBroadcast = selectedMeetingToBroadcast!._id;
-          if (broadcastMeetingMode === 'half') {
-            const halfMeeting = getChildMeeting(selectedMeetingToBroadcast!._id);
-            if (!halfMeeting) {
-              openToast({
-                title: 'Half Meeting Not Available',
-                description: 'There is no half meeting available for this meeting.',
-                type: 'error',
-              });
-              setIsBroadcastingLoading(false);
-              return;
-            }
-            meetingIdToBroadcast = halfMeeting._id;
-          }
-    
-              const hasLocation = await handleLocationPermissions();
-              const hasBluetooth = await handleBluetoothPermissions();
-              if (!hasLocation || !hasBluetooth) {
-                setIsBroadcastingLoading(false);
-                return;
-              }
-              if (bluetoothState !== 'poweredOn') {
-                openToast({
-                  title: 'Bluetooth Required',
-                  description: 'Please enable Bluetooth to start broadcasting.',
-                  type: 'error',
-                });
-                Linking.openSettings();
-                setIsBroadcastingLoading(false);
-                return;
-              }
-              const majorValue = Number(meetingIdToBroadcast);
-              const minorValue = Number(user?._id);
-              console.log(`${DEBUG_PREFIX} Starting broadcasting`, { APP_UUID, majorValue, minorValue, meetingTitle: selectedMeetingToBroadcast!.title });
-              // Use existing broadcasting strength radio group values for power mode
-              // (Assuming broadcastingType is already handled in the radio group below)
-              // For this example, we simply use fixed values:
-              // Full broadcasting uses mode 2, high power (for example)
-              // Half broadcasting uses mode 0, low power (for example)
-              if (broadcastMeetingMode === 'full') {
-                await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeetingToBroadcast!.title, 2, 3);
-              } else {
-                await startBroadcasting(APP_UUID, majorValue, minorValue, selectedMeetingToBroadcast!.title, 0, 1);
-              }
-          }
-        } catch (error: any) {
-          Sentry.captureException(error);
-          console.error(`${DEBUG_PREFIX} Error toggling broadcasting`, error);
-          openToast({
-            title: 'Broadcast Error',
-            description: error.message || 'An unknown error occurred.',
-            type: 'error',
-          });
-        } finally {
-          setIsBroadcastingLoading(false);
-          console.log(`${DEBUG_PREFIX} Broadcasting toggle completed, loading state set to false`);
-        }
-    };
-
     //Effects
   useEffect(() => {
     fetchMeetings();
   }, []);
-
-  useEffect(() => {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const eligibleMeetings = meetings.filter(
-      (meeting) => currentTime >= meeting.time_start && currentTime <= meeting.time_end
-    );
-    const mainMeetings = eligibleMeetings.filter((meeting) => !meeting.parent);
-    setValidMeetings(mainMeetings);
-  }, [meetings]);
-
-  useEffect(() => {
-    if (!searchQuery) {
-      setFilteredMeetings(validMeetings);
-      return;
-    }
-    const filtered = validMeetings.filter((meeting) =>
-      meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meeting.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meeting.location.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredMeetings(filtered);
-  }, [searchQuery, validMeetings]);
 
   if (isLoadingMeetings || isUsersLoading) {
     return (
@@ -520,26 +405,6 @@ const LogAttendance: React.FC = () => {
                           </HStack>
                         </RadioGroup>
 
-                        <Divider className="my-2" />
-
-                        <View className={!isLead ? 'opacity-50' : ''} pointerEvents={!isLead ? 'none' : 'auto'}>
-                          <HStack className="justify-between items-center mb-2">
-                             <Text size="sm" className="font-semibold">Broadcast Strength</Text>
-                             {!isLead && (
-                               <View className="bg-gray-200 px-2 py-0.5 rounded-md">
-                                 <Text className="text-[10px] font-bold text-gray-500">LEADS ONLY</Text>
-                               </View>
-                             )}
-                          </HStack>
-                          <RadioGroup value={broadcastingType.toString()} onChange={(val) => setBroadcastingType(Number(val))}>
-                            <HStack space="md">
-                              <Radio value="0" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>Low</RadioLabel></Radio>
-                              <Radio value="1" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>Mid</RadioLabel></Radio>
-                              <Radio value="2" size="sm"><RadioIndicator><RadioIcon as={CircleIcon} /></RadioIndicator><RadioLabel>High</RadioLabel></Radio>
-                            </HStack>
-                          </RadioGroup>
-                        </View>
-
                       </VStack>
                     </AccordionContent>
                   </AccordionItem>
@@ -618,78 +483,6 @@ const LogAttendance: React.FC = () => {
               </Text>
             )}
           </VStack>
-        </View>
-
-        {/* 3. Card for broadcasting attendance */}
-        <View className={`bg-background-0 rounded-2xl shadow-lg border border-outline-100 p-5 ${!isLead ? 'opacity-50' : ''}`} pointerEvents={!isLead ? 'none' : 'auto'}>
-          <HStack className="justify-between items-center mb-4">
-            <Text className="text-xs font-medium text-typography-600 uppercase tracking-wide">
-              Host a Meeting
-            </Text>
-            {!isLead && (
-              <View className="bg-gray-200 px-2 py-1 rounded-md">
-                <Text className="text-xs font-bold text-gray-500">LEADS ONLY</Text>
-              </View>
-            )}
-          </HStack>
-
-          {isBroadcasting && selectedMeetingToBroadcast && (
-            <Text className="font-bold text-lg text-center mb-3">
-              Broadcasting: {selectedMeetingToBroadcast.title}
-            </Text>
-          )}
-
-          <Input variant="outline" size="sm" className="mb-3 rounded-lg">
-            <InputField 
-               value={searchQuery} 
-               onChangeText={setSearchQuery} 
-               placeholder="Search meetings..." 
-            />
-          </Input>
-
-          <ScrollView className="max-h-48 mb-4" nestedScrollEnabled>
-            {isLoadingMeetings ? (
-               <Spinner className="mt-4"/>
-            ) : filteredMeetings.length === 0 ? (
-               <Text className="text-center text-typography-500 mt-4 text-sm">No active meetings</Text>
-            ) : (
-               filteredMeetings.map((meeting) => (
-                 <Pressable key={meeting._id} onPress={() => setSelectedMeetingToBroadcast(meeting)}>
-                    <View className={`p-3 mb-2 rounded-lg border ${selectedMeetingToBroadcast?._id === meeting._id ? 'border-blue-500 bg-blue-50' : 'border-outline-200'}`}>
-                       <Text className="font-semibold">{meeting.title}</Text>
-                       <Text className="text-xs text-typography-600">{meeting.location}</Text>
-                    </View>
-                 </Pressable>
-               ))
-            )}
-          </ScrollView>
-
-          {selectedMeetingToBroadcast && (
-             <HStack space="md" className="mb-4">
-               <Pressable onPress={() => setBroadcastMeetingMode('full')} className={`flex-1 p-2 rounded-lg items-center ${broadcastMeetingMode === 'full' ? 'bg-blue-100 border border-blue-500' : 'bg-background-50 border border-outline-200'}`}>
-                 <Text className={broadcastMeetingMode === 'full' ? 'text-blue-700 font-bold' : ''}>Full Credit</Text>
-               </Pressable>
-               <Pressable onPress={() => setBroadcastMeetingMode('half')} className={`flex-1 p-2 rounded-lg items-center ${broadcastMeetingMode === 'half' ? 'bg-blue-100 border border-blue-500' : 'bg-background-50 border border-outline-200'}`}>
-                 <Text className={broadcastMeetingMode === 'half' ? 'text-blue-700 font-bold' : ''}>Half Credit</Text>
-               </Pressable>
-             </HStack>
-          )}
-
-          <Button
-            onPress={toggleBroadcasting}
-            className="rounded-xl h-12"
-            disabled={isBroadcastingLoading || (!isBroadcasting && !selectedMeetingToBroadcast) || locationStatus !== 'enabled' || bluetoothState !== 'poweredOn'}
-            style={{
-              backgroundColor: isBroadcasting ? '#fcf000' : (theme === 'light' ? '#111827' : '#374151')
-            }}
-          >
-            {isBroadcastingLoading ? <Spinner color={isBroadcasting ? 'black' : 'white'} /> : (
-              <ButtonText className="font-bold text-lg" style={{ color: isBroadcasting ? '#000000' : '#FFFFFF' }}>
-                {isBroadcasting ? 'Stop Broadcasting' : 'Start Broadcasting'}
-              </ButtonText>
-            )}
-          </Button>
-
         </View>
 
         {selectedBeacon && (

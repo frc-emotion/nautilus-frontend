@@ -1,7 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LogAttendance from "../screens/User/LogAttendance";
-import AttendanceHistoryScreen from "../screens/User/AttendanceHistoryScreen";
+import BroadcastAttendancePortal from "../screens/Leads/BroadcastAttendancePortal";
 import MeetingsScreen from "../screens/Leads/MeetingsScreen";
 import CreateMeetingButton from "../components/CreateMeetingButton";
 import { Roles } from "../Constants";
@@ -23,10 +23,10 @@ const AttendanceStackNavigator: React.FC = () => {
           title: "Attendance",
           headerRight: () => (
             <RoleBasedHeaderButton
-                onPress={() => navigation.navigate("AttendanceHistoryScreen")}
-                title="History"
-                requiredRoles={[Roles.Member, Roles.Leadership, Roles.Executive, Roles.Admin]}
-                style={{color: theme === "light" ? "black" : "white" }}
+              onPress={() => navigation.navigate("BroadcastMain")}
+              title="Broadcast"
+              requiredRoles={[Roles.Leadership, Roles.Executive, Roles.Admin]}
+              style={{ color: theme === "light" ? "black" : "white" }}
             />
           ),
           headerLeft: () => (
@@ -40,11 +40,11 @@ const AttendanceStackNavigator: React.FC = () => {
         })}
       />
       <Stack.Screen
-        name="AttendanceHistoryScreen"
-        component={AttendanceHistoryScreen}
+        name="BroadcastMain"
+        component={BroadcastAttendancePortal}
         options={{
           headerTitleAlign: "center",
-          title: "Attendance History",
+          title: "Broadcast",
         }}
       />
       <Stack.Screen
