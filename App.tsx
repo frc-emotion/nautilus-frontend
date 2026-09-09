@@ -21,6 +21,7 @@ import { AttendanceProvider } from "./src/utils/Context/AttendanceContext";
 import { UpdateProvider } from "./src/utils/Context/UpdateContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NotificationsProvider } from "./src/utils/Context/NotificationContext";
+import { AnnouncementNotificationsProvider } from "./src/utils/Notifications/AnnouncementNotifications";
 import { NetworkingProvider } from "./src/utils/Context/NetworkingContext";
 import { AppState } from "react-native";
 // import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
@@ -91,6 +92,7 @@ function AppContent() {
 
                 
                   <NotificationsProvider>
+                    <AnnouncementNotificationsProvider>
                     <UsersProvider>
                       <MeetingsProvider>
                         <AttendanceProvider>
@@ -123,6 +125,7 @@ function AppContent() {
                         </AttendanceProvider>
                       </MeetingsProvider>
                     </UsersProvider>
+                    </AnnouncementNotificationsProvider>
                   </NotificationsProvider>
                 
               </NavigationContainer>

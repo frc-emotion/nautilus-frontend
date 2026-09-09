@@ -22,14 +22,6 @@ const ScoutingStackNavigator: React.FC = () => {
                 options={({ navigation }) => ({
                     headerTitleAlign: "center",
                     title: "Scouting",
-                    headerLeft: () => (
-                        <RoleBasedHeaderButton
-                            onPress={() => navigation.navigate("DataViz")}
-                            title="Data Visualization"
-                            requiredRoles={[Roles.Member, Roles.Leadership, Roles.Executive, Roles.Admin]}
-                            style={{ color: theme === "light" ? "black" : "white" }}
-                        />
-                    ),
                     headerRight: () => (
                         <RoleBasedHeaderButton
                             onPress={() => navigation.navigate("PitScouting")}

@@ -31,6 +31,7 @@ import { Input, InputField } from '@/components/ui/input';
 import { Controller, set, useForm } from 'react-hook-form';
 import { useNetworking } from '@/src/utils/Context/NetworkingContext';
 import { useNotifications } from '@/src/utils/Context/NotificationContext';
+import { useAnnouncementNotifications } from '@/src/utils/Notifications/AnnouncementNotifications';
 import { Icon } from '@/components/ui/icon';
 import { Pressable } from '@/components/ui/pressable';
 
@@ -44,7 +45,7 @@ const HomeScreen: React.FC = () => {
     // Animation refs for premium feel
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(20)).current;
-    const [selectedYear, setSelectedYear] = useState<string>('All Years');// (currentYear); // ('All Years');
+    const [selectedYear, setSelectedYear] = useState<string>('2026-2027');// (currentYear); // ('All Years');
     const [selectedTerm, setSelectedTerm] = useState<string>('All Terms');//(currentTerm.toString()); // ('All Terms');
     const [availableYears, setAvailableYears] = useState<string[]>([]);
     const [termsByYear, setTermsByYear] = useState<{ [year: string]: string[] }>({});
@@ -54,6 +55,8 @@ const HomeScreen: React.FC = () => {
     const [semesterEndDate, setSemesterEndDate] = useState<Date | null>(null);
 
     const { updates, fetchUpdates, addUpdate, updateUpdate, removeUpdate } = useNotifications();
+    // Posts the announcement and pushes it to the team. See AnnouncementNotifications.tsx.
+    const { publishAnnouncement } = useAnnouncementNotifications();
     const [showNewsPopup, setShowNewsPopup] = useState(false);
 
     const [showEditNotis, setShowEditNotis] = useState(false);
@@ -502,17 +505,9 @@ const HomeScreen: React.FC = () => {
                             </AlertDialogBody>
                             <AlertDialogFooter className="flex justify-end space-x-3 pt-6">
                                 <HStack space="md">
-                                    <Button onPress={() => {
-                                        const newsValue = getValues("news").trim(); // Get and trim the input value
-                                        if (!newsValue) {
-                                            openToast({
-                                                title: "Error",
-                                                description: "News update cannot be empty.",
-                                                type: "error",
-                                            });
-                                            return;
-                                        }
-                                        addUpdate(newsValue);
+                                    <Button onPress={async () => {
+                                        const posted = await publishAnnouncement(getValues("news"));
+                                        if (!posted) return;
                                         setValue("news", "");
                                         setShowNewsPopup(false);
                                     }}
